@@ -103,7 +103,6 @@ export default function BookingManagement() {
         fetchBookings();
     }, [currentPage, searchTerm, startDate, endDate]);
 
-    // ✅ FILTER based on status (since backend not separated)
     const filteredBookings = bookings.filter(b => {
         if (type === 'ongoing') {
             return b.status === 'pending';

@@ -169,7 +169,6 @@ export default function DriverDetail() {
                 email: driver.email,
                 phone: driver.phone,
                 gender: driver.gender,
-                // Vehicle Info (often required by backend even on partial updates)
                 vehicle_model: driver.vehicle?.model,
                 vehicle_year: driver.vehicle?.year,
                 vehicle_color: driver.vehicle?.color,
@@ -488,7 +487,6 @@ export default function DriverDetail() {
                                 <h3 className="text-white font-[600] text-base">
                                     {tabs.find(t => t.id === activeTab)?.label}
                                 </h3>
-                                {/* Removed old edit button as it is now at the top right */}
                             </div>
 
                             {/* Content Body */}
