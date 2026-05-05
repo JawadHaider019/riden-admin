@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-audiowide: 'Audiowide', cursive;
+
+  /* Riden Brand Colors */
+  --color-riden-red: #D10000;
+  --color-riden-red-hover: #A30000;
+  --color-riden-pink-bg: #FDF2F2;
+  --color-riden-pink-header: #FFEEEE;
+
+  /* Status Colors */
+  --color-status-online-bg: #D1F8D3;
+  --color-status-online-text: #065F46;
+  --color-status-offline-bg: #FFE4E6;
+  --color-status-offline-text: #9F1239;
+  --color-status-active-bg: #e1f7ef;
+  --color-status-active-text: #10b981;
+
+  /* Shadows */
+  --shadow-riden: 0 10px 30px rgba(0, 0, 0, 0.1);
+  --shadow-riden-hover: 0 15px 35px rgba(0, 0, 0, 0.15);
+
+  /* Animations */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-up {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-scale-up: scale-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-right: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer utilities {
+  .clip-path-header {
+    clip-path: path('M 0 0 L 200 0 Q 40 5, 18 20 T 0 75 Z');
+  }
+
+  .riden-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .riden-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .riden-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+  }
+
+  .riden-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-white text-[#111] antialiased;
+    font-family: var(--font-sans);
+  }
+
+  b,
+  strong {
+    font-weight: 700 !important;
+  }
+}
