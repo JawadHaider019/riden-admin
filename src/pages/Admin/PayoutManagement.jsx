@@ -86,7 +86,7 @@ export default function PayoutManagement() {
                         </td>
                         <td className="py-[18px] px-[30px] text-[14px] font-[600] text-gray-500">{d.id}</td>
                         <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111]">{d.rides}</td>
-                        <td className="py-[18px] px-[30px] text-[14px] font-[700] text-[#111]">{d.amount}</td>
+                        <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111]">{d.amount}</td>
 
                         {view === 'payouts' && tab === 'previous' && (
                             <>
@@ -94,7 +94,7 @@ export default function PayoutManagement() {
                                     <div className="flex items-center gap-3">
                                         <span className="text-[14px] font-[600] text-[#111]">{d.date}</span>
                                         {d.instant && (
-                                            <span className="px-3 py-1 bg-[#D10000] text-white text-[10px] font-[700] rounded-lg uppercase">
+                                            <span className="px-3 py-1 bg-[#D10000] text-white text-[10px] font-[600] rounded-lg uppercase">
                                                 instant payout
                                             </span>
                                         )}
@@ -110,7 +110,7 @@ export default function PayoutManagement() {
 
                         {view === 'instant-requests' && (
                             <td className="py-[18px] px-[30px]">
-                                <button className="px-6 py-2 bg-[#ECFDF3] text-[#12B76A] text-[13px] font-[700] rounded-lg hover:bg-[#D1FADF] transition-all">
+                                <button className="px-6 py-2 bg-[#ECFDF3] text-[#12B76A] text-[13px] font-[600] rounded-lg hover:bg-[#D1FADF] transition-all">
                                     Approve
                                 </button>
                             </td>

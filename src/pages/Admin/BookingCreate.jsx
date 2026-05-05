@@ -10,7 +10,7 @@ import { getVehicles } from '@/api/vehicleApi';
 // Defined at module scope so React sees a stable component reference across renders
 const Field = ({ label, name, errors, required, children }) => (
     <div>
-        <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">
+        <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">
             {label}{required && ' *'}
         </Label>
         {children}
@@ -128,7 +128,7 @@ export default function BookingCreate() {
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Add New Booking</h1>
+                            <h1 className="text-2xl font-[600] text-gray-900 leading-tight">Add New Booking</h1>
                             <p className="text-sm text-gray-500 font-medium">Fill in the details to create a manual booking</p>
                         </div>
                     </div>
@@ -139,7 +139,7 @@ export default function BookingCreate() {
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-[3px] h-5 bg-[#D10000] rounded-full"></div>
-                                <h2 className="text-[17px] font-black text-gray-900 uppercase">User Assignment</h2>
+                                <h2 className="text-[17px] font-[600] text-gray-900 uppercase">User Assignment</h2>
                             </div>
                             <div className="space-y-4">
 
@@ -204,7 +204,7 @@ export default function BookingCreate() {
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-[3px] h-5 bg-[#D10000] rounded-full"></div>
-                                <h2 className="text-[17px] font-black text-gray-900 uppercase">Trip Details</h2>
+                                <h2 className="text-[17px] font-[600] text-gray-900 uppercase">Trip Details</h2>
                             </div>
                             <div className="space-y-4">
 

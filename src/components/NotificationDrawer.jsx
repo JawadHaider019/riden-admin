@@ -26,8 +26,8 @@ export default function NotificationDrawer({ isOpen, onClose }) {
                     <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-[#D10000]">
                         <div className="flex items-center gap-2">
                             <i className="bi bi-bell-fill text-white"></i>
-                            <h3 className="text-white font-bold text-lg">Notifications</h3>
-                            <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-black ml-1">5 NEW</span>
+                            <h3 className="text-white font-[600] text-lg">Notifications</h3>
+                            <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-[600] ml-1">5 NEW</span>
                         </div>
                         <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors text-white">
                             <i className="bi bi-x-lg text-lg"></i>
@@ -42,7 +42,7 @@ export default function NotificationDrawer({ isOpen, onClose }) {
                                     <i className={`bi ${notif.icon} text-lg`}></i>
                                 </div>
                                 <div className="flex flex-col">
-                                    <h4 className="text-sm font-bold text-gray-900 leading-snug">{notif.title}</h4>
+                                    <h4 className="text-sm font-[600] text-gray-900 leading-snug">{notif.title}</h4>
                                     <span className="text-[11px] font-semibold text-gray-400 mt-1 uppercase tracking-wider italic flex items-center gap-1">
                                         <i className="bi bi-clock text-[10px]"></i>
                                         {notif.time}
@@ -54,7 +54,7 @@ export default function NotificationDrawer({ isOpen, onClose }) {
 
                     {/* Footer */}
                     <div className="p-4 border-t flex justify-end border-gray-100">
-                        <button className="w-fit  py-2 px-4 rounded-full bg-[#D10000] hover:bg-[#D10000]/90 text-white font-bold text-xs uppercase transition-colors">
+                        <button className="w-fit  py-2 px-4 rounded-full bg-[#D10000] hover:bg-[#D10000]/90 text-white font-[600] text-xs uppercase transition-colors">
                             Mark all as read
                         </button>
                     </div>

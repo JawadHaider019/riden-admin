@@ -57,7 +57,7 @@ export default function AdminDetail() {
             <AdminLayout title="User Management">
                 <div className="text-center py-20">
                     <p className="text-gray-500">Admin not found.</p>
-                    <Link to="/users" className="text-[#D10000] hover:underline mt-4 inline-block font-bold">Back to List</Link>
+                    <Link to="/users" className="text-[#D10000] hover:underline mt-4 inline-block font-[600]">Back to List</Link>
                 </div>
             </AdminLayout>
         );
@@ -71,10 +71,10 @@ export default function AdminDetail() {
                         <i className="bi bi-chevron-left text-sm"></i>
                     </Link>
                     <div className="flex-grow">
-                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Admin Profile Details</h2>
+                        <h2 className="text-xl font-[600] text-gray-900 tracking-tight">Admin Profile Details</h2>
                     </div>
                     <Link to={`/users/edit/${id}`}>
-                        <button className="px-6 py-2 bg-black text-white rounded-full text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors">
+                        <button className="px-6 py-2 bg-black text-white rounded-full text-sm font-[600] uppercase tracking-widest hover:bg-gray-800 transition-colors">
                             Edit Profile
                         </button>
                     </Link>
@@ -82,46 +82,46 @@ export default function AdminDetail() {
 
                 <div className="bg-white rounded-[30px] shadow-sm border border-[#E5E7EB] p-6">
                     {/* Admin Details Section */}
-                    <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                         Admin Details
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 mb-8">
                         <div>
-                            <Label className="text-gray-500 font-bold">Name</Label>
+                            <Label className="text-gray-500 font-[600]">Name</Label>
                             <InputWrapper icon="bi bi-person" className="bg-gray-50 border-transparent">
-                                <div className="py-2.5 px-1 text-sm font-bold text-gray-900">{admin.name}</div>
+                                <div className="py-2.5 px-1 text-sm font-[600] text-gray-900">{admin.name}</div>
                             </InputWrapper>
                         </div>
 
                         <div>
-                            <Label className="text-gray-500 font-bold">Email</Label>
+                            <Label className="text-gray-500 font-[600]">Email</Label>
                             <InputWrapper icon="bi bi-envelope" className="bg-gray-50 border-transparent">
-                                <div className="py-2.5 px-1 text-sm font-bold text-gray-900">{admin.email}</div>
+                                <div className="py-2.5 px-1 text-sm font-[600] text-gray-900">{admin.email}</div>
                             </InputWrapper>
                         </div>
 
                         <div>
-                            <Label className="text-gray-500 font-bold">Phone Number</Label>
+                            <Label className="text-gray-500 font-[600]">Phone Number</Label>
                             <InputWrapper className="flex items-center gap-4 bg-gray-50 border-transparent">
                                 <div className="flex items-center gap-2 py-1">
                                     <img src="https://flagcdn.com/w40/ca.png" alt="CA" className="w-5" />
-                                    <span className="text-[14px] font-bold text-gray-900">{admin.country_code}</span>
+                                    <span className="text-[14px] font-[600] text-gray-900">{admin.country_code}</span>
                                 </div>
-                                <div className="flex-grow py-2.5 text-sm font-bold text-gray-900">
+                                <div className="flex-grow py-2.5 text-sm font-[600] text-gray-900">
                                     {admin.phone ? admin.phone.replace(/^\+1/, '') : 'Not provided'}
                                 </div>
                             </InputWrapper>
                         </div>
 
                         <div className="mt-4">
-                            <Label className="text-gray-500 font-bold mb-2">Role Status</Label>
+                            <Label className="text-gray-500 font-[600] mb-2">Role Status</Label>
                             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${admin.is_super ? 'bg-[#D10000] border-[#D10000]' : 'bg-white border-gray-300'}`}>
                                     {admin.is_super && <i className="bi bi-check text-white text-xs"></i>}
                                 </div>
                                 <div>
-                                    <span className="text-[14px] font-bold text-gray-900">Super Admin</span>
+                                    <span className="text-[14px] font-[600] text-gray-900">Super Admin</span>
                                     <p className="text-xs text-gray-500">{admin.is_super ? 'Has full system access' : 'Restricted access based on modules'}</p>
                                 </div>
                             </div>
@@ -129,7 +129,7 @@ export default function AdminDetail() {
                     </div>
 
                     {/* Access Module Section */}
-                    <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                         Assigned Access Modules
                     </div>
 
@@ -141,7 +141,7 @@ export default function AdminDetail() {
                                     <div className={`w-5 h-5 border-2 rounded-md flex items-center justify-center transition-all ${isAssigned ? 'bg-[#D10000] border-[#D10000]' : 'bg-gray-100 border-gray-200'}`}>
                                         {isAssigned && <i className="bi bi-check text-white text-xs"></i>}
                                     </div>
-                                    <span className={`text-[13px] font-bold uppercase tracking-tight ${isAssigned ? 'text-gray-900' : 'text-gray-400'}`}>
+                                    <span className={`text-[13px] font-[600] uppercase tracking-tight ${isAssigned ? 'text-gray-900' : 'text-gray-400'}`}>
                                         {module}
                                     </span>
                                 </div>

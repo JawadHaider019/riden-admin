@@ -39,7 +39,7 @@ export default function Header({ title, isCollapsed, onNotificationClick }) {
 
             <div className="h-full flex items-center justify-between px-8 relative">
                 <div className="flex items-center gap-3">
-                    <div className="text-[20px] lg:text-[24px] font-black text-gray-900 leading-none tracking-tighter uppercase italic">
+                    <div className="text-[20px] lg:text-[24px] font-[600] text-gray-900 leading-none tracking-tighter uppercase italic">
                         {title || 'Dashboard'}
                     </div>
                 </div>
@@ -53,7 +53,7 @@ export default function Header({ title, isCollapsed, onNotificationClick }) {
                         aria-label="Notifications"
                     >
                         <i className="bi bi-bell transition-transform group-hover:rotate-12"></i>
-                        <span className="absolute top-2 right-2 w-4 h-4 bg-[#D10000] border-2 border-white rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm">
+                        <span className="absolute top-2 right-2 w-4 h-4 bg-[#D10000] border-2 border-white rounded-full flex items-center justify-center text-[8px] font-[600] text-white shadow-sm">
                             5
                         </span>
                     </button>
@@ -61,8 +61,8 @@ export default function Header({ title, isCollapsed, onNotificationClick }) {
                     {/* User Profile */}
                     <Link to="/profile" className="flex items-center gap-3 group px-2 py-1.5 rounded-2xl hover:bg-gray-50 transition-all">
                         <div className="hidden md:flex flex-col text-right">
-                            <span className="text-xs font-black text-gray-900 tracking-tighter uppercase mb-0.5">{truncatedName}</span>
-                            <span className="text-[10px] font-bold text-[#D10000] uppercase tracking-widest">{admin?.is_super ? 'Super Admin' : 'Admin'}</span>
+                            <span className="text-xs font-[600] text-gray-900 tracking-tighter uppercase mb-0.5">{truncatedName}</span>
+                            <span className="text-[10px] font-[600] text-[#D10000] uppercase tracking-widest">{admin?.is_super ? 'Super Admin' : 'Admin'}</span>
                         </div>
                         <div className="relative">
                             <img

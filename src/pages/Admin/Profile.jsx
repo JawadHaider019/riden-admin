@@ -51,7 +51,7 @@ export default function AdminProfile() {
                     {/* Profile Header section with Avatar */}
                     <div className="flex items-center  gap-6 px-4 mb-4 pb-4 border-b border-gray-100 ">
                         <Link to="/" className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-white hover:bg-gray-200 transition-colors mb-6">
-                            <span className="text-xl font-bold text-gray-500">  <i className="bi bi-chevron-left"></i></span>
+                            <span className="text-xl font-[600] text-gray-500">  <i className="bi bi-chevron-left"></i></span>
                         </Link>
 
 
@@ -63,42 +63,42 @@ export default function AdminProfile() {
 
 
                         <div>
-                            <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">{admin?.name || 'Admin User'}</h2>
-                            <span className="text-[14px] font-bold text-[#D10000] uppercase tracking-widest">{admin?.role || 'Administrator'}</span>
+                            <h2 className="text-3xl font-[600] text-gray-900 tracking-tighter uppercase italic">{admin?.name || 'Admin User'}</h2>
+                            <span className="text-[14px] font-[600] text-[#D10000] uppercase tracking-widest">{admin?.role || 'Administrator'}</span>
                         </div>
                     </div>
 
                     {/* Admin Details Section */}
-                    <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-6 flex items-center gap-2">
                         My Personal Details
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 mb-12">
                         <div>
-                            <Label className="text-gray-500 font-bold uppercase tracking-tight">Full Name</Label>
+                            <Label className="text-gray-500 font-[600] uppercase tracking-tight">Full Name</Label>
                             <InputWrapper icon="bi bi-person" className="bg-gray-50 border-transparent">
-                                <div className="py-2.5 px-1 text-sm font-bold text-gray-900">{admin?.name || 'N/A'}</div>
+                                <div className="py-2.5 px-1 text-sm font-[600] text-gray-900">{admin?.name || 'N/A'}</div>
                             </InputWrapper>
                         </div>
 
                         <div>
-                            <Label className="text-gray-500 font-bold uppercase tracking-tight">Email Address</Label>
+                            <Label className="text-gray-500 font-[600] uppercase tracking-tight">Email Address</Label>
                             <InputWrapper icon="bi bi-envelope" className="bg-gray-50 border-transparent">
-                                <div className="py-2.5 px-1 text-sm font-bold text-gray-900">{admin?.email || 'N/A'}</div>
+                                <div className="py-2.5 px-1 text-sm font-[600] text-gray-900">{admin?.email || 'N/A'}</div>
                             </InputWrapper>
                         </div>
 
                         <div>
-                            <Label className="text-gray-500 font-bold uppercase tracking-tight">Phone Number</Label>
+                            <Label className="text-gray-500 font-[600] uppercase tracking-tight">Phone Number</Label>
                             <InputWrapper icon="bi bi-telephone" className="bg-gray-50 border-transparent">
-                                <div className="py-2.5 px-1 text-sm font-bold text-gray-900">{admin?.phone || 'N/A'}</div>
+                                <div className="py-2.5 px-1 text-sm font-[600] text-gray-900">{admin?.phone || 'N/A'}</div>
                             </InputWrapper>
                         </div>
 
                         <div>
-                            <Label className="text-gray-500 font-bold uppercase tracking-tight">Account Status</Label>
+                            <Label className="text-gray-500 font-[600] uppercase tracking-tight">Account Status</Label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 text-xs font-black uppercase tracking-widest border border-green-100">
+                                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 text-xs font-[600] uppercase tracking-widest border border-green-100">
                                     <i className="bi bi-patch-check-fill"></i>
                                     Verified Account
                                 </span>
@@ -107,7 +107,7 @@ export default function AdminProfile() {
                     </div>
 
                     {/* Access Module Section */}
-                    <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-6 flex items-center gap-2">
                         My Authorized Modules
                     </div>
 
@@ -122,7 +122,7 @@ export default function AdminProfile() {
                                     <div className={`w-5 h-5 border-2 rounded-md flex items-center justify-center transition-all ${isAssigned ? 'bg-[#D10000] border-[#D10000]' : 'bg-gray-50 border-gray-200'}`}>
                                         {isAssigned && <i className="bi bi-check text-white text-xs"></i>}
                                     </div>
-                                    <span className={`text-[13px] font-bold uppercase tracking-tight transition-colors ${isAssigned ? 'text-gray-900' : 'text-gray-300'}`}>
+                                    <span className={`text-[13px] font-[600] uppercase tracking-tight transition-colors ${isAssigned ? 'text-gray-900' : 'text-gray-300'}`}>
                                         {module}
                                     </span>
                                 </div>
@@ -132,7 +132,7 @@ export default function AdminProfile() {
 
                     {admin?.is_super && (
                         <div className="mt-8 px-4 py-4 bg-red-50 rounded-2xl border border-red-100">
-                            <p className="text-xs font-bold text-[#D10000] uppercase tracking-widest flex items-center gap-2">
+                            <p className="text-xs font-[600] text-[#D10000] uppercase tracking-widest flex items-center gap-2">
                                 <i className="bi bi-shield-lock-fill text-lg"></i>
                                 Super Admin Privilege Active
                             </p>

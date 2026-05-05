@@ -188,7 +188,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                                                     toggleSubmenu(e, item.label);
                                                 }
                                             }}
-                                            className={`flex items-center gap-2 py-1 px-3 rounded-r-full text-[12px] font-[700] transition-all duration-300 relative group overflow-hidden w-full ${isHighlighted
+                                            className={`flex items-center gap-2 py-1 px-3 rounded-r-full text-[12px] font-[600] transition-all duration-300 relative group overflow-hidden w-full ${isHighlighted
                                                 ? 'bg-white text-[#D10000]'
                                                 : 'text-white/90 hover:bg-white/10'
                                                 }`}
@@ -207,7 +207,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                                     ) : (
                                         <Link
                                             to={item.href}
-                                            className={`flex items-center gap-2 py-1 px-3 rounded-r-full text-[12px] font-[700] transition-all duration-300 relative group overflow-hidden ${isActive
+                                            className={`flex items-center gap-2 py-1 px-3 rounded-r-full text-[12px] font-[600] transition-all duration-300 relative group overflow-hidden ${isActive
                                                 ? 'bg-white text-[#D10000]'
                                                 : 'text-white/90 hover:bg-white/10'
                                                 }`}
@@ -236,7 +236,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                                                             key={idx}
                                                             to={sub.href}
                                                             className={`py-2 px-3 rounded-r-full text-[12.5px] font-[600] transition-all relative ${subActive
-                                                                ? 'text-white font-[800] bg-white/20'
+                                                                ? 'text-white font-[600] bg-white/20'
                                                                 : 'text-white/70 hover:text-white hover:bg-white/5'
                                                                 }`}
                                                         >
@@ -256,7 +256,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                 <div className="mt-auto p-2 border-t border-white/10">
                     <button
                         onClick={handleLogout}
-                        className={`w-full flex items-center gap-4  py-2 px-3 rounded-full bg-white text-[#D10000] font-[800] text-[14px] transition-all duration-300 ${isCollapsed ? 'justify-center' : 'hover:bg-red-500 hover:text-white'}`}
+                        className={`w-full flex items-center gap-4  py-2 px-3 rounded-full bg-white text-[#D10000] font-[600] text-[14px] transition-all duration-300 ${isCollapsed ? 'justify-center' : 'hover:bg-red-500 hover:text-white'}`}
                         title="Logout"
                     >
                         <i className="bi bi-box-arrow-right text-lg w-[24px] text-center shrink-0" aria-hidden="true"></i>

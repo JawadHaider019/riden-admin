@@ -128,16 +128,16 @@ export default function BookingDetail() {
                         <Link to="/bookings" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors bg-white">
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
-                        <h2 className="text-xl font-black text-gray-900">Booking Detail</h2>
+                        <h2 className="text-xl font-[600] text-gray-900">Booking Detail</h2>
                     </div>
 
                     <Badge variant={statusVariant}>{booking.statusLabel}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-black text-gray-900 shadow-sm">
+                    <span className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-[600] text-gray-900 shadow-sm">
                         Booking ID : {booking.id}
                     </span>
-                    <span className="text-sm font-bold text-gray-500">{booking.date}</span>
+                    <span className="text-sm font-[600] text-gray-500">{booking.date}</span>
 
                 </div>
 
@@ -166,7 +166,7 @@ export default function BookingDetail() {
                             <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="bg-[#D10000] px-5 py-3 flex items-center gap-2">
                                     <i className="bi bi-star-fill text-white text-sm"></i>
-                                    <h5 className="text-white font-bold text-sm">Ratings & Reviews</h5>
+                                    <h5 className="text-white font-[600] text-sm">Ratings & Reviews</h5>
                                 </div>
                                 <div className="p-5">
                                     <div className="flex items-center gap-2 mb-3">
@@ -175,7 +175,7 @@ export default function BookingDetail() {
                                                 <i key={s} className={`bi bi-star${s <= booking.rating ? '-fill' : ''} text-sm`}></i>
                                             ))}
                                         </div>
-                                        <span className="text-xs font-bold text-gray-500">({booking.rating}.0)</span>
+                                        <span className="text-xs font-[600] text-gray-500">({booking.rating}.0)</span>
                                     </div>
                                     <p className="text-sm text-gray-600 font-medium leading-relaxed">{booking.reviewText}</p>
                                 </div>
@@ -184,7 +184,7 @@ export default function BookingDetail() {
                             <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="bg-[#D10000] px-5 py-3 flex items-center gap-2">
                                     <i className="bi bi-cash-coin text-white text-sm"></i>
-                                    <h5 className="text-white font-bold text-sm">Tip</h5>
+                                    <h5 className="text-white font-[600] text-sm">Tip</h5>
                                 </div>
                                 <div className="p-5">
                                     <p className="text-sm text-gray-600 font-medium leading-relaxed">{booking.tip}</p>
@@ -198,7 +198,7 @@ export default function BookingDetail() {
                         <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden">
                             <div className="bg-[#D10000] px-5 py-3 flex items-center gap-2">
                                 <i className="bi bi-x-circle-fill text-white text-sm"></i>
-                                <h5 className="text-white font-bold text-sm">Cancellation Reason</h5>
+                                <h5 className="text-white font-[600] text-sm">Cancellation Reason</h5>
                             </div>
                             <div className="p-5">
                                 <p className="text-sm text-gray-600 font-medium leading-relaxed">{booking.cancellationReason}</p>
@@ -213,12 +213,12 @@ export default function BookingDetail() {
 
                     <div className="bg-white rounded-[22px] border border-gray-100 shadow-sm overflow-hidden">
                         <div className="px-6 pt-5 pb-2">
-                            <h3 className="text-lg font-black text-gray-900 mb-4">{booking.title}</h3>
+                            <h3 className="text-lg font-[600] text-gray-900 mb-4">{booking.title}</h3>
 
                             {/* Driver Section */}
                             <div className="mb-3">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
-                                    <span className="text-white font-bold text-xs uppercase tracking-wider">Driver</span>
+                                    <span className="text-white font-[600] text-xs uppercase tracking-wider">Driver</span>
                                 </div>
                                 <div className="flex items-center justify-between px-1">
                                     <div className="flex items-center gap-3">
@@ -229,7 +229,7 @@ export default function BookingDetail() {
                                             onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${booking.driver.name}&background=random`; }}
                                         />
                                         <div>
-                                            <p className="text-sm font-black text-gray-900">{booking.driver.name}</p>
+                                            <p className="text-sm font-[600] text-gray-900">{booking.driver.name}</p>
                                             <p className="text-xs text-gray-400 font-medium">{booking.driver.rides} Rides ({booking.driver.reviews} reviews)</p>
                                         </div>
                                     </div>
@@ -253,11 +253,11 @@ export default function BookingDetail() {
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
-                                            <span className="font-bold text-gray-900">{booking.vehicle.name}</span>
+                                            <span className="font-[600] text-gray-900">{booking.vehicle.name}</span>
                                         </div>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">License Plate:</span>
-                                            <span className="text-xs font-black text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">{booking.vehicle.vehNo}</span>
+                                            <span className="text-xs text-gray-400 font-[600] uppercase tracking-wider">License Plate:</span>
+                                            <span className="text-xs font-[600] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">{booking.vehicle.vehNo}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -266,20 +266,20 @@ export default function BookingDetail() {
                             {/* Booking Details */}
                             <div className="mb-3">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
-                                    <span className="text-white font-bold text-xs uppercase tracking-wider">Booking Details</span>
+                                    <span className="text-white font-[600] text-xs uppercase tracking-wider">Booking Details</span>
                                 </div>
                                 <div className="relative pl-6 mb-3">
                                     <div className="absolute left-[3px] top-[14px] bottom-[14px] border-l-2 border-dashed border-gray-200"></div>
                                     <div className="relative mb-4">
                                         <div className="absolute -left-[27px] top-[5px] w-[10px] h-[10px] bg-black rounded-full"></div>
-                                        <p className="text-sm font-black text-gray-900">{booking.pickup.label}</p>
+                                        <p className="text-sm font-[600] text-gray-900">{booking.pickup.label}</p>
                                         <p className="text-xs text-gray-400 font-medium">{booking.pickup.address}</p>
                                     </div>
                                     <div className="relative">
                                         <div className="absolute -left-[30px] top-[3px] text-[#D10000]">
                                             <i className="bi bi-geo-alt-fill text-base"></i>
                                         </div>
-                                        <p className="text-sm font-black text-gray-900">{booking.dropoff.label}</p>
+                                        <p className="text-sm font-[600] text-gray-900">{booking.dropoff.label}</p>
                                         <p className="text-xs text-gray-400 font-medium">{booking.dropoff.address}</p>
                                     </div>
                                 </div>
@@ -287,18 +287,18 @@ export default function BookingDetail() {
                                 {/* Metrics */}
                                 <div className="flex justify-around border-t border-gray-50 pt-4 pb-2">
                                     <div className="text-center">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">EST Distance</p>
-                                        <p className="text-sm font-black text-gray-900">{booking.distance}</p>
+                                        <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">EST Distance</p>
+                                        <p className="text-sm font-[600] text-gray-900">{booking.distance}</p>
                                     </div>
                                     <div className="w-px bg-gray-100"></div>
                                     <div className="text-center">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">EST Time</p>
-                                        <p className="text-sm font-black text-gray-900">{booking.time}</p>
+                                        <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">EST Time</p>
+                                        <p className="text-sm font-[600] text-gray-900">{booking.time}</p>
                                     </div>
                                     <div className="w-px bg-gray-100"></div>
                                     <div className="text-center">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">EST Fare</p>
-                                        <p className="text-sm font-black text-[#D10000]">{booking.fare}</p>
+                                        <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">EST Fare</p>
+                                        <p className="text-sm font-[600] text-[#D10000]">{booking.fare}</p>
                                     </div>
                                 </div>
                             </div>
@@ -306,7 +306,7 @@ export default function BookingDetail() {
                             {/* Passenger Section */}
                             <div className="mb-4">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
-                                    <span className="text-white font-bold text-xs uppercase tracking-wider">Passenger</span>
+                                    <span className="text-white font-[600] text-xs uppercase tracking-wider">Passenger</span>
                                 </div>
                                 <div className="flex items-center gap-3 px-1">
                                     <img
@@ -316,7 +316,7 @@ export default function BookingDetail() {
                                         onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${booking.passenger.name}&background=random`; }}
                                     />
                                     <div>
-                                        <p className="text-sm font-black text-gray-900">{booking.passenger.name}</p>
+                                        <p className="text-sm font-[600] text-gray-900">{booking.passenger.name}</p>
                                         <p className="text-xs text-gray-400 font-medium">{booking.passenger.rides} Rides ({booking.passenger.reviews} reviews)</p>
                                     </div>
                                 </div>
@@ -324,10 +324,10 @@ export default function BookingDetail() {
 
                             {/* Payment Method */}
                             <div className="flex items-center justify-between px-1 py-4 border-t border-gray-50">
-                                <span className="text-sm font-bold text-gray-500">Payment Method</span>
+                                <span className="text-sm font-[600] text-gray-500">Payment Method</span>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-bold italic tracking-wider">VISA</div>
-                                    <span className="text-sm font-bold text-gray-900">••••••••{booking.payment.last4}</span>
+                                    <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-[600] italic tracking-wider">VISA</div>
+                                    <span className="text-sm font-[600] text-gray-900">••••••••{booking.payment.last4}</span>
                                 </div>
                             </div>
                         </div>

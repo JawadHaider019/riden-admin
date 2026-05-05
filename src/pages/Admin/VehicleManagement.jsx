@@ -1,32 +1,101 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Pagination, useToast } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Pagination, useToast, DateRangePicker, DatePickerStyles, Tooltip } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { getVehicles } from '@/api/vehicleApi';
+import { getDrivers } from '@/api/driverApi';
 import { STORAGE_URL, getImageUrl } from '@/api/api';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 
 export default function VehicleManagement() {
+    const [exportOpen, setExportOpen] = useState(false);
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [totalItems, setTotalItems] = useState(0);
     const { showToast } = useToast();
+    const [driverMap, setDriverMap] = useState({});
     const navigate = useNavigate();
+    const exportRef = useRef(null);
+
+    // Click outside to close export dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportRef.current && !exportRef.current.contains(event.target)) {
+                setExportOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const fetchVehicles = async () => {
         try {
             setLoading(true);
             const params = {
                 page: currentPage,
-                // Commented out search to avoid the backend SQL error you were getting
-                // search: searchTerm 
+                search: searchTerm,
+                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
             };
             const res = await getVehicles(params);
             const paginationDetails = res.data || res;
+            let vehicleList = paginationDetails?.data || [];
 
-            setVehicles(paginationDetails?.data || []);
-            setTotalItems(paginationDetails?.total || 0);
+            // Apply local date filter in case backend ignores the start_date/end_date params
+            if (startDate || endDate) {
+                vehicleList = vehicleList.filter(v => {
+                    const vDate = new Date(v.created_at || v.updated_at || new Date());
+                    vDate.setHours(0, 0, 0, 0);
+                    let isMatch = true;
+
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        sDate.setHours(0, 0, 0, 0);
+                        if (vDate < sDate) isMatch = false;
+                    }
+
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        eDate.setHours(0, 0, 0, 0);
+                        if (vDate > eDate) isMatch = false;
+                    }
+
+                    return isMatch;
+                });
+            }
+
+            setVehicles(vehicleList);
+            setTotalItems(paginationDetails?.total || vehicleList.length);
+
+            // Fetch driver names for the IDs present in this page
+            const uniqueDriverIds = [...new Set(vehicleList.map(v => v.driver_id).filter(id => id))];
+            if (uniqueDriverIds.length > 0) {
+                try {
+                    // Fetch drivers list to get names. 
+                    // Note: If pagination is an issue, we might need a specifically tailored endpoint or fetch all.
+                    // For now, we fetch one page of drivers which should cover most cases if drivers are fewer.
+                    const driversRes = await getDrivers({ limit: 100 });
+                    const allDrivers = driversRes.data?.data || driversRes.data || [];
+
+                    const newMap = { ...driverMap };
+                    allDrivers.forEach(d => {
+                        newMap[d.id] = {
+                            name: (d.first_name || d.name) + (d.last_name ? ` ${d.last_name}` : ''),
+                            phone: d.phone,
+                            email: d.email,
+                            id: d.id
+                        };
+                    });
+                    setDriverMap(newMap);
+                } catch (err) {
+                    console.error("Error fetching driver names:", err);
+                }
+            }
         } catch (error) {
             console.error("Error fetching vehicles:", error);
             showToast(error.response?.data?.message || error.message, 'error');
@@ -40,26 +109,138 @@ export default function VehicleManagement() {
             fetchVehicles();
         }, 400);
         return () => clearTimeout(delay);
-    }, [currentPage, searchTerm]);
+    }, [currentPage, searchTerm, startDate, endDate]);
+
+    const handleExport = async (exportFormat) => {
+        try {
+            showToast("Preparing export data...", "info");
+
+            // Fetch all data for export (matching filters)
+            const params = {
+                limit: 1000,
+                search: searchTerm,
+                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+            };
+
+            const res = await getVehicles(params);
+            let rawData = res.data?.data || res.data || [];
+
+            if (startDate || endDate) {
+                rawData = rawData.filter(v => {
+                    const vDate = new Date(v.created_at || v.updated_at || new Date());
+                    vDate.setHours(0, 0, 0, 0);
+                    let isMatch = true;
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        sDate.setHours(0, 0, 0, 0);
+                        if (vDate < sDate) isMatch = false;
+                    }
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        eDate.setHours(0, 0, 0, 0);
+                        if (vDate > eDate) isMatch = false;
+                    }
+                    return isMatch;
+                });
+            }
+
+            if (rawData.length === 0) {
+                showToast("No data to export", "error");
+                return;
+            }
+
+            const headers = ["ID", "Driver Name", "Car Name", "Year", "Color", "License Plate", "Type", "Seats", "Status"];
+            const formattedData = rawData.map(v => [
+                v.id,
+                driverMap[v.driver_id]?.name || v.driver_id || 'N/A',
+                v.model,
+                v.year,
+                v.color,
+                v.license_plate,
+                v.vehicle_type,
+                v.no_of_seats || 'N/A',
+                v.status?.toUpperCase() || 'ACTIVE'
+            ]);
+
+            const filename = `vehicle_report_${new Date().toISOString().split('T')[0]}`;
+            const title = "Vehicle Inventory & Fleet Report";
+
+            if (exportFormat === 'csv') {
+                exportToCSV(formattedData, filename, headers);
+            } else if (exportFormat === 'xlsx') {
+                exportToExcel(formattedData, filename, headers);
+            } else if (exportFormat === 'pdf') {
+                exportToPDF(formattedData, filename, headers, title);
+            }
+
+            showToast("Report generated successfully", "success");
+        } catch (error) {
+            console.error("Export Error:", error);
+            showToast("Failed to generate report", "error");
+        } finally {
+            setExportOpen(false);
+        }
+    };
 
     return (
         <AdminLayout title="Vehicle Management">
+            <DatePickerStyles />
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <SearchBar
-                    placeholder="Search disabled (Backend Fix Required)..."
+                    placeholder="Search by name, email, phone number"
                     className="w-full md:w-96 opacity-50 cursor-not-allowed"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    disabled
+
                 />
-                <div className="flex gap-4 w-full md:w-auto">
-                    <Button variant="pill" className="flex-1 lg:flex-none" onClick={() => navigate('/vehicles/create')}>
-                        <i className="bi bi-person-plus-fill"></i> Add Vehicle
-                    </Button>
+
+                <div className="flex items-center gap-1 w-full lg:w-auto">
+
+
+                    <DateRangePicker
+                        startDate={startDate}
+                        endDate={endDate}
+                        onStartDateChange={setStartDate}
+                        onEndDateChange={setEndDate}
+                    />
+                    <div className="relative" ref={exportRef}>
+                        <button
+                            onClick={() => setExportOpen(!exportOpen)}
+                            className="flex rounded-full items-center gap-1 px-4 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[600] text-[#111] hover:bg-gray-50 transition-all"
+                        >
+                            <i className="bi bi-file-earmark-excel-fill text-[#1D7E4D]"></i> Export
+                            <i className={`bi bi-chevron-down text-[#1D7E4D] text-sm transition-all ${exportOpen ? 'rotate-180' : ''}`}></i>
+                        </button>
+                        {exportOpen && (
+                            <div className="absolute right-0 mt-2 w-44 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg overflow-hidden py-1 z-10 transition-all animate-fade-in">
+                                <button
+                                    onClick={() => handleExport('csv')}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] border-b border-[#F3F4F6] transition-colors"
+                                >
+                                    <i className="bi bi-filetype-csv mr-2 text-[#1D7E4D]"></i> CSV Format
+                                </button>
+                                <button
+                                    onClick={() => handleExport('pdf')}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors"
+                                >
+                                    <i className="bi bi-filetype-pdf mr-2 text-[#E72929]"></i> PDF Format
+                                </button>
+                                <button
+                                    onClick={() => handleExport('xlsx')}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors border-t border-[#F3F4F6]"
+                                >
+                                    <i className="bi bi-file-earmark-excel-fill mr-2 text-[#1D7E4D]"></i> Excel Format
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+
                 </div>
             </div>
 
-            <Table headers={['Car Image', 'Driver ID', 'Car Name', 'Model Year', 'License Plate', 'Category', 'No of Seats']}>
+            <Table headers={['Car Image', 'Driver Name', 'Car Name', 'Model Year', 'License Plate', 'Category', 'No of Seats']}>
                 {loading ? (
                     <tr>
                         <td colSpan="7" className="text-center py-10">
@@ -84,33 +265,50 @@ export default function VehicleManagement() {
                                     {(v.front_image || v.back_image) ? (
                                         <img src={getImageUrl(v.front_image || v.back_image)} className="w-full h-full object-cover" alt={v.model} />
                                     ) : (
-                                        <span className="text-[10px] font-bold text-gray-300 uppercase text-center">No Image</span>
+                                        <span className="text-[10px] font-[600] text-gray-300 uppercase text-center">No Image</span>
                                     )}
                                 </div>
                             </td>
-                            <td className="py-[18px] px-[30px]">
-                                <span className="text-[14px] font-[800] text-[#111] border-b-2 border-dashed border-gray-200 pb-0.5">
-                                    {v.driver_id}
-                                </span>
+                            <td className="py-[18px] px-[30px]" onClick={(e) => e.stopPropagation()}>
+                                <Tooltip content={(
+                                    <div className="flex flex-col gap-1 py-1">
+                                        <div className="flex justify-between items-center gap-2">
+                                            <span className="text-gray-500 font-[600] uppercase text-[9px]">ID</span>
+                                            <span className="font-[600] text-[#D10000] text-[11px] tracking-tight">#{driverMap[v.driver_id]?.id || v.driver_id}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center gap-2 border-t border-red-100 pt-1">
+                                            <span className="text-gray-500 font-[600] uppercase text-[9px]">Phone</span>
+                                            <span className="font-[600] text-[#111] text-[11px] tracking-tight">{driverMap[v.driver_id]?.phone || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center gap-2 border-t border-red-100 pt-1">
+                                            <span className="text-gray-500 font-[600] uppercase text-[9px]">Email</span>
+                                            <span className="font-[600] text-[#111] text-[11px] tracking-tight lowercase">{driverMap[v.driver_id]?.email || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                )}>
+                                    <span className="text-[14px] font-[600] text-[#111] pb-0.5 cursor-help transition-colors hover:text-[#D10000]">
+                                        {driverMap[v.driver_id]?.name || v.driver_id}
+                                    </span>
+                                </Tooltip>
                             </td>
-                            <td className="py-[18px] px-[30px] text-[15px] font-[800] text-[#111] lowercase">
+                            <td className="py-[18px] px-[30px] text-[15px] font-[600] text-[#111] lowercase">
                                 {v.model}
                             </td>
-                            <td className="py-[18px] px-[30px] text-[14px] font-[700] text-gray-400">
-                                {v.year}
+                            <td className="py-[18px] px-[30px] text-[14px] font-[600] text-gray-400">
+                                {v.year} | {v.color}
                             </td>
                             <td className="py-[18px] px-[30px] whitespace-nowrap">
-                                <span className="bg-red-50 text-[#D10000] px-4 py-1.5 rounded-full text-[13px] font-[800] border border-red-50 italic">
+                                <span className=" px-4 py-1.5  text-[13px] font-[600] ">
                                     {v.license_plate}
                                 </span>
                             </td>
                             <td className="py-[18px] px-[30px]">
-                                <div className="px-5 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-[800] text-gray-600 inline-block">
-                                    {v.vehicle_type} | {v.color}
+                                <div className="px-5 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-[600] text-gray-600 inline-block">
+                                    {v.vehicle_type}
                                 </div>
                             </td>
                             <td className="py-[18px] px-[30px]">
-                                <div className="flex items-center gap-2 text-[14px] font-[700] text-[#111]/80">
+                                <div className="flex items-center gap-2 text-[14px] font-[600] text-[#111]/80">
                                     <i className="bi bi-people-fill text-gray-400"></i>
                                     {v.no_of_seats || "N/A"}
                                 </div>

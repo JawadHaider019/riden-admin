@@ -194,7 +194,7 @@ export default function Analytics() {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-8 py-3 rounded-full text-[15px] font-[700] transition-all duration-300 ${activeTab === tab.id
+                        className={`px-8 py-3 rounded-full text-[15px] font-[600] transition-all duration-300 ${activeTab === tab.id
                             ? 'bg-white text-[#D10000] shadow-md'
                             : 'text-white hover:bg-white/10'
                             }`}
@@ -258,13 +258,13 @@ export default function Analytics() {
 
                             {/* Ongoing Ride Card Overlay */}
                             <div className="absolute top-[8%] right-[5%] bg-white rounded-[40px] p-6 w-[360px] shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-10 transition-all hover:scale-[1.02]">
-                                <h4 className="text-[17px] font-[800] text-[#D10000] mb-6">Ongoing Ride Preview</h4>
+                                <h4 className="text-[17px] font-[600] text-[#D10000] mb-6">Ongoing Ride Preview</h4>
 
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-4">
                                         <img src="https://i.pravatar.cc/150?img=11" alt="Driver" className="w-[54px] h-[54px] rounded-[14px] object-cover" />
                                         <div>
-                                            <h5 className="text-[15px] font-[800] text-[#111]">Sergio Morsis</h5>
+                                            <h5 className="text-[15px] font-[600] text-[#111]">Sergio Morsis</h5>
                                             <p className="text-[11px] text-[#6B7280] font-[500] uppercase tracking-wider">
                                                 Driver • {stats?.completed_bookings || 0} Rides
                                             </p>
@@ -279,30 +279,30 @@ export default function Analytics() {
                                     <div className="absolute left-[3px] top-[14px] bottom-[14px] w-[2px] border-l-2 border-dashed border-[#CBD5E1]"></div>
                                     <div className="relative mb-4">
                                         <div className="absolute -left-[27px] top-[6px] w-[11px] h-[11px] bg-black rounded-full"></div>
-                                        <h6 className="text-[14px] font-[800] text-[#111]">Office</h6>
+                                        <h6 className="text-[14px] font-[600] text-[#111]">Office</h6>
                                         <p className="text-[12px] text-[#6B7280]">2972 Westheimer Rd. Santa Ana, IL 85486</p>
                                     </div>
                                     <div className="relative">
                                         <div className="absolute -left-[30px] top-[5px] text-[#D10000]">
                                             <i className="bi bi-geo-alt-fill text-[16px]"></i>
                                         </div>
-                                        <h6 className="text-[14px] font-[800] text-[#111]">Coffee shop</h6>
+                                        <h6 className="text-[14px] font-[600] text-[#111]">Coffee shop</h6>
                                         <p className="text-[12px] text-[#6B7280]">1901 Thornridge Cir. Shiloh, HI 81063</p>
                                     </div>
                                 </div>
 
                                 <div className="flex justify-between border-t border-[#F1F5F9] pt-6 mb-4">
                                     <div className="text-center">
-                                        <p className="text-[10px] font-[800] text-[#94A3B8] uppercase tracking-wider mb-1">Distance</p>
-                                        <p className="text-[13px] font-[800] text-[#111]">0.2 km</p>
+                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Distance</p>
+                                        <p className="text-[13px] font-[600] text-[#111]">0.2 km</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[10px] font-[800] text-[#94A3B8] uppercase tracking-wider mb-1">Time</p>
-                                        <p className="text-[13px] font-[800] text-[#111]">2 min</p>
+                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Time</p>
+                                        <p className="text-[13px] font-[600] text-[#111]">2 min</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[10px] font-[800] text-[#94A3B8] uppercase tracking-wider mb-1">Fare Est.</p>
-                                        <p className="text-[13px] font-[800] text-[#D10000]">
+                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Fare Est.</p>
+                                        <p className="text-[13px] font-[600] text-[#D10000]">
                                             ${stats?.revenue > 0 ? (stats.revenue / (stats.total_bookings || 1)).toFixed(2) : '25.00'}
                                         </p>
                                     </div>
@@ -314,7 +314,7 @@ export default function Analytics() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 bg-black rounded-full"></div>
-                                        <span className="text-[12px] font-[800] text-[#111]">Black Suzuki Alto (BKG-220)</span>
+                                        <span className="text-[12px] font-[600] text-[#111]">Black Suzuki Alto (BKG-220)</span>
                                     </div>
                                 </div>
                             </div>
@@ -673,7 +673,7 @@ function RideAnalytics({ bookingTrends }) {
                                 <div className="w-10 h-10 rounded-full bg-[#FFF1F1] flex items-center justify-center text-[#D10000]">
                                     <i className="bi bi-calendar-week text-[18px]"></i>
                                 </div>
-                                <span className="text-[15px] font-[700] text-[#111]">
+                                <span className="text-[15px] font-[600] text-[#111]">
                                     Total Days: {bookingTrends?.length || 0}
                                 </span>
                             </div>
@@ -681,7 +681,7 @@ function RideAnalytics({ bookingTrends }) {
                                 <div className="w-10 h-10 rounded-full bg-[#FFF1F1] flex items-center justify-center text-[#D10000]">
                                     <i className="bi bi-trophy-fill text-[18px]"></i>
                                 </div>
-                                <span className="text-[15px] font-[700] text-[#111]">
+                                <span className="text-[15px] font-[600] text-[#111]">
                                     Highest: {bookingTrends?.length > 0
                                         ? Math.max(...bookingTrends.map(item => item.total))
                                         : 0} rides/day

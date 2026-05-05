@@ -97,7 +97,7 @@ export default function SupportTicket() {
                             onEndDateChange={setEndDate}
                         />
                         <Link to="/support/report">
-                            <Button className="px-8 py-3 rounded-full font-black uppercase tracking-widest shadow-xl shadow-red-100">
+                            <Button className="px-8 py-3 rounded-full font-[600] uppercase tracking-widest shadow-xl shadow-red-100">
                                 <i className="bi bi-plus-lg mr-2"></i> Report Issue
                             </Button>
                         </Link>
@@ -117,9 +117,9 @@ export default function SupportTicket() {
                         {currentComplaints.map((c, i) => (
                             <tr key={i} className="group hover:bg-black/[0.03] transition-colors cursor-pointer border-b border-[#F3F4F6]" onClick={() => openTicket(c)}>
                                 <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#4B5563] text-center">{c.date}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#D10000] text-center">{c.id}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#D10000] text-center">{c.id}</td>
                                 <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#4B5563] font-mono text-center">{c.booking}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#111] text-center">{c.name}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111] text-center">{c.name}</td>
                                 <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#4B5563] text-center">{c.type}</td>
                                 <td className="py-[18px] px-[30px] text-center">
                                     <Badge variant={c.status === 'Resolved' ? 'active' : 'danger'}>{c.status}</Badge>
@@ -148,10 +148,10 @@ export default function SupportTicket() {
 
                     {!isReportPath && (
                         <div className="flex items-center justify-between mb-8">
-                            <div className="px-5 py-2 border-2 border-gray-200 rounded-xl text-[14px] font-[800] text-[#111]">
+                            <div className="px-5 py-2 border-2 border-gray-200 rounded-xl text-[14px] font-[600] text-[#111]">
                                 Ticket ID {selectedTicket?.id}
                             </div>
-                            <button className="px-6 py-2.5 bg-[#D10000] text-white text-[13px] font-[700] rounded-xl hover:bg-black transition-all shadow-lg shadow-red-100">
+                            <button className="px-6 py-2.5 bg-[#D10000] text-white text-[13px] font-[600] rounded-xl hover:bg-black transition-all shadow-lg shadow-red-100">
                                 Mark as Resolved
                             </button>
                         </div>
@@ -164,7 +164,7 @@ export default function SupportTicket() {
                                     <div className="w-8 h-8 rounded-full border-2 border-white/50 overflow-hidden">
                                         <img src={selectedTicket?.avatar} className="w-full h-full object-cover" />
                                     </div>
-                                    <span className="text-white font-[700] text-[15px]">{selectedTicket?.name}</span>
+                                    <span className="text-white font-[600] text-[15px]">{selectedTicket?.name}</span>
                                 </div>
                                 <span className="text-white/80 text-[13px] font-[500]">{selectedTicket?.date}</span>
                             </div>
@@ -194,7 +194,7 @@ export default function SupportTicket() {
                         <div className="flex justify-end mb-4">
                             <button
                                 onClick={() => setIsReplying(true)}
-                                className="px-12 py-4 bg-[#D10000] text-white text-[16px] font-[800] rounded-2xl hover:bg-black transition-all shadow-xl shadow-red-100"
+                                className="px-12 py-4 bg-[#D10000] text-white text-[16px] font-[600] rounded-2xl hover:bg-black transition-all shadow-xl shadow-red-100"
                             >
                                 Reply
                             </button>
@@ -207,14 +207,14 @@ export default function SupportTicket() {
                                 ) : (
                                     <i className="bi bi-reply-fill text-white text-xl"></i>
                                 )}
-                                <span className="text-white font-[700] text-[15px]">
+                                <span className="text-white font-[600] text-[15px]">
                                     {isReportPath ? 'Write Issue' : `Reply to ${selectedTicket?.name}`}
                                 </span>
                             </div>
                             <div className="p-8">
                                 {isReportPath && (
                                     <div className="mb-6">
-                                        <label className="block text-sm font-[700] text-gray-700 mb-2 uppercase tracking-wide">Issue Title</label>
+                                        <label className="block text-sm font-[600] text-gray-700 mb-2 uppercase tracking-wide">Issue Title</label>
                                         <input
                                             type="text"
                                             value={issueTitle}
@@ -224,7 +224,7 @@ export default function SupportTicket() {
                                         />
                                     </div>
                                 )}
-                                <label className="block text-sm font-[700] text-gray-700 mb-2 uppercase tracking-wide">
+                                <label className="block text-sm font-[600] text-gray-700 mb-2 uppercase tracking-wide">
                                     {isReportPath ? 'Description' : 'Message'}
                                 </label>
                                 <textarea

@@ -54,7 +54,7 @@ export default function PromoManagement() {
                             <div className="relative">
                                 <button
                                     onClick={() => setExportOpen(!exportOpen)}
-                                    className="flex rounded-full items-center gap-2 px-6 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[700] text-[#111] hover:bg-gray-50 transition-all shadow-sm"
+                                    className="flex rounded-full items-center gap-2 px-6 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[600] text-[#111] hover:bg-gray-50 transition-all shadow-sm"
                                 >
                                     <i className="bi bi-file-earmark-excel-fill text-[#12B76A] text-[16px]"></i> Export
                                     <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform ${exportOpen ? 'rotate-180' : ''}`}></i>
@@ -88,10 +88,10 @@ export default function PromoManagement() {
                     <Table headers={['Code', 'Discount %', 'Starting Date', 'End Date', 'Status', 'Actions']}>
                         {promos.map((p, i) => (
                             <tr key={i} className="cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]">
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#111]">{p.code}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[900] text-[#D10000] tracking-tight">{p.discount}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[700] text-[#6B7280]">{p.start}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[700] text-[#6B7280]">{p.end}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111]">{p.code}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#D10000] tracking-tight">{p.discount}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#6B7280]">{p.start}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#6B7280]">{p.end}</td>
                                 <td className="py-[18px] px-[30px]">
                                     <Badge variant={p.status}>{p.status}</Badge>
                                 </td>
@@ -130,11 +130,11 @@ export default function PromoManagement() {
                         <button onClick={() => setView('list')} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                             <i className="bi bi-chevron-left text-sm"></i>
                         </button>
-                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">{view === 'add' ? 'Add New Promo Code' : 'Edit Promo Code'}</h2>
+                        <h2 className="text-xl font-[600] text-gray-900 tracking-tight">{view === 'add' ? 'Add New Promo Code' : 'Edit Promo Code'}</h2>
                     </div>
 
                     <div className="bg-white p-6 rounded-[30px] shadow-sm border border-[#E5E7EB]">
-                        <div className="bg-[#d10000]  rounded-full  p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="bg-[#d10000]  rounded-full  p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             Code Details
                         </div>
 
@@ -159,7 +159,7 @@ export default function PromoManagement() {
                             </div>
                         </div>
 
-                        <div className="bg-[#d10000]  rounded-full  p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="bg-[#d10000]  rounded-full  p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             Date Management
                         </div>
 
@@ -184,7 +184,7 @@ export default function PromoManagement() {
                                     showToast(view === 'add' ? "New promo code has been created" : "Promo code updated successfully", "success");
                                     setView('list');
                                 }}
-                                className="px-12 py-3.5 font-black uppercase tracking-widest shadow-xl shadow-red-100"
+                                className="px-12 py-3.5 font-[600] uppercase tracking-widest shadow-xl shadow-red-100"
                             >
                                 {view === 'add' ? 'Save Code' : 'Update Code'}
                             </Button>
@@ -194,7 +194,7 @@ export default function PromoManagement() {
                                     setView('list');
                                 }}
                                 variant="outline"
-                                className="px-12 py-3.5 border-gray-200 text-gray-400 font-black uppercase tracking-widest"
+                                className="px-12 py-3.5 border-gray-200 text-gray-400 font-[600] uppercase tracking-widest"
                             >
                                 Cancel
                             </Button>

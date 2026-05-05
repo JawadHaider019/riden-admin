@@ -181,7 +181,7 @@ export default function UserManagement() {
                     />
 
                     <Link to="/users/create">
-                        <Button className="px-8 py-3 rounded-full font-black uppercase tracking-widest shadow-xl shadow-red-100">
+                        <Button className="px-8 py-3 rounded-full font-[600] uppercase tracking-widest shadow-xl shadow-red-100">
                             <i className="bi bi-plus-lg mr-2"></i> Add Admin
                         </Button>
                     </Link>
@@ -214,7 +214,7 @@ export default function UserManagement() {
                                     onClick={() => navigate(`/users/detail/${admin.id}`)}
                                     className="group hover:bg-black/[0.03] transition-colors border-b border-[#F3F4F6] cursor-pointer"
                                 >
-                                    <td className="py-[18px] px-[30px] text-[#6B7280] font-[700] italic tracking-tight">
+                                    <td className="py-[18px] px-[30px] text-[#6B7280] font-[600] italic tracking-tight">
                                         {admin.id}
                                     </td>
 
@@ -254,7 +254,7 @@ export default function UserManagement() {
                                                     e.stopPropagation();
                                                     console.log("Edit clicked for admin:", admin);
                                                 }}
-                                                className="w-10 h-10 text-green-500 flex items-center justify-start hover:text-green-600 transition-all font-bold"
+                                                className="w-10 h-10 text-green-500 flex items-center justify-start hover:text-green-600 transition-all font-[600]"
                                                 title="Edit Admin"
                                             >
                                                 <i className="bi bi-pencil-square text-lg"></i>

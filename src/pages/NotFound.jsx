@@ -10,11 +10,11 @@ export default function NotFound() {
 
             <div className="text-center relative z-10">
                 <div className="relative inline-block mb-8">
-                    <div className="text-[#D10000] text-[180px] font-black leading-none select-none opacity-10 blur-[2px] absolute inset-0 -translate-y-4">404</div>
-                    <div className="text-[#D10000] text-[150px] font-black leading-none drop-shadow-xl">404</div>
+                    <div className="text-[#D10000] text-[180px] font-[600] leading-none select-none opacity-10 blur-[2px] absolute inset-0 -translate-y-4">404</div>
+                    <div className="text-[#D10000] text-[150px] font-[600] leading-none drop-shadow-xl">404</div>
                 </div>
 
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">Lost in the Ride?</h1>
+                <h1 className="text-4xl font-[600] text-gray-900 mb-4 tracking-tight">Lost in the Ride?</h1>
                 <p className="text-gray-500 mb-10 max-w-md mx-auto text-lg leading-relaxed">
                     The page you're looking for doesn't exist or has been moved to another location.
                 </p>
@@ -22,14 +22,14 @@ export default function NotFound() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
                         to="/"
-                        className="inline-flex items-center justify-center px-10 py-4 bg-[#D10000] text-white font-bold rounded-xl transition-all hover:bg-[#b00000] hover:-translate-y-1 shadow-lg shadow-red-200 active:scale-95"
+                        className="inline-flex items-center justify-center px-10 py-4 bg-[#D10000] text-white font-[600] rounded-xl transition-all hover:bg-[#b00000] hover:-translate-y-1 shadow-lg shadow-red-200 active:scale-95"
                     >
                         <i className="bi bi-house-door mr-2"></i>
                         Return Home
                     </Link>
                     <button
                         onClick={() => window.history.back()}
-                        className="inline-flex items-center justify-center px-10 py-4 bg-white text-gray-700 font-bold rounded-xl border border-gray-200 transition-all hover:bg-gray-50 hover:-translate-y-1 active:scale-95"
+                        className="inline-flex items-center justify-center px-10 py-4 bg-white text-gray-700 font-[600] rounded-xl border border-gray-200 transition-all hover:bg-gray-50 hover:-translate-y-1 active:scale-95"
                     >
                         <i className="bi bi-arrow-left mr-2"></i>
                         Go Back

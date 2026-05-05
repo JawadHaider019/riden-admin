@@ -154,7 +154,7 @@ export default function DriverCreate() {
                         <Link to="/drivers" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
-                        <h1 className="text-2xl font-bold text-gray-900">Add New Driver</h1>
+                        <h1 className="text-2xl font-[600] text-gray-900">Add New Driver</h1>
                     </div>
 
                     {/* Horizontal Stepper */}
@@ -168,7 +168,7 @@ export default function DriverCreate() {
                             return (
                                 <div key={step.id} className="relative z-10 flex flex-col items-center">
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2 ${isActive
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-[600] transition-all duration-300 border-2 ${isActive
                                             ? 'bg-white border-[#D10000] text-[#D10000]'
                                             : isCompleted
                                                 ? 'bg-[#D10000] border-[#D10000] text-white'
@@ -193,7 +193,7 @@ export default function DriverCreate() {
 
                     {/* Step Title & Description */}
                     <div className="mb-8 border-b border-gray-100 pb-4">
-                        <h3 className="text-base font-bold text-gray-800 tracking-wider mb-1 uppercase">{steps[currentStepIndex].title}</h3>
+                        <h3 className="text-base font-[600] text-gray-800 tracking-wider mb-1 uppercase">{steps[currentStepIndex].title}</h3>
                         <p className="text-sm text-gray-500">{steps[currentStepIndex].desc}</p>
                     </div>
 
@@ -391,7 +391,7 @@ export default function DriverCreate() {
                                                         id={`doc-${i}`}
                                                         onChange={(e) => setDocuments({ ...documents, [doc.key]: e.target.files[0] })}
                                                     />
-                                                    <label htmlFor={`doc-${i}`} className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold cursor-pointer hover:bg-gray-200 transition-colors">
+                                                    <label htmlFor={`doc-${i}`} className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-[600] cursor-pointer hover:bg-gray-200 transition-colors">
                                                         {documents[doc.key] ? 'Change' : 'Browse'}
                                                     </label>
                                                 </div>

@@ -59,7 +59,7 @@ export default function DriverRequest() {
                     <div className="relative">
                         <button
                             onClick={() => setExportOpen(!exportOpen)}
-                            className="flex rounded-full items-center gap-2 px-6 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[700] text-[#111] hover:bg-gray-50 transition-all shadow-sm"
+                            className="flex rounded-full items-center gap-2 px-6 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[600] text-[#111] hover:bg-gray-50 transition-all shadow-sm"
                         >
                             <i className="bi bi-file-earmark-excel-fill text-[#12B76A] text-[16px]"></i> Export
                             <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform ${exportOpen ? 'rotate-180' : ''}`}></i>
@@ -101,7 +101,7 @@ export default function DriverRequest() {
                                 <div className="w-[44px] h-[44px] rounded-full overflow-hidden border-2 border-white shadow-sm">
                                     <img src={`https://i.pravatar.cc/100?img=${r.avatar}`} className="w-full h-full object-cover" alt="" />
                                 </div>
-                                <span className="font-[700] text-[#111] transition-all hover:text-[#0066FF] hover:underline decoration-[#0066FF] underline-offset-2">{r.name}</span>
+                                <span className="font-[600] text-[#111] transition-all hover:text-[#0066FF] hover:underline decoration-[#0066FF] underline-offset-2">{r.name}</span>
                             </div>
                         </td>
                         <td className="py-[18px] px-[30px] text-[#111] font-[600]">{r.date} <span className="ml-[10px]">{r.time}</span></td>
@@ -109,13 +109,13 @@ export default function DriverRequest() {
                         <td className="py-[18px] px-[30px]">
                             {r.status === 'pending' ? (
                                 <div className="flex items-center gap-3">
-                                    <button onClick={() => openModal('approve', r)} className="bg-[#12B76A] text-white px-[20px] py-[8px] rounded-[30px] text-[13px] font-[700] hover:bg-[#039855] transition-all">Approve</button>
-                                    <button onClick={() => openModal('reject', r)} className="bg-[#F03D3D] text-white px-[20px] py-[8px] rounded-[30px] text-[13px] font-[700] hover:bg-[#D10000] transition-all">Reject</button>
+                                    <button onClick={() => openModal('approve', r)} className="bg-[#12B76A] text-white px-[20px] py-[8px] rounded-[30px] text-[13px] font-[600] hover:bg-[#039855] transition-all">Approve</button>
+                                    <button onClick={() => openModal('reject', r)} className="bg-[#F03D3D] text-white px-[20px] py-[8px] rounded-[30px] text-[13px] font-[600] hover:bg-[#D10000] transition-all">Reject</button>
                                 </div>
                             ) : r.status === 'approved' ? (
-                                <span className="inline-block bg-[#D1FADF] text-[#12B76A] px-[20px] py-[8px] rounded-[30px] text-[13px] font-[800]">Approved</span>
+                                <span className="inline-block bg-[#D1FADF] text-[#12B76A] px-[20px] py-[8px] rounded-[30px] text-[13px] font-[600]">Approved</span>
                             ) : (
-                                <span className="inline-block bg-[#FEE4E2] text-[#F03D3D] px-[20px] py-[8px] rounded-[30px] text-[13px] font-[800]">Rejected</span>
+                                <span className="inline-block bg-[#FEE4E2] text-[#F03D3D] px-[20px] py-[8px] rounded-[30px] text-[13px] font-[600]">Rejected</span>
                             )}
                         </td>
                     </tr>

@@ -186,12 +186,12 @@ export default function AdminEdit() {
                     <Link to="/users" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                         <i className="bi bi-chevron-left text-sm"></i>
                     </Link>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Edit Admin</h2>
+                    <h2 className="text-xl font-[600] text-gray-900 tracking-tight">Edit Admin</h2>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="bg-white rounded-[30px] shadow-sm border border-[#E5E7EB] p-6">
-                        <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             Update Admin Credentials
                         </div>
 
@@ -227,7 +227,7 @@ export default function AdminEdit() {
                                 <InputWrapper className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 py-1">
                                         <img src="https://flagcdn.com/w40/ca.png" alt="CA" className="w-5" />
-                                        <span className="text-[14px] font-bold text-gray-900">{formData.country_code}</span>
+                                        <span className="text-[14px] font-[600] text-gray-900">{formData.country_code}</span>
                                     </div>
                                     <div className="flex-grow">
                                         <Input
@@ -262,7 +262,7 @@ export default function AdminEdit() {
 
                         {!formData.is_super && (
                             <>
-                                <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                                     Access Module Permissions
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-6 px-4">
@@ -277,14 +277,14 @@ export default function AdminEdit() {
                                                 />
                                                 <i className="bi bi-check-lg absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
                                             </div>
-                                            <span className="text-[13px] font-black text-gray-700 group-hover:text-black transition-colors uppercase tracking-tighter italic">{m}</span>
+                                            <span className="text-[13px] font-[600] text-gray-700 group-hover:text-black transition-colors uppercase tracking-tighter italic">{m}</span>
                                         </label>
                                     ))}
                                 </div>
                             </>
                         )}
 
-                        <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             Administrative Security (Leave blank to keep current)
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
@@ -328,7 +328,7 @@ export default function AdminEdit() {
                             <Button
                                 type="submit"
                                 disabled={saving}
-                                className="px-14 py-4 shadow-xl shadow-red-100 font-black uppercase tracking-widest"
+                                className="px-14 py-4 shadow-xl shadow-red-100 font-[600] uppercase tracking-widest"
                             >
                                 {saving ? (
                                     <>
@@ -338,7 +338,7 @@ export default function AdminEdit() {
                                 ) : 'Update Admin'}
                             </Button>
                             <Link to="/users">
-                                <Button variant="outline" className="px-14 py-4 border-gray-200 text-gray-500 hover:bg-gray-50 font-black uppercase tracking-widest">Cancel</Button>
+                                <Button variant="outline" className="px-14 py-4 border-gray-200 text-gray-500 hover:bg-gray-50 font-[600] uppercase tracking-widest">Cancel</Button>
                             </Link>
                         </div>
                     </div>

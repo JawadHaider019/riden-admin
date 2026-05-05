@@ -111,7 +111,7 @@ export default function PassengerCreate() {
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Add New Passenger</h1>
+                            <h1 className="text-2xl font-[600] text-gray-900 leading-tight">Add New Passenger</h1>
                             <p className="text-sm text-gray-500 font-medium">Fill in the details to register a new passenger</p>
                         </div>
                     </div>
@@ -127,7 +127,7 @@ export default function PassengerCreate() {
                             return (
                                 <div key={step.id} className="relative z-10 flex flex-col items-center">
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2 ${isActive
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-[600] transition-all duration-300 border-2 ${isActive
                                             ? 'bg-white border-[#D10000] text-[#D10000]'
                                             : isCompleted
                                                 ? 'bg-[#D10000] border-[#D10000] text-white'
@@ -152,7 +152,7 @@ export default function PassengerCreate() {
 
                     {/* Step Title & Description */}
                     <div className="mb-8 border-b border-gray-100 pb-4">
-                        <h3 className="text-base font-bold text-gray-800 tracking-wider mb-1 uppercase">{steps[currentStepIndex].title}</h3>
+                        <h3 className="text-base font-[600] text-gray-800 tracking-wider mb-1 uppercase">{steps[currentStepIndex].title}</h3>
                         <p className="text-sm text-gray-500">{steps[currentStepIndex].desc}</p>
                     </div>
 

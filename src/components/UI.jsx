@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -12,7 +13,7 @@ export const Table = ({ headers, children, headerBg = 'bg-[#FFEEEE]', tableClass
                         const label = isObject ? header.label : header;
                         const align = isObject ? header.align : headerAlign;
                         return (
-                            <th key={i} className={`py-[22px] px-[30px] text-sm font-[800] ${headerTextColor} capitalize whitespace-nowrap ${align}`}>
+                            <th key={i} className={`py-[22px] px-[30px] text-sm font-[600] ${headerTextColor} capitalize whitespace-nowrap ${align}`}>
                                 {label}
                             </th>
                         );
@@ -38,7 +39,7 @@ export const Badge = ({ children, variant = 'info' }) => {
         info: 'bg-[#EFF6FF] text-[#1E40AF]',
     };
     return (
-        <span className={`px-[20px] py-[6px] rounded-[30px] text-[12px] font-[800] inline-flex items-center justify-center ${variants[variant] || variants.info}`}>
+        <span className={`px-[20px] py-[6px] rounded-[30px] text-[12px] font-[600] inline-flex items-center justify-center ${variants[variant] || variants.info}`}>
             {children}
         </span>
     );
@@ -54,7 +55,7 @@ export const Button = ({ children, variant = 'primary', className = '', ...props
     };
     return (
         <button
-            className={`px-[24px] py-[10px] rounded-[12px] font-[800] text-[13px] transition-all duration-300 flex items-center justify-center gap-[10px] uppercase  tracking-wider ${variants[variant] || variants.primary} ${className}`}
+            className={`px-[24px] py-[10px] rounded-[12px] font-[600] text-[13px] transition-all duration-300 flex items-center justify-center gap-[10px] uppercase  tracking-wider ${variants[variant] || variants.primary} ${className}`}
             {...props}
         >
             {children}
@@ -63,7 +64,7 @@ export const Button = ({ children, variant = 'primary', className = '', ...props
 };
 
 export const Label = ({ children, className = '' }) => (
-    <label className={`block text-[13px] font-[800] text-[#111] mb-[10px] uppercase tracking-[0.5px] ${className}`}>
+    <label className={`block text-[13px] font-[600] text-[#111] mb-[10px] uppercase tracking-[0.5px] ${className}`}>
         {children}
     </label>
 );
@@ -138,7 +139,7 @@ export const Tabs = ({ options, activeTab, onTabChange, className = '' }) => (
             <button
                 key={opt.id}
                 onClick={() => onTabChange(opt.id)}
-                className={`px-8 py-3 rounded-full text-[14px] font-[700] transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === opt.id
+                className={`px-8 py-3 rounded-full text-[14px] font-[600] transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === opt.id
                     ? 'bg-white text-[#D10000] shadow-md'
                     : 'text-white hover:bg-white/10'
                     }`}
@@ -160,7 +161,7 @@ export const PillTabs = ({ options, activeTab, onTabChange, className = '' }) =>
             <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`px-8 py-3 rounded-full text-[15px] font-[700] transition-all duration-300 ${activeTab === tab.id
+                className={`px-8 py-3 rounded-full text-[15px] font-[600] transition-all duration-300 ${activeTab === tab.id
                     ? 'bg-white text-[#D10000] shadow-md'
                     : 'text-white hover:bg-white/10'
                     }`}
@@ -199,7 +200,7 @@ export const DateRangePicker = ({ startDate, endDate, onStartDateChange, onEndDa
                     onChange={onStartDateChange}
                     placeholderText="From"
                     maxDate={new Date()}
-                    dateFormat="d-MMM-yyyy"
+                    dateFormat="MMM d, yyyy"
                     className="pl-11 pr-4 py-2.5 bg-white text-[14px] font-[600] w-full outline-none transition-all rounded-full"
                 />
             </div>
@@ -213,7 +214,7 @@ export const DateRangePicker = ({ startDate, endDate, onStartDateChange, onEndDa
                     placeholderText="To"
                     minDate={startDate}
                     maxDate={new Date()}
-                    dateFormat="d-MMM-yyyy"
+                    dateFormat="MMM d, yyyy"
                     className="pl-11 pr-4 py-2.5 bg-white text-[14px] font-[600] w-full outline-none transition-all rounded-full"
                 />
             </div>
@@ -303,7 +304,7 @@ export const Pagination = ({ totalItems, itemsPerPage = 10, currentPage = 1, onP
                 <button
                     key={page}
                     onClick={() => onPageChange(page)}
-                    className={`w-[34px] h-[34px] flex items-center justify-center rounded-full font-[800] text-[13px] transition-all ${currentPage === page
+                    className={`w-[34px] h-[34px] flex items-center justify-center rounded-full font-[600] text-[13px] transition-all ${currentPage === page
                         ? 'bg-[#D10000] text-white shadow-lg shadow-red-100 ring-2 ring-[#D10000]/20'
                         : 'border border-gray-100 text-[#374151] hover:bg-[#D10000] hover:text-white'
                         }`}
@@ -335,20 +336,20 @@ export const DeleteModal = ({ isOpen, onClose, onConfirm, title = "Are you sure?
                 <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-100">
                     <i className="bi bi-trash3-fill text-[#D10000] text-[32px]"></i>
                 </div>
-                <h3 className="text-[22px] font-[800] text-[#111] mb-2 tracking-tight">{title}</h3>
+                <h3 className="text-[22px] font-[600] text-[#111] mb-2 tracking-tight">{title}</h3>
                 <p className="text-[14px] font-[600] text-[#6B7280] mb-8 leading-relaxed">
-                    Once you delete <span className="text-[#111] font-[800]">{itemName || "this item"}</span>, it cannot be undone. Are you certain?
+                    Once you delete <span className="text-[#111] font-[600]">{itemName || "this item"}</span>, it cannot be undone. Are you certain?
                 </p>
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={onConfirm}
-                        className="w-full py-4 bg-[#D10000] text-white rounded-full font-[800] text-[15px] uppercase tracking-wider hover:bg-[#A30000] transition-all shadow-lg shadow-red-100"
+                        className="w-full py-4 bg-[#D10000] text-white rounded-full font-[600] text-[15px] uppercase tracking-wider hover:bg-[#A30000] transition-all shadow-lg shadow-red-100"
                     >
                         Yes, Delete it
                     </button>
                     <button
                         onClick={onClose}
-                        className="w-full py-4 bg-white text-[#4B5563] border-none rounded-full font-[800] text-[15px] uppercase tracking-wider hover:bg-gray-50 transition-all font-black"
+                        className="w-full py-4 bg-white text-[#4B5563] border-none rounded-full font-[600] text-[15px] uppercase tracking-wider hover:bg-gray-50 transition-all font-[600]"
                     >
                         No, Keep it
                     </button>
@@ -394,13 +395,13 @@ export const ConfirmationModal = ({ isOpen, onClose, onConfirm, type = "approve"
                 <div className="flex gap-4">
                     <button
                         onClick={onConfirm}
-                        className="flex-1 py-3.5 bg-[#F03D3D] hover:bg-[#D10000] text-white rounded-[12px] font-[800] text-[16px] transition-all"
+                        className="flex-1 py-3.5 bg-[#F03D3D] hover:bg-[#D10000] text-white rounded-[12px] font-[600] text-[16px] transition-all"
                     >
                         Confirm
                     </button>
                     <button
                         onClick={onClose}
-                        className="flex-1 py-3.5 bg-white text-[#111] border border-[#111] rounded-[12px] font-[800] text-[16px] hover:bg-gray-50 transition-all font-black"
+                        className="flex-1 py-3.5 bg-white text-[#111] border border-[#111] rounded-[12px] font-[600] text-[16px] hover:bg-gray-50 transition-all font-[600]"
                     >
                         Cancel
                     </button>
@@ -486,7 +487,7 @@ export const ToastProvider = ({ children }) => {
                                 <i className={`bi ${getToastIcon(toast.type)} text-lg`}></i>
                             </div>
                             <div className="flex flex-col">
-                                <span className="font-[800] text-[14px] uppercase tracking-wide">{toast.type}</span>
+                                <span className="font-[600] text-[14px] uppercase tracking-wide">{toast.type}</span>
                                 <span className="font-[600] text-[13px] opacity-90">{toast.message}</span>
                             </div>
                         </div>
@@ -507,4 +508,64 @@ export const useToast = () => {
     const context = useContext(ToastContext);
     if (!context) throw new Error("useToast must be used within ToastProvider");
     return context;
+};
+
+export const Tooltip = ({ children, content, position = 'top' }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+    const targetRef = useRef(null);
+
+    const updatePosition = () => {
+        if (targetRef.current) {
+            const rect = targetRef.current.getBoundingClientRect();
+            setCoords({
+                top: position === 'top' ? rect.top + window.scrollY : rect.bottom + window.scrollY,
+                left: rect.left + rect.width / 2 + window.scrollX,
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (isVisible) {
+            updatePosition();
+            window.addEventListener('scroll', updatePosition, true);
+            window.addEventListener('resize', updatePosition);
+        }
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [isVisible]);
+
+    return (
+        <div
+            ref={targetRef}
+            className="group relative inline-block text-left"
+            onMouseEnter={() => setIsVisible(true)}
+            onMouseLeave={() => setIsVisible(false)}
+        >
+            {children}
+            {isVisible && createPortal(
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: coords.top,
+                        left: coords.left,
+                        transform: `translate(-50%, ${position === 'top' ? '-100%' : '0'})`,
+                        zIndex: 99999,
+                        marginTop: position === 'top' ? '-10px' : '10px'
+                    }}
+                    className={`px-3 py-2.5 bg-[#FFF1F1] border border-[#D10000]/20 text-[#111] rounded-2xl shadow-xl w-max min-w-[160px] pointer-events-none text-xs animate-fade-in`}
+                >
+                    <div className="flex flex-col gap-1">
+                        {content}
+                    </div>
+                    {/* Tooltip Arrow */}
+                    <div className={`absolute w-2 h-2 bg-[#FFF1F1] border-r border-b border-[#D10000]/20 rotate-45 left-1/2 -translate-x-1/2 
+                    ${position === 'top' ? '-bottom-1' : '-top-1'}`}></div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
 };

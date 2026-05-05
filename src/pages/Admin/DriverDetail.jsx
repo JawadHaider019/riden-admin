@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { InputWrapper, Input, useToast } from '@/components/UI';
 import { getDriverById, updateDriver, toggleDriverStatus, deleteDriver, updateDocumentStatus } from '../../api/driverApi';
 import { getImageUrl } from '@/api/api';
+import { formatDate } from '@/utils/formatters';
 
 export default function DriverDetail() {
     const { id } = useParams();
@@ -86,7 +87,7 @@ export default function DriverDetail() {
                 id: driverData.id,
                 unique_id: driverData.unique_id,
                 name: driverData.name || `${driverData.first_name || ''} ${driverData.last_name || ''}`.trim() || 'N/A',
-                since: driverData.created_at ? `Since ${new Date(driverData.created_at).toLocaleDateString()}` : 'N/A',
+                since: driverData.created_at ? `Since ${formatDate(driverData.created_at)}` : 'N/A',
                 rating: driverData.rating || 5,
                 reviews_count: driverData.reviews_count || 0,
                 stats: {
@@ -289,7 +290,7 @@ export default function DriverDetail() {
         return (
             <AdminLayout title="Driver Details">
                 <div className="text-center py-20">
-                    <h3 className="text-xl font-bold text-gray-800">Driver not found</h3>
+                    <h3 className="text-xl font-[600] text-gray-800">Driver not found</h3>
                     <Link to="/drivers" className="text-red-600 hover:underline mt-4 inline-block font-semibold">Back to Drivers</Link>
                 </div>
             </AdminLayout>
@@ -326,8 +327,8 @@ export default function DriverDetail() {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h2 className="text-xl font-bold text-black">{driver.name}</h2>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${driverStatus === 'active' ? 'bg-green-100 text-green-600' : driverStatus === 'blocked' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                                <h2 className="text-xl font-[600] text-black">{driver.name}</h2>
+                                <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full uppercase tracking-wider ${driverStatus === 'active' ? 'bg-green-100 text-green-600' : driverStatus === 'blocked' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
                                     {driverStatus === 'active' ? 'Active' : driverStatus === 'blocked' ? 'Blocked' : 'Suspended'}
                                 </span>
                             </div>
@@ -341,12 +342,12 @@ export default function DriverDetail() {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="text-right mr-2">
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{driver.since}</div>
-                            <div className="text-xs font-bold text-black uppercase tracking-tighter">Registered</div>
+                            <div className="text-[10px] font-[600] text-gray-400 uppercase tracking-widest">{driver.since}</div>
+                            <div className="text-xs font-[600] text-black uppercase tracking-tighter">Registered</div>
                         </div>
                         <button
                             onClick={handleEditClick}
-                            className="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm bg-[#D10000] text-white hover:bg-[#b00000] active:scale-95"
+                            className="px-6 py-2 rounded-full text-xs font-[600] uppercase tracking-widest transition-all shadow-sm bg-[#D10000] text-white hover:bg-[#b00000] active:scale-95"
                         >
                             {isEditing ? 'Cancel' : 'Edit profile'}
                         </button>
@@ -362,7 +363,7 @@ export default function DriverDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Total Rides</span>
-                            <span className="text-2xl font-bold text-black leading-none">{driver.stats.total_rides}</span>
+                            <span className="text-2xl font-[600] text-black leading-none">{driver.stats.total_rides}</span>
                         </div>
                     </div>
 
@@ -375,7 +376,7 @@ export default function DriverDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Completed Rides</span>
-                            <span className="text-2xl font-bold text-black leading-none">{driver.stats.completed_rides}</span>
+                            <span className="text-2xl font-[600] text-black leading-none">{driver.stats.completed_rides}</span>
                         </div>
                     </div>
 
@@ -388,7 +389,7 @@ export default function DriverDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Cancelled Rides</span>
-                            <span className="text-2xl font-bold text-black leading-none"> 0</span>
+                            <span className="text-2xl font-[600] text-black leading-none"> 0</span>
                         </div>
                     </div>
 
@@ -401,7 +402,7 @@ export default function DriverDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Revenue</span>
-                            <span className="text-2xl font-bold text-black leading-none">{driver.stats.revenue}</span>
+                            <span className="text-2xl font-[600] text-black leading-none">{driver.stats.revenue}</span>
                         </div>
                     </div>
                 </div>
@@ -424,7 +425,7 @@ export default function DriverDetail() {
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${isActive ? 'bg-[#FFEAEA] text-[#D10000]' : 'bg-gray-100 text-black'}`}>
                                             <i className={`${tab.icon} text-lg`}></i>
                                         </div>
-                                        <span className={`${isActive ? 'text-black font-bold' : 'text-gray-600'}`}>
+                                        <span className={`${isActive ? 'text-black font-[600]' : 'text-gray-600'}`}>
                                             {tab.label}
                                         </span>
                                     </button>
@@ -437,7 +438,7 @@ export default function DriverDetail() {
                                 <button
                                     onClick={handleUpdate}
                                     disabled={updating}
-                                    className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-lg active:scale-95"
+                                    className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-[600] text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-lg active:scale-95"
                                 >
                                     {updating ? (
                                         <><i className="bi bi-hourglass-split animate-spin"></i> Updating...</>
@@ -448,12 +449,12 @@ export default function DriverDetail() {
                             ) : (
                                 <>
                                     {driverStatus === 'blocked' ? (
-                                        <button onClick={() => setModalType('unblock')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
-                                            <i className="bi bi-slash-circle font-bold"></i> unblock Driver
+                                        <button onClick={() => setModalType('unblock')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
+                                            <i className="bi bi-slash-circle font-[600]"></i> unblock Driver
                                         </button>
                                     ) : (
-                                        <button onClick={() => setModalType('block')} className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-sm">
-                                            <i className="bi bi-slash-circle font-bold"></i> Block Driver
+                                        <button onClick={() => setModalType('block')} className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-[600] text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-sm">
+                                            <i className="bi bi-slash-circle font-[600]"></i> Block Driver
                                         </button>
                                     )}
                                 </>
@@ -462,15 +463,15 @@ export default function DriverDetail() {
                             {!isEditing && (
                                 <>
                                     {driverStatus === 'suspended' ? (
-                                        <button onClick={() => setModalType('suspension_details')} className="w-full py-3.5 rounded-full bg-amber-50 border border-amber-500 text-amber-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-100 transition-colors">
+                                        <button onClick={() => setModalType('suspension_details')} className="w-full py-3.5 rounded-full bg-amber-50 border border-amber-500 text-amber-700 font-[600] text-sm flex items-center justify-center gap-2 hover:bg-amber-100 transition-colors">
                                             <i className="bi bi-info-circle-fill"></i> View Reason & {timeLeft || 'Time Left'}
                                         </button>
                                     ) : (
-                                        <button onClick={() => setModalType('suspend')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
+                                        <button onClick={() => setModalType('suspend')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
                                             <i className="bi bi-pause-circle-fill"></i> Suspend Driver
                                         </button>
                                     )}
-                                    <button onClick={() => setModalType('delete')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
+                                    <button onClick={() => setModalType('delete')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
                                         <i className="bi bi-trash-fill"></i> Delete Driver
                                     </button>
                                 </>
@@ -484,7 +485,7 @@ export default function DriverDetail() {
                             {/* Active Tab Header */}
                             <div className="bg-[#D10000] px-8 py-5 flex items-center gap-3">
                                 <i className={`text-white text-xl ${tabs.find(t => t.id === activeTab)?.icon}`}></i>
-                                <h3 className="text-white font-bold text-base">
+                                <h3 className="text-white font-[600] text-base">
                                     {tabs.find(t => t.id === activeTab)?.label}
                                 </h3>
                                 {/* Removed old edit button as it is now at the top right */}
@@ -513,7 +514,7 @@ export default function DriverDetail() {
                                                     />
                                                 </div>
                                                 {isEditing && (
-                                                    <label className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-sm">
+                                                    <label className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-[600] rounded-lg cursor-pointer transition-colors shadow-sm">
                                                         Change Image
                                                         <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                                                     </label>
@@ -532,7 +533,7 @@ export default function DriverDetail() {
                                                     </InputWrapper>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-gray-900 w-2/3">{driver.name}</span>
+                                                <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.name}</span>
                                             )}
                                         </div>
 
@@ -548,7 +549,7 @@ export default function DriverDetail() {
                                                     </InputWrapper>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-[#D10000] w-2/3">{driver.email}</span>
+                                                <span className="text-sm font-[600] text-[#D10000] w-2/3">{driver.email}</span>
                                             )}
                                         </div>
 
@@ -565,7 +566,7 @@ export default function DriverDetail() {
                                                         </InputWrapper>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm font-bold text-[#D10000]">{driver.phone}</span>
+                                                    <span className="text-sm font-[600] text-[#D10000]">{driver.phone}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -585,7 +586,7 @@ export default function DriverDetail() {
                                                     </select>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-gray-900 w-2/3">{driver.gender}</span>
+                                                <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.gender}</span>
                                             )}
                                         </div>
 
@@ -619,7 +620,7 @@ export default function DriverDetail() {
                                                         }}
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            <span className="text-sm font-bold text-gray-900">{docType.name}</span>
+                                                            <span className="text-sm font-[600] text-gray-900">{docType.name}</span>
                                                             {isEditing ? (
                                                                 <select
                                                                     className="border border-gray-300 rounded text-xs px-2 py-1.5 text-gray-700 outline-none focus:border-[#D10000]"
@@ -639,12 +640,12 @@ export default function DriverDetail() {
                                                         </div>
                                                         <div className="flex items-center gap-3">
                                                             {isEditing && (
-                                                                <label className="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50 font-bold transition-colors">
+                                                                <label className="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50 font-[600] transition-colors">
                                                                     Upload New
                                                                     <input type="file" className="hidden" />
                                                                 </label>
                                                             )}
-                                                            <i className={`bi bi-chevron-${isOpen ? 'down' : 'right'} text-gray-800 font-bold transition-transform`}></i>
+                                                            <i className={`bi bi-chevron-${isOpen ? 'down' : 'right'} text-gray-800 font-[600] transition-transform`}></i>
                                                         </div>
                                                     </div>
                                                     {isOpen && (
@@ -661,16 +662,16 @@ export default function DriverDetail() {
                                                                     />
                                                                     <div className="p-4 bg-white border-t border-gray-100 flex justify-between items-center">
                                                                         <div className="flex flex-col">
-                                                                            <span className="text-xs text-gray-500">Uploaded on {new Date(doc.created_at).toLocaleDateString()}</span>
+                                                                            <span className="text-xs text-gray-500">Uploaded on {formatDate(doc.created_at)}</span>
                                                                             {doc.status?.toLowerCase() === 'rejected' && doc.rejection_reason && (
-                                                                                <span className="text-[10px] font-bold text-red-600 mt-1 italic">Reason: {doc.rejection_reason}</span>
+                                                                                <span className="text-[10px] font-[600] text-red-600 mt-1 italic">Reason: {doc.rejection_reason}</span>
                                                                             )}
                                                                         </div>
                                                                         <a
                                                                             href={doc.file_url}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
-                                                                            className="text-xs font-bold text-[#D10000] hover:underline"
+                                                                            className="text-xs font-[600] text-[#D10000] hover:underline"
                                                                         >
                                                                             View Original File
                                                                         </a>
@@ -679,7 +680,7 @@ export default function DriverDetail() {
                                                             ) : (
                                                                 <div className="w-full py-10 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-500 bg-white">
                                                                     <i className="bi bi-folder-x text-4xl mb-3 text-gray-300"></i>
-                                                                    <h4 className="text-base font-bold text-gray-900 mb-1">No Document Found</h4>
+                                                                    <h4 className="text-base font-[600] text-gray-900 mb-1">No Document Found</h4>
                                                                     <p className="text-sm text-gray-400">This document is missing or still pending review.</p>
                                                                 </div>
                                                             )}
@@ -697,7 +698,7 @@ export default function DriverDetail() {
                                             <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover" alt="Vehicle" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                             <div className="absolute bottom-6 left-6 text-white">
-                                                <h3 className="text-2xl font-bold">{driver.vehicle.color} {driver.vehicle.model}, ({driver.vehicle.license_plate})</h3>
+                                                <h3 className="text-2xl font-[600]">{driver.vehicle.color} {driver.vehicle.model}, ({driver.vehicle.license_plate})</h3>
                                             </div>
                                         </div>
                                         <div className="flex flex-col border border-white">
@@ -705,25 +706,25 @@ export default function DriverDetail() {
                                                 <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Model</span>
                                                 {isEditing ? (
                                                     <div className="w-2/3"><InputWrapper icon="bi bi-truck" className="h-10 mb-0"><Input value={driver.vehicle.model} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, model: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-bold text-gray-900 w-2/3">{driver.vehicle.model}</span>}
+                                                ) : <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.vehicle.model}</span>}
                                             </div>
                                             <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                 <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Year</span>
                                                 {isEditing ? (
                                                     <div className="w-2/3"><InputWrapper icon="bi bi-calendar-event" className="h-10 mb-0"><Input value={driver.vehicle.year} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, year: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-bold text-gray-900 w-2/3">{driver.vehicle.year}</span>}
+                                                ) : <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.vehicle.year}</span>}
                                             </div>
                                             <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                 <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Color</span>
                                                 {isEditing ? (
                                                     <div className="w-2/3"><InputWrapper icon="bi bi-palette" className="h-10 mb-0"><Input value={driver.vehicle.color} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, color: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-bold text-gray-900 w-2/3">{driver.vehicle.color}</span>}
+                                                ) : <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.vehicle.color}</span>}
                                             </div>
                                             <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                 <span className="text-sm font-semibold text-gray-500 w-1/3">License Plate</span>
                                                 {isEditing ? (
                                                     <div className="w-2/3"><InputWrapper icon="bi bi-card-text" className="h-10 mb-0"><Input value={driver.vehicle.license_plate} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, license_plate: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-bold text-[#D10000] tracking-wider w-2/3">{driver.vehicle.license_plate}</span>}
+                                                ) : <span className="text-sm font-[600] text-[#D10000] tracking-wider w-2/3">{driver.vehicle.license_plate}</span>}
                                             </div>
                                             <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                 <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Type</span>
@@ -735,7 +736,7 @@ export default function DriverDetail() {
                                                 ) : (
                                                     <div className="w-2/3 flex items-center gap-2">
                                                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-[#D10000] bg-red-50"><i className="bi bi-car-front-fill text-sm"></i></div>
-                                                        <span className="text-sm font-bold text-gray-900">{driver.vehicle.type}</span>
+                                                        <span className="text-sm font-[600] text-gray-900">{driver.vehicle.type}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -754,7 +755,7 @@ export default function DriverDetail() {
                                             ) : (
                                                 <table className="w-full text-left border-collapse">
                                                     <thead>
-                                                        <tr className="bg-[#FFEAEA] text-xs font-bold text-gray-900 border-none">
+                                                        <tr className="bg-[#FFEAEA] text-xs font-[600] text-gray-900 border-none">
                                                             <th className="py-4 px-6 rounded-l-xl">Date</th>
                                                             <th className="py-4 px-6">Booking ID</th>
                                                             <th className="py-4 px-6">Customer</th>
@@ -764,8 +765,8 @@ export default function DriverDetail() {
                                                     <tbody className="text-sm">
                                                         {(showAllRides ? driver.rides : driver.rides.slice(0, 5)).map((ride, idx) => (
                                                             <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                                                                <td className="py-4 px-6 text-gray-800 font-medium whitespace-nowrap">{new Date(ride.created_at).toLocaleDateString()}</td>
-                                                                <td className="py-4 px-6 text-gray-800 font-bold whitespace-nowrap">{ride.unique_id}</td>
+                                                                <td className="py-4 px-6 text-gray-800 font-medium whitespace-nowrap">{formatDate(ride.created_at)}</td>
+                                                                <td className="py-4 px-6 text-gray-800 font-[600] whitespace-nowrap">{ride.unique_id}</td>
                                                                 <td className="py-4 px-6 text-gray-600 font-medium whitespace-nowrap">{ride.passenger_name}</td>
                                                                 <td className="py-4 px-6 text-gray-600 font-medium">{ride.pickup_address}</td>
                                                             </tr>
@@ -778,7 +779,7 @@ export default function DriverDetail() {
                                             <div className="mt-6 mb-2 px-6">
                                                 <button
                                                     onClick={() => setShowAllRides(!showAllRides)}
-                                                    className="text-[#D10000] text-xs font-bold hover:underline transition-all"
+                                                    className="text-[#D10000] text-xs font-[600] hover:underline transition-all"
                                                 >
                                                     {showAllRides ? 'Show Less' : 'View All'}
                                                 </button>
@@ -791,18 +792,18 @@ export default function DriverDetail() {
                                     <div className="flex flex-col gap-8 mt-4">
                                         {/* Primary Methods */}
                                         <div className="flex flex-col">
-                                            <h4 className="text-[#D10000] font-bold text-sm mb-4">Primary Methods</h4>
+                                            <h4 className="text-[#D10000] font-[600] text-sm mb-4">Primary Methods</h4>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <span className="text-sm font-bold text-gray-900 w-1/3">Royal Bank of Canada</span>
+                                                    <span className="text-sm font-[600] text-gray-900 w-1/3">Royal Bank of Canada</span>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.p1} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, p1: e.target.value } })} /></InputWrapper></div>
                                                     ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.p1}</span>}
                                                 </div>
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                     <div className="flex items-center gap-3 w-1/3">
-                                                        <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-bold italic tracking-wider">VISA</div>
-                                                        <span className="text-sm font-bold text-gray-900">Visa</span>
+                                                        <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-[600] italic tracking-wider">VISA</div>
+                                                        <span className="text-sm font-[600] text-gray-900">Visa</span>
                                                     </div>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.p2} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, p2: e.target.value } })} /></InputWrapper></div>
@@ -810,8 +811,8 @@ export default function DriverDetail() {
                                                 </div>
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                     <div className="flex items-center gap-2 w-1/3">
-                                                        <div className="h-6 px-2 border border-gray-300 rounded flex items-center justify-center text-gray-800 text-[10px] font-bold"><i className="bi bi-apple mr-0.5 mt-[-2px]"></i> Pay</div>
-                                                        <span className="text-sm font-bold text-gray-900">Apple Pay</span>
+                                                        <div className="h-6 px-2 border border-gray-300 rounded flex items-center justify-center text-gray-800 text-[10px] font-[600]"><i className="bi bi-apple mr-0.5 mt-[-2px]"></i> Pay</div>
+                                                        <span className="text-sm font-[600] text-gray-900">Apple Pay</span>
                                                     </div>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.p3} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, p3: e.target.value } })} /></InputWrapper></div>
@@ -822,10 +823,10 @@ export default function DriverDetail() {
 
                                         {/* Other Methods */}
                                         <div className="flex flex-col border border-white mb-2">
-                                            <h4 className="text-[#D10000] font-bold text-sm mb-4">Other Methods</h4>
+                                            <h4 className="text-[#D10000] font-[600] text-sm mb-4">Other Methods</h4>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <span className="text-sm font-bold text-gray-900 w-1/3">Canadian Western Bank</span>
+                                                    <span className="text-sm font-[600] text-gray-900 w-1/3">Canadian Western Bank</span>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.o1} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, o1: e.target.value } })} /></InputWrapper></div>
                                                     ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.o1}</span>}
@@ -836,7 +837,7 @@ export default function DriverDetail() {
                                                             <div className="w-5 h-5 rounded-full bg-red-500 opacity-80 mix-blend-multiply"></div>
                                                             <div className="w-5 h-5 rounded-full bg-yellow-500 opacity-80 mix-blend-multiply"></div>
                                                         </div>
-                                                        <span className="text-sm font-bold text-gray-900">Mastercard</span>
+                                                        <span className="text-sm font-[600] text-gray-900">Mastercard</span>
                                                     </div>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.o2} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, o2: e.target.value } })} /></InputWrapper></div>
@@ -856,10 +857,10 @@ export default function DriverDetail() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
                         <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl">
                             <div className="mb-4">
-                                <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-bold'}`}></i>
+                                <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-[600]'}`}></i>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-3">
+                            <h3 className="text-xl font-[600] text-gray-900 mb-3">
                                 {modalType === 'block' ? 'Block Driver' : modalType === 'unblock' ? 'unblock Driver' : 'Delete Driver'}
                             </h3>
 
@@ -872,7 +873,7 @@ export default function DriverDetail() {
                             </p>
 
                             <div className="flex items-center gap-3 w-full">
-                                <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-bold text-sm hover:bg-[#d01019] transition-colors" onClick={async () => {
+                                <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-[600] text-sm hover:bg-[#d01019] transition-colors" onClick={async () => {
                                     try {
                                         if (modalType === 'block' || modalType === 'unblock') {
                                             const newStatus = modalType === 'block' ? 'Blocked' : 'Active';
@@ -893,7 +894,7 @@ export default function DriverDetail() {
                                 }}>
                                     Confirm
                                 </button>
-                                <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-bold text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
+                                <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-[600] text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
                                     Cancel
                                 </button>
                             </div>
@@ -905,14 +906,14 @@ export default function DriverDetail() {
                     <div className="fixed top-16 inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
                         <div className="bg-white rounded-[30px] p-2 w-[90%] max-w-[360px] flex flex-col shadow-2xl overflow-hidden ">
                             <div className="bg-[#EE1B24] py-3 px-4 rounded-full shadow-sm text-center">
-                                <h3 className="text-white font-bold text-[15px]">Temporarily Suspend Driver</h3>
+                                <h3 className="text-white font-[600] text-[15px]">Temporarily Suspend Driver</h3>
                             </div>
 
                             <div className="p-6">
                                 <p className="text-[13px] font-medium text-gray-800 mb-6 font-semibold">Driver : {driver.name} (ID: {driver.id})</p>
 
                                 <div className="mb-6">
-                                    <p className="text-[15px] font-bold text-gray-900 mb-3">Duration Type</p>
+                                    <p className="text-[15px] font-[600] text-gray-900 mb-3">Duration Type</p>
                                     <div className="flex gap-6">
                                         <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
                                             <div className="relative flex items-center justify-center">
@@ -932,18 +933,18 @@ export default function DriverDetail() {
                                 </div>
 
                                 <div className="mb-5">
-                                    <p className="text-[15px] font-bold text-gray-900 mb-2">Duration</p>
+                                    <p className="text-[15px] font-[600] text-gray-900 mb-2">Duration</p>
                                     <input type="number" placeholder={`Enter ${suspensionForm.type}`} className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE1B24] font-medium placeholder:text-gray-400" value={suspensionForm.duration} onChange={(e) => setSuspensionForm({ ...suspensionForm, duration: e.target.value })} />
                                 </div>
 
                                 <div className="mb-8">
-                                    <p className="text-[15px] font-bold text-gray-900 mb-2">Reason<span className="text-gray-600 font-medium">(Optional)</span></p>
+                                    <p className="text-[15px] font-[600] text-gray-900 mb-2">Reason<span className="text-gray-600 font-medium">(Optional)</span></p>
                                     <textarea placeholder="Write Reason..." rows={4} className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE1B24] resize-none font-medium placeholder:text-gray-400" value={suspensionForm.reason} onChange={(e) => setSuspensionForm({ ...suspensionForm, reason: e.target.value })}></textarea>
                                 </div>
 
                                 <div className="flex items-center gap-3 w-full">
                                     <button
-                                        className="flex-1 py-3 bg-[#EE1B24] text-white rounded-xl font-bold text-base hover:bg-[#d01019] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 bg-[#EE1B24] text-white rounded-xl font-[600] text-base hover:bg-[#d01019] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
                                         disabled={!suspensionForm.duration || updating}
                                         onClick={async () => {
                                             try {
@@ -982,7 +983,7 @@ export default function DriverDetail() {
                                     >
                                         {updating ? <i className="bi bi-hourglass-split animate-spin"></i> : 'Suspend'}
                                     </button>
-                                    <button className="flex-[0.8] py-3 bg-white text-gray-900 border-[1.5px] border-black rounded-xl font-bold text-base hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
+                                    <button className="flex-[0.8] py-3 bg-white text-gray-900 border-[1.5px] border-black rounded-xl font-[600] text-base hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
                                         Cancel
                                     </button>
                                 </div>
@@ -1001,7 +1002,7 @@ export default function DriverDetail() {
                                 Your Driver <span className="text-[#EE1B24]">{driver.name}</span> is successfully suspended for {suspensionForm.duration} {suspensionForm.type.toLowerCase()}
                             </p>
                             <div className="w-full px-4 mt-2">
-                                <button className="w-full py-3.5 bg-[#EE1B24] text-white rounded-[14px] font-bold text-[17px] hover:bg-[#d01019] transition-colors" onClick={() => { setDriverStatus('suspended'); setModalType(null); }}>
+                                <button className="w-full py-3.5 bg-[#EE1B24] text-white rounded-[14px] font-[600] text-[17px] hover:bg-[#d01019] transition-colors" onClick={() => { setDriverStatus('suspended'); setModalType(null); }}>
                                     Okay
                                 </button>
                             </div>
@@ -1015,7 +1016,7 @@ export default function DriverDetail() {
                         <div className="bg-white rounded-[28px] w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
                             {/* Header - Compact Red Style */}
                             <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
-                                <h3 className="text-sm font-bold uppercase tracking-wider">Suspension Details</h3>
+                                <h3 className="text-sm font-[600] uppercase tracking-wider">Suspension Details</h3>
                                 <button onClick={() => setModalType(null)} className="text-white/80 hover:text-white transition-colors">
                                     <i className="bi bi-x-lg text-sm"></i>
                                 </button>
@@ -1030,14 +1031,14 @@ export default function DriverDetail() {
                                 </div>
 
                                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Time Remaining</div>
-                                    <div className="text-2xl font-black text-[#EE1B24] tracking-tighter">
+                                    <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1">Time Remaining</div>
+                                    <div className="text-2xl font-[600] text-[#EE1B24] tracking-tighter">
                                         {timeLeft || '00h 00m 00s'}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Reason</div>
+                                    <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1.5">Reason</div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-[13px] text-gray-700 leading-snug italic">
                                         "{driver?.suspension_reason || 'No reason provided.'}"
                                     </div>
@@ -1046,7 +1047,7 @@ export default function DriverDetail() {
                                 <div className="pt-1">
                                     <button
                                         onClick={() => setModalType(null)}
-                                        className="w-full py-3 rounded-full bg-[#EE1B24] text-white font-bold text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95"
+                                        className="w-full py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95"
                                     >
                                         Close Details
                                     </button>
@@ -1061,7 +1062,7 @@ export default function DriverDetail() {
                     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                         <div className="bg-white rounded-[28px] w-full max-w-[400px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
                             <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
-                                <h3 className="text-sm font-bold uppercase tracking-wider">Reject Document</h3>
+                                <h3 className="text-sm font-[600] uppercase tracking-wider">Reject Document</h3>
                                 <button onClick={() => setRejectionModal({ ...rejectionModal, isOpen: false })} className="text-white/80 hover:text-white transition-colors">
                                     <i className="bi bi-x-lg text-sm"></i>
                                 </button>
@@ -1069,7 +1070,7 @@ export default function DriverDetail() {
 
                             <div className="p-6 space-y-5">
                                 <div>
-                                    <h4 className="text-sm font-bold text-gray-900 mb-1">{rejectionModal.docName}</h4>
+                                    <h4 className="text-sm font-[600] text-gray-900 mb-1">{rejectionModal.docName}</h4>
                                     <p className="text-xs text-gray-500">Please provide a reason why this document is being rejected. This will be shown to the driver.</p>
                                 </div>
 
@@ -1083,14 +1084,14 @@ export default function DriverDetail() {
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setRejectionModal({ ...rejectionModal, isOpen: false })}
-                                        className="flex-1 py-3 rounded-full border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-50 transition-all"
+                                        className="flex-1 py-3 rounded-full border border-gray-300 text-gray-700 font-[600] text-xs hover:bg-gray-50 transition-all"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleRejectionSubmit}
                                         disabled={updating || !rejectionModal.rejectionReason.trim()}
-                                        className="flex-1 py-3 rounded-full bg-[#EE1B24] text-white font-bold text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95 disabled:opacity-50"
+                                        className="flex-1 py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95 disabled:opacity-50"
                                     >
                                         {updating ? 'Submitting...' : 'Confirm Rejection'}
                                     </button>

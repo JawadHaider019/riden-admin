@@ -74,7 +74,7 @@ export default function FareManagement() {
                         className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
                         <i className={`bi bi-truck mr-3 text-[18px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`}></i>
-                        <span className="flex-1 text-[14px] font-[700] text-[#111] truncate whitespace-nowrap mr-2">
+                        <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
                             {carTypes.find(c => c.name === selectedCarType)?.label || selectedCarType}
                         </span>
                         <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : 'rotate-0'}`}></i>
@@ -92,7 +92,7 @@ export default function FareManagement() {
                                             fetchFares(category.name);
                                             setIsSelectOpen(false);
                                         }}
-                                        className={`px-4 py-2 text-xs font-[700] cursor-pointer transition-all duration-200 ${selectedCarType === category.name
+                                        className={`px-4 py-2 text-xs font-[600] cursor-pointer transition-all duration-200 ${selectedCarType === category.name
                                             ? 'bg-[#D10000] text-white mx-2 rounded-full shadow-md truncate whitespace-nowrap'
                                             : 'text-[#111] hover:bg-gray-50 truncate whitespace-nowrap'
                                             }`}
@@ -138,10 +138,10 @@ export default function FareManagement() {
                                         step="0.01"
                                         value={editValues.base_fare}
                                         onChange={(e) => handleChange('base_fare', e.target.value)}
-                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[700] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
+                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[700] text-[#111]">${fare.base_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">${fare.base_fare}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -151,10 +151,10 @@ export default function FareManagement() {
                                         step="0.01"
                                         value={editValues.per_km_fare}
                                         onChange={(e) => handleChange('per_km_fare', e.target.value)}
-                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[700] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
+                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[700] text-[#111]">${fare.per_km_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">${fare.per_km_fare}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -164,7 +164,7 @@ export default function FareManagement() {
                                             type="number"
                                             value={editValues.waiting_min}
                                             onChange={(e) => handleChange('waiting_min', e.target.value)}
-                                            className="w-[50px] px-1 py-2 border border-[#D10000]/30 rounded-lg text-[13px] font-[700] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
+                                            className="w-[50px] px-1 py-2 border border-[#D10000]/30 rounded-lg text-[13px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                         />
                                         <span className="text-gray-400">/</span>
                                         <input
@@ -172,11 +172,11 @@ export default function FareManagement() {
                                             step="0.01"
                                             value={editValues.waiting_charges}
                                             onChange={(e) => handleChange('waiting_charges', e.target.value)}
-                                            className="w-[60px] px-1 py-2 border border-[#D10000]/30 rounded-lg text-[13px] font-[700] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
+                                            className="w-[60px] px-1 py-2 border border-[#D10000]/30 rounded-lg text-[13px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                         />
                                     </div>
                                 ) : (
-                                    <span className="text-[14px] font-[700] text-[#6B7280]">{fare.waiting_min}m / ${fare.waiting_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min}m / ${fare.waiting_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -235,13 +235,13 @@ export default function FareManagement() {
                                         <button
                                             onClick={saveEditing}
                                             disabled={updating === fare.id}
-                                            className="w-full px-4 py-1.5 bg-[#12B76A] text-white text-[11px] font-[700] rounded-full hover:bg-[#039855] transition-all disabled:opacity-50"
+                                            className="w-full px-4 py-1.5 bg-[#12B76A] text-white text-[11px] font-[600] rounded-full hover:bg-[#039855] transition-all disabled:opacity-50"
                                         >
                                             {updating === fare.id ? 'Saving...' : 'Update'}
                                         </button>
                                         <button
                                             onClick={cancelEditing}
-                                            className="w-full px-4 py-1.5 bg-gray-100 text-gray-500 text-[11px] font-[700] rounded-full hover:bg-gray-200 transition-all font-bold"
+                                            className="w-full px-4 py-1.5 bg-gray-100 text-gray-500 text-[11px] font-[600] rounded-full hover:bg-gray-200 transition-all font-[600]"
                                         >
                                             Cancel
                                         </button>
@@ -249,7 +249,7 @@ export default function FareManagement() {
                                 ) : (
                                     <button
                                         onClick={() => startEditing(fare)}
-                                        className="px-5 py-2 bg-white border border-[#E5E7EB] text-[#111] text-[12px] font-[700] rounded-full hover:bg-gray-50 transition-all flex items-center gap-1.5 mx-auto"
+                                        className="px-5 py-2 bg-white border border-[#E5E7EB] text-[#111] text-[12px] font-[600] rounded-full hover:bg-gray-50 transition-all flex items-center gap-1.5 mx-auto"
                                     >
                                         <i className="bi bi-pencil-square text-[#10B981]"></i> Edit
                                     </button>

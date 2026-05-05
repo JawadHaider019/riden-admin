@@ -65,7 +65,7 @@ export default function CommissionManagement() {
                         >
                             <i className="bi bi-chevron-left text-sm"></i>
                         </button>
-                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Set Car Type Commission</h2>
+                        <h2 className="text-xl font-[600] text-gray-900 tracking-tight">Set Car Type Commission</h2>
                     </div>
                 )}
             </div>
@@ -76,8 +76,8 @@ export default function CommissionManagement() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div className="bg-white border border-[#E5E7EB] p-4 rounded-[30px] flex justify-between items-center group relative overflow-hidden hover:shadow-xl hover:shadow-riden-red/5 transition-all duration-500">
                             <div className="relative z-10">
-                                <span className="text-[14px] font-[700] text-[#9CA3AF] block mb-2 uppercase tracking-widest">Total Rides</span>
-                                <h1 className="text-5xl font-[700] text-[#111] leading-none tracking-tight">1,024</h1>
+                                <span className="text-[14px] font-[600] text-[#9CA3AF] block mb-2 uppercase tracking-widest">Total Rides</span>
+                                <h1 className="text-5xl font-[600] text-[#111] leading-none tracking-tight">1,024</h1>
                             </div>
                             <img
                                 src="/assets/images/totalrides.png"
@@ -87,8 +87,8 @@ export default function CommissionManagement() {
                         </div>
                         <div className="bg-white border border-[#E5E7EB] p-4 rounded-[30px] flex justify-between items-center group relative overflow-hidden hover:shadow-xl hover:shadow-riden-red/5 transition-all duration-500">
                             <div className="relative z-10">
-                                <span className="text-[14px] font-[700] text-[#9CA3AF] block mb-2 uppercase tracking-widest">Total Commission</span>
-                                <h1 className="text-5xl font-[700] text-[#111] leading-none tracking-tight">$45,000</h1>
+                                <span className="text-[14px] font-[600] text-[#9CA3AF] block mb-2 uppercase tracking-widest">Total Commission</span>
+                                <h1 className="text-5xl font-[600] text-[#111] leading-none tracking-tight">$45,000</h1>
                             </div>
                             <img
                                 src="/assets/images/totalcommission.png"
@@ -103,12 +103,12 @@ export default function CommissionManagement() {
                         {transactions.map((row, i) => (
                             <tr key={i} className="hover:bg-black/[0.03] transition-colors border-b border-[#F3F4F6]">
                                 <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#4B5563] text-center">{row.date}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#D10000] text-center">{row.id}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#111] uppercase italic tracking-tight text-center">{row.type}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#111] text-center">{row.total}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#D10000] text-center">{row.id}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111] uppercase italic tracking-tight text-center">{row.type}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111] text-center">{row.total}</td>
                                 <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#9CA3AF] font-mono text-center">{row.discount}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#111] text-center">{row.percent}</td>
-                                <td className="py-[18px] px-[30px] text-[14px] font-[800] text-[#12B76A] text-center">{row.amount}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#111] text-center">{row.percent}</td>
+                                <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#12B76A] text-center">{row.amount}</td>
                             </tr>
                         ))}
                     </Table>
@@ -129,10 +129,10 @@ export default function CommissionManagement() {
                                                 type="text"
                                                 value={editValue}
                                                 onChange={(e) => setEditValue(e.target.value)}
-                                                className="w-32 px-4 py-2 border border-[#D10000] rounded-xl text-[15px] font-[700] text-[#111] focus:ring-4 focus:ring-red-100 outline-none"
+                                                className="w-32 px-4 py-2 border border-[#D10000] rounded-xl text-[15px] font-[600] text-[#111] focus:ring-4 focus:ring-red-100 outline-none"
                                             />
                                         ) : (
-                                            <span className="text-[15px] font-[700] text-[#111]">{item.percentage}</span>
+                                            <span className="text-[15px] font-[600] text-[#111]">{item.percentage}</span>
                                         )}
                                     </td>
                                     <td className="py-6 px-10 text-right">
@@ -140,13 +140,13 @@ export default function CommissionManagement() {
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={saveEditing}
-                                                    className="px-6 py-2.5 bg-[#12B76A] text-white text-xs font-bold rounded-full hover:bg-[#039855] transition-all shadow-md"
+                                                    className="px-6 py-2.5 bg-[#12B76A] text-white text-xs font-[600] rounded-full hover:bg-[#039855] transition-all shadow-md"
                                                 >
                                                     Update
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingType(null)}
-                                                    className="px-6 py-2.5 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-full hover:bg-gray-50 transition-all"
+                                                    className="px-6 py-2.5 bg-white border border-gray-200 text-gray-500 text-xs font-[600] rounded-full hover:bg-gray-50 transition-all"
                                                 >
                                                     Cancel
                                                 </button>
@@ -154,7 +154,7 @@ export default function CommissionManagement() {
                                         ) : (
                                             <button
                                                 onClick={() => startEditing(item)}
-                                                className="px-10 py-3 bg-[#D10000] text-white text-[13px] font-[700] rounded-[12px] hover:bg-[#D10000]/90 transition-all shadow-lg shadow-red-100 uppercase"
+                                                className="px-10 py-3 bg-[#D10000] text-white text-[13px] font-[600] rounded-[12px] hover:bg-[#D10000]/90 transition-all shadow-lg shadow-red-100 uppercase"
                                             >
                                                 Edit
                                             </button>

@@ -158,13 +158,13 @@ export default function AdminCreate() {
                     <Link to="/users" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                         <i className="bi bi-chevron-left text-sm"></i>
                     </Link>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Add New Admin</h2>
+                    <h2 className="text-xl font-[600] text-gray-900 tracking-tight">Add New Admin</h2>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="bg-white rounded-[30px] shadow-sm border border-[#E5E7EB] p-6">
                         {/* Admin Details Section */}
-                        <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="bg-[#d10000] rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             Admin Details
                         </div>
 
@@ -205,7 +205,7 @@ export default function AdminCreate() {
                                 <InputWrapper className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 py-1">
                                         <img src="https://flagcdn.com/w40/ca.png" alt="CA" className="w-5" />
-                                        <span className="text-[14px] font-bold text-gray-900">+1</span>
+                                        <span className="text-[14px] font-[600] text-gray-900">+1</span>
                                     </div>
                                     <div className="flex-grow">
                                         <Input
@@ -241,7 +241,7 @@ export default function AdminCreate() {
                         {/* Access Module Section - Only show if NOT super admin */}
                         {!formData.is_super && (
                             <>
-                                <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                                     Access Module
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4 px-4">
@@ -272,7 +272,7 @@ export default function AdminCreate() {
                         )}
 
                         {/* Password Section */}
-                        <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="bg-[#d10000] mt-4 rounded-full p-4 text-[14px] font-[600] text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             Make Password
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
@@ -322,7 +322,7 @@ export default function AdminCreate() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="px-12 py-3 border-gray-200 text-gray-700 hover:bg-gray-50 font-black"
+                                    className="px-12 py-3 border-gray-200 text-gray-700 hover:bg-gray-50 font-[600]"
                                 >
                                     Cancel
                                 </Button>
@@ -330,7 +330,7 @@ export default function AdminCreate() {
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="px-12 py-3 shadow-lg shadow-red-100 font-black bg-[#D10000] hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-12 py-3 shadow-lg shadow-red-100 font-[600] bg-[#D10000] hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
                                     <>

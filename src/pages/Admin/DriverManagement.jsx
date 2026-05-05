@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getDrivers } from '../../api/driverApi';
 import { getImageUrl } from '@/api/api';
+import { formatDate } from '@/utils/formatters';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 
 export default function DriverManagement() {
     const navigate = useNavigate();
@@ -13,6 +16,18 @@ export default function DriverManagement() {
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [exportOpen, setExportOpen] = useState(false);
+    const exportRef = useRef(null);
+
+    // Click outside to close export dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportRef.current && !exportRef.current.contains(event.target)) {
+                setExportOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // API States
     const [drivers, setDrivers] = useState([]);
@@ -32,7 +47,9 @@ export default function DriverManagement() {
                 status: activeTab === 'active' ? 'Active' :
                     activeTab === 'requested' ? 'Pending' :
                         activeTab === 'blocked' ? 'Blocked' :
-                            activeTab === 'suspended' ? 'Suspended' : undefined
+                            activeTab === 'suspended' ? 'Suspended' : undefined,
+                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
             };
             const response = await getDrivers(params);
 
@@ -61,7 +78,27 @@ export default function DriverManagement() {
                 );
             }
 
+            if (startDate || endDate) {
+                driversData = driversData.filter(d => {
+                    const dDate = new Date(d.created_at || new Date());
+                    dDate.setHours(0, 0, 0, 0);
+                    let isMatch = true;
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        sDate.setHours(0, 0, 0, 0);
+                        if (dDate < sDate) isMatch = false;
+                    }
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        eDate.setHours(0, 0, 0, 0);
+                        if (dDate > eDate) isMatch = false;
+                    }
+                    return isMatch;
+                });
+            }
+
             setDrivers(driversData);
+
 
             // Pagination info
             setTotalPages(response.data?.last_page || 1);
@@ -76,7 +113,72 @@ export default function DriverManagement() {
 
     useEffect(() => {
         fetchDrivers();
-    }, [currentPage, searchTerm, activeTab]);
+    }, [currentPage, searchTerm, activeTab, startDate, endDate]);
+
+    const handleExport = async (exportFormat) => {
+        try {
+            showToast("Preparing export data...", "info");
+
+            const params = {
+                limit: 1000,
+                search: searchTerm,
+                status: activeTab === 'active' ? 'Active' : (activeTab === 'requested' ? 'Pending' : undefined),
+                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+            };
+
+            const response = await getDrivers(params);
+            let rawData = response.data?.data || response.data || [];
+
+            if (startDate || endDate) {
+                rawData = rawData.filter(d => {
+                    const dDate = new Date(d.created_at || new Date());
+                    dDate.setHours(0, 0, 0, 0);
+                    let isMatch = true;
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        sDate.setHours(0, 0, 0, 0);
+                        if (dDate < sDate) isMatch = false;
+                    }
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        eDate.setHours(0, 0, 0, 0);
+                        if (dDate > eDate) isMatch = false;
+                    }
+                    return isMatch;
+                });
+            }
+
+            if (rawData.length === 0) {
+                showToast("No drivers to export", "error");
+                return;
+            }
+
+            const headers = ["ID", "Name", "Phone", "Email", "Status", "Joined Date"];
+            const formattedData = rawData.map(d => [
+                d.id,
+                `${d.first_name || ''} ${d.last_name || ''}`,
+                d.phone || 'N/A',
+                d.email || 'N/A',
+                d.status?.toUpperCase() || 'N/A',
+                formatDate(d.created_at)
+            ]);
+
+            const filename = `drivers_report_${activeTab}_${new Date().toISOString().split('T')[0]}`;
+            const title = `RIDEN | ${activeTab.toUpperCase()} DRIVERS DIRECTORY`;
+
+            if (exportFormat === 'csv') exportToCSV(formattedData, filename, headers);
+            else if (exportFormat === 'xlsx') exportToExcel(formattedData, filename, headers);
+            else if (exportFormat === 'pdf') exportToPDF(formattedData, filename, headers, title);
+
+            showToast("Report generated successfully", "success");
+        } catch (error) {
+            console.error("Export Error:", error);
+            showToast("Failed to generate report", "error");
+        } finally {
+            setExportOpen(false);
+        }
+    };
 
     return (
         <AdminLayout title="Driver Management">
@@ -91,9 +193,9 @@ export default function DriverManagement() {
                 />
 
                 <div className="flex items-center gap-1 w-full lg:w-auto">
-                    <Button variant="pill" className="flex-1 lg:flex-none" onClick={() => navigate('/drivers/create')}>
+                    {/* <Button variant="pill" className="flex-1 lg:flex-none" onClick={() => navigate('/drivers/create')}>
                         <i className="bi bi-person-plus-fill"></i> Add Driver
-                    </Button>
+                    </Button> */}
 
                     <DateRangePicker
                         startDate={startDate}
@@ -102,31 +204,31 @@ export default function DriverManagement() {
                         onEndDateChange={setEndDate}
 
                     />
-                    <div className="relative">
+                    <div className="relative" ref={exportRef}>
                         <button
                             onClick={() => setExportOpen(!exportOpen)}
-                            className="flex rounded-full items-center gap-1 px-6 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[700] text-[#111] hover:bg-gray-50 transition-all"
+                            className="flex rounded-full items-center gap-1 px-6 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[600] text-[#111] hover:bg-gray-50 transition-all"
                         >
                             <i className="bi bi-file-earmark-excel-fill text-[#1D7E4D]"></i> Export
                             <i className={`bi bi-chevron-down text-[#1D7E4D] text-sm transition-all ${exportOpen ? 'rotate-180' : ''}`}></i>
                         </button>
                         {exportOpen && (
-                            <div className="absolute right-0 mt-2 w-44 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg overflow-hidden py-1 z-10">
+                            <div className="absolute right-0 mt-2 w-44 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg overflow-hidden py-1 z-10 transition-all animate-fade-in">
                                 <button
                                     className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] border-b border-[#F3F4F6] transition-colors"
-                                    onClick={() => setExportOpen(false)}
+                                    onClick={() => handleExport('csv')}
                                 >
                                     <i className="bi bi-filetype-csv mr-2 text-[#1D7E4D]"></i> CSV Format
                                 </button>
                                 <button
                                     className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors"
-                                    onClick={() => setExportOpen(false)}
+                                    onClick={() => handleExport('pdf')}
                                 >
                                     <i className="bi bi-filetype-pdf mr-2 text-[#E72929]"></i> PDF Format
                                 </button>
                                 <button
                                     className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors border-t border-[#F3F4F6]"
-                                    onClick={() => setExportOpen(false)}
+                                    onClick={() => handleExport('xlsx')}
                                 >
                                     <i className="bi bi-file-earmark-excel-fill mr-2 text-[#1D7E4D]"></i> Excel Format
                                 </button>
@@ -141,7 +243,7 @@ export default function DriverManagement() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 options={[
-                    { id: 'active', label: 'Active Drivers' },
+                    { id: 'active', label: 'Active' },
                     { id: 'requested', label: 'Requested' },
                     { id: 'suspended', label: 'Suspended' },
                     { id: 'blocked', label: 'Blocked' }
@@ -149,7 +251,7 @@ export default function DriverManagement() {
             />
 
             {/* Table */}
-            <Table headers={['ID', 'Name', 'Phone Number', 'Status']}>
+            <Table headers={['ID', 'Name', 'Phone Number', 'Joined Date', 'Status']}>
                 {loading ? (
                     <tr><td colSpan="4" className="text-center py-10"><div className="animate-spin inline-block w-6 h-6 border-2 border-red-600 rounded-full border-t-transparent"></div></td></tr>
                 ) : drivers.length === 0 ? (
@@ -162,7 +264,7 @@ export default function DriverManagement() {
                             className="cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
                         >
 
-                            <td className="py-[18px] px-[30px] text-[#6B7280] font-[700] italic tracking-tight">{d.id}</td>
+                            <td className="py-[18px] px-[30px] text-[#6B7280] font-[600] italic tracking-tight">{d.id}</td>
                             <td className="py-[18px] px-[30px]">
                                 <div className="flex items-center gap-3">
                                     <div className="w-[44px] h-[44px] rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100 shrink-0">
@@ -177,10 +279,11 @@ export default function DriverManagement() {
                                             }}
                                         />
                                     </div>
-                                    <span className="font-[700] text-[#111]">{d.first_name} {d.last_name}</span>
+                                    <span className="font-[600] text-[#111]">{d.first_name} {d.last_name}</span>
                                 </div>
                             </td>
-                            <td className="py-[18px] px-[30px] text-[#111] font-[700]">{d.phone}</td>
+                            <td className="py-[18px] px-[30px] text-[#111] font-[600]">{d.phone}</td>
+                            <td className="py-[18px] px-[30px] text-[#111] font-[600]">{formatDate(d.created_at)}</td>
                             <td className="py-[18px] px-[30px]">
                                 {(() => {
                                     const status = d.status?.toLowerCase();

@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { InputWrapper, Input, useToast } from '@/components/UI';
 import { getPassengerById, updatePassenger, togglePassengerStatus, deletePassenger } from '@/api/passengerApi';
 import { getImageUrl } from '@/api/api';
+import { formatDate } from '@/utils/formatters';
 
 export default function PassengerDetail() {
     const { id } = useParams();
@@ -34,7 +35,7 @@ export default function PassengerDetail() {
             const formatted = {
                 ...data,
                 name: data.name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'N/A',
-                since: data.created_at ? `Since ${new Date(data.created_at).toLocaleDateString()}` : (data.since || 'N/A'),
+                since: data.created_at ? `Since ${formatDate(data.created_at)}` : (data.since || 'N/A'),
                 rating: data.rating || 5.0,
                 id: data.id || id,
                 stats: {
@@ -166,9 +167,9 @@ export default function PassengerDetail() {
                     <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
                         <i className="bi bi-person-x-fill text-4xl text-[#D10000]"></i>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Passenger not found</h3>
+                    <h3 className="text-xl font-[600] text-gray-800 mb-2">Passenger not found</h3>
                     <p className="text-gray-500 mb-8 max-w-sm">We couldn't find the passenger you're looking for.</p>
-                    <Link to="/passenger" className="bg-[#D10000] text-white px-8 py-3 rounded-full font-bold hover:bg-[#b00000] transition-colors">
+                    <Link to="/passenger" className="bg-[#D10000] text-white px-8 py-3 rounded-full font-[600] hover:bg-[#b00000] transition-colors">
                         Back to Passengers
                     </Link>
                 </div>
@@ -203,8 +204,8 @@ export default function PassengerDetail() {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h2 className="text-xl font-bold text-black">{passenger.name}</h2>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${passengerStatus === 'active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                <h2 className="text-xl font-[600] text-black">{passenger.name}</h2>
+                                <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full uppercase tracking-wider ${passengerStatus === 'active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                                     {passengerStatus === 'active' ? 'Active' : 'Blocked'}
                                 </span>
                             </div>
@@ -219,12 +220,12 @@ export default function PassengerDetail() {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="text-right mr-2">
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{passenger.since}</div>
-                            <div className="text-xs font-bold text-black uppercase tracking-tighter">Registered</div>
+                            <div className="text-[10px] font-[600] text-gray-400 uppercase tracking-widest">{passenger.since}</div>
+                            <div className="text-xs font-[600] text-black uppercase tracking-tighter">Registered</div>
                         </div>
                         <button
                             onClick={handleEditClick}
-                            className="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm bg-[#D10000] text-white hover:bg-[#b00000] active:scale-95"
+                            className="px-6 py-2 rounded-full text-xs font-[600] uppercase tracking-widest transition-all shadow-sm bg-[#D10000] text-white hover:bg-[#b00000] active:scale-95"
                         >
                             {isEditing ? 'Cancel' : 'Edit profile'}
                         </button>
@@ -240,7 +241,7 @@ export default function PassengerDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Total Rides</span>
-                            <span className="text-2xl font-bold text-black leading-none">{passenger.stats.total_rides}</span>
+                            <span className="text-2xl font-[600] text-black leading-none">{passenger.stats.total_rides}</span>
                         </div>
                     </div>
 
@@ -253,7 +254,7 @@ export default function PassengerDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Completed Rides</span>
-                            <span className="text-2xl font-bold text-black leading-none">{passenger.stats.completed_rides}</span>
+                            <span className="text-2xl font-[600] text-black leading-none">{passenger.stats.completed_rides}</span>
                         </div>
                     </div>
 
@@ -266,7 +267,7 @@ export default function PassengerDetail() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-semibold text-gray-800 mb-0.5">Cancelled Rides</span>
-                            <span className="text-2xl font-bold text-black leading-none">{passenger.stats.cancelled_rides}</span>
+                            <span className="text-2xl font-[600] text-black leading-none">{passenger.stats.cancelled_rides}</span>
                         </div>
                     </div>
                 </div>
@@ -289,7 +290,7 @@ export default function PassengerDetail() {
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${isActive ? 'bg-[#FFEAEA] text-[#D10000]' : 'bg-gray-100 text-black'}`}>
                                             <i className={`${tab.icon} text-lg`}></i>
                                         </div>
-                                        <span className={`${isActive ? 'text-black font-bold' : 'text-gray-600'}`}>
+                                        <span className={`${isActive ? 'text-black font-[600]' : 'text-gray-600'}`}>
                                             {tab.label}
                                         </span>
                                     </button>
@@ -302,7 +303,7 @@ export default function PassengerDetail() {
                                 <button
                                     onClick={handleUpdate}
                                     disabled={updating}
-                                    className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-lg active:scale-95"
+                                    className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-[600] text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-lg active:scale-95"
                                 >
                                     {updating ? (
                                         <><i className="bi bi-hourglass-split animate-spin"></i> Updating...</>
@@ -313,15 +314,15 @@ export default function PassengerDetail() {
                             ) : (
                                 <>
                                     {passengerStatus === 'blocked' ? (
-                                        <button onClick={() => setModalType('unblock')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
-                                            <i className="bi bi-slash-circle font-bold"></i> unblock Passenger
+                                        <button onClick={() => setModalType('unblock')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
+                                            <i className="bi bi-slash-circle font-[600]"></i> unblock Passenger
                                         </button>
                                     ) : (
-                                        <button onClick={() => setModalType('block')} className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-sm">
-                                            <i className="bi bi-slash-circle font-bold"></i> Block Passenger
+                                        <button onClick={() => setModalType('block')} className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-[600] text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-sm">
+                                            <i className="bi bi-slash-circle font-[600]"></i> Block Passenger
                                         </button>
                                     )}
-                                    <button onClick={() => setModalType('delete')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
+                                    <button onClick={() => setModalType('delete')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
                                         <i className="bi bi-trash-fill"></i> Delete Passenger
                                     </button>
                                 </>
@@ -335,7 +336,7 @@ export default function PassengerDetail() {
                             {/* Active Tab Header */}
                             <div className="bg-[#D10000] px-8 py-5 flex items-center gap-3">
                                 <i className={`text-white text-xl ${tabs.find(t => t.id === activeTab)?.icon}`}></i>
-                                <h3 className="text-white font-bold text-base">
+                                <h3 className="text-white font-[600] text-base">
                                     {tabs.find(t => t.id === activeTab)?.label}
                                 </h3>
                             </div>
@@ -360,7 +361,7 @@ export default function PassengerDetail() {
                                                     />
                                                 </div>
                                                 {isEditing && (
-                                                    <label className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-sm">
+                                                    <label className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-[600] rounded-lg cursor-pointer transition-colors shadow-sm">
                                                         Change Image
                                                         <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                                                     </label>
@@ -379,7 +380,7 @@ export default function PassengerDetail() {
                                                     </InputWrapper>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-gray-900 w-2/3">{passenger.name}</span>
+                                                <span className="text-sm font-[600] text-gray-900 w-2/3">{passenger.name}</span>
                                             )}
                                         </div>
 
@@ -395,7 +396,7 @@ export default function PassengerDetail() {
                                                     </InputWrapper>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-[#D10000] w-2/3">{passenger.email}</span>
+                                                <span className="text-sm font-[600] text-[#D10000] w-2/3">{passenger.email}</span>
                                             )}
                                         </div>
 
@@ -411,7 +412,7 @@ export default function PassengerDetail() {
                                                     </InputWrapper>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-[#D10000] w-2/3">{passenger.phone}</span>
+                                                <span className="text-sm font-[600] text-[#D10000] w-2/3">{passenger.phone}</span>
                                             )}
                                         </div>
 
@@ -430,7 +431,7 @@ export default function PassengerDetail() {
                                                     </select>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm font-bold text-gray-900 w-2/3">{passenger.gender || 'N/A'}</span>
+                                                <span className="text-sm font-[600] text-gray-900 w-2/3">{passenger.gender || 'N/A'}</span>
                                             )}
                                         </div>
                                     </div>
@@ -447,7 +448,7 @@ export default function PassengerDetail() {
                                             ) : (
                                                 <table className="w-full text-left border-collapse">
                                                     <thead>
-                                                        <tr className="bg-[#FFEAEA] text-xs font-bold text-gray-900 border-none">
+                                                        <tr className="bg-[#FFEAEA] text-xs font-[600] text-gray-900 border-none">
                                                             <th className="py-4 px-6 rounded-l-xl">Date</th>
                                                             <th className="py-4 px-6 text-center">Booking ID</th>
                                                             <th className="py-4 px-6 text-right rounded-r-xl">Status</th>
@@ -456,8 +457,8 @@ export default function PassengerDetail() {
                                                     <tbody className="text-sm">
                                                         {(showAllRides ? passenger.rides : passenger.rides.slice(0, 5)).map((ride, idx) => (
                                                             <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                                                                <td className="py-4 px-6 text-gray-800 font-medium">{new Date(ride.created_at).toLocaleDateString()}</td>
-                                                                <td className="py-4 px-6 text-gray-800 font-bold text-center">#{ride.unique_id}</td>
+                                                                <td className="py-4 px-6 text-gray-800 font-medium">{formatDate(ride.created_at)}</td>
+                                                                <td className="py-4 px-6 text-gray-800 font-[600] text-center">#{ride.unique_id}</td>
                                                                 <td className="py-4 px-6 text-right">
                                                                     <Badge variant={ride.status}>{ride.status}</Badge>
                                                                 </td>
@@ -474,18 +475,18 @@ export default function PassengerDetail() {
                                     <div className="flex flex-col gap-8">
                                         {/* Primary Methods */}
                                         <div className="flex flex-col">
-                                            <h4 className="text-[#D10000] font-bold text-sm mb-4">Primary Methods</h4>
+                                            <h4 className="text-[#D10000] font-[600] text-sm mb-4">Primary Methods</h4>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <span className="text-sm font-bold text-gray-900 w-1/3">Canadian Western Bank</span>
+                                                    <span className="text-sm font-[600] text-gray-900 w-1/3">Canadian Western Bank</span>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-bank" className="h-10 mb-0"><Input value={passenger.payments.p1} onChange={e => setPassenger({ ...passenger, payments: { ...passenger.payments, p1: e.target.value } })} /></InputWrapper></div>
                                                     ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{passenger.payments.p1}</span>}
                                                 </div>
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                     <div className="flex items-center gap-3 w-1/3">
-                                                        <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-bold italic tracking-wider">VISA</div>
-                                                        <span className="text-sm font-bold text-gray-900">Visa</span>
+                                                        <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-[600] italic tracking-wider">VISA</div>
+                                                        <span className="text-sm font-[600] text-gray-900">Visa</span>
                                                     </div>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={passenger.payments.p2} onChange={e => setPassenger({ ...passenger, payments: { ...passenger.payments, p2: e.target.value } })} /></InputWrapper></div>
@@ -493,8 +494,8 @@ export default function PassengerDetail() {
                                                 </div>
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
                                                     <div className="flex items-center gap-2 w-1/3">
-                                                        <div className="h-6 px-2 border border-gray-300 rounded flex items-center justify-center text-gray-800 text-[10px] font-bold"><i className="bi bi-apple mr-0.5 mt-[-2px]"></i> Pay</div>
-                                                        <span className="text-sm font-bold text-gray-900">Apple Pay</span>
+                                                        <div className="h-6 px-2 border border-gray-300 rounded flex items-center justify-center text-gray-800 text-[10px] font-[600]"><i className="bi bi-apple mr-0.5 mt-[-2px]"></i> Pay</div>
+                                                        <span className="text-sm font-[600] text-gray-900">Apple Pay</span>
                                                     </div>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={passenger.payments.p3} onChange={e => setPassenger({ ...passenger, payments: { ...passenger.payments, p3: e.target.value } })} /></InputWrapper></div>
@@ -505,10 +506,10 @@ export default function PassengerDetail() {
 
                                         {/* Other Methods */}
                                         <div className="flex flex-col">
-                                            <h4 className="text-[#D10000] font-bold text-sm mb-4">Other Methods</h4>
+                                            <h4 className="text-[#D10000] font-[600] text-sm mb-4">Other Methods</h4>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <span className="text-sm font-bold text-gray-900 w-1/3">Canadian Western Bank</span>
+                                                    <span className="text-sm font-[600] text-gray-900 w-1/3">Canadian Western Bank</span>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-bank" className="h-10 mb-0"><Input value={passenger.payments.o1} onChange={e => setPassenger({ ...passenger, payments: { ...passenger.payments, o1: e.target.value } })} /></InputWrapper></div>
                                                     ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{passenger.payments.o1}</span>}
@@ -519,7 +520,7 @@ export default function PassengerDetail() {
                                                             <div className="w-5 h-5 rounded-full bg-red-500 opacity-80 mix-blend-multiply"></div>
                                                             <div className="w-5 h-5 rounded-full bg-yellow-500 opacity-80 mix-blend-multiply"></div>
                                                         </div>
-                                                        <span className="text-sm font-bold text-gray-900">Mastercard</span>
+                                                        <span className="text-sm font-[600] text-gray-900">Mastercard</span>
                                                     </div>
                                                     {isEditing ? (
                                                         <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={passenger.payments.o2} onChange={e => setPassenger({ ...passenger, payments: { ...passenger.payments, o2: e.target.value } })} /></InputWrapper></div>
@@ -539,10 +540,10 @@ export default function PassengerDetail() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
                         <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl">
                             <div className="mb-4">
-                                <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-bold'}`}></i>
+                                <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-[600]'}`}></i>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-3">
+                            <h3 className="text-xl font-[600] text-gray-900 mb-3">
                                 {modalType === 'block' ? 'Block Passenger' : modalType === 'unblock' ? 'unblock Passenger' : 'Delete Passenger'}
                             </h3>
 
@@ -555,10 +556,10 @@ export default function PassengerDetail() {
                             </p>
 
                             <div className="flex items-center gap-3 w-full">
-                                <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-bold text-sm hover:bg-[#d01019] transition-colors" onClick={handleStatusAction}>
+                                <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-[600] text-sm hover:bg-[#d01019] transition-colors" onClick={handleStatusAction}>
                                     Confirm
                                 </button>
-                                <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-bold text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
+                                <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-[600] text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
                                     Cancel
                                 </button>
                             </div>

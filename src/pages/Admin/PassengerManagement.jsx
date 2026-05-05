@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast } from '@/components/UI';
 import { getPassengers } from '@/api/passengerApi';
 import { getImageUrl } from '@/api/api';
+import { formatDate } from '@/utils/formatters';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 
 export default function PassengerManagement() {
     const [passengers, setPassengers] = useState([]);
@@ -17,6 +20,18 @@ export default function PassengerManagement() {
     const [totalItems, setTotalItems] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const navigate = useNavigate();
+    const exportRef = useRef(null);
+
+    // Click outside to close export dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportRef.current && !exportRef.current.contains(event.target)) {
+                setExportOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const fetchPassengers = async () => {
         try {
@@ -24,7 +39,9 @@ export default function PassengerManagement() {
             const params = {
                 page: currentPage,
                 search: searchTerm,
-                status: activeTab === 'active' ? 'Active' : 'Blocked'
+                status: activeTab === 'active' ? 'Active' : 'Blocked',
+                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
             };
             const response = await getPassengers(params);
 
@@ -38,7 +55,28 @@ export default function PassengerManagement() {
                 list = list.filter(p => p.status?.toLowerCase() === 'blocked' || p.status?.toLowerCase() === 'block');
             }
 
+            // Local date filtering for safety
+            if (startDate || endDate) {
+                list = list.filter(p => {
+                    const pDate = new Date(p.created_at || new Date());
+                    pDate.setHours(0, 0, 0, 0);
+                    let isMatch = true;
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        sDate.setHours(0, 0, 0, 0);
+                        if (pDate < sDate) isMatch = false;
+                    }
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        eDate.setHours(0, 0, 0, 0);
+                        if (pDate > eDate) isMatch = false;
+                    }
+                    return isMatch;
+                });
+            }
+
             setPassengers(list);
+
             setTotalItems(apiData.total || list.length);
         }
         catch (error) {
@@ -50,9 +88,75 @@ export default function PassengerManagement() {
         }
     }
 
+    const handleExport = async (exportFormat) => {
+        try {
+            showToast("Preparing export data...", "info");
+
+            const params = {
+                limit: 1000,
+                search: searchTerm,
+                status: activeTab === 'active' ? 'Active' : 'Blocked',
+                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+            };
+
+            const response = await getPassengers(params);
+            const apiData = response.data || {};
+            let rawData = apiData.data || (Array.isArray(response.data) ? response.data : []);
+
+            if (startDate || endDate) {
+                rawData = rawData.filter(p => {
+                    const pDate = new Date(p.created_at || new Date());
+                    pDate.setHours(0, 0, 0, 0);
+                    let isMatch = true;
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        sDate.setHours(0, 0, 0, 0);
+                        if (pDate < sDate) isMatch = false;
+                    }
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        eDate.setHours(0, 0, 0, 0);
+                        if (pDate > eDate) isMatch = false;
+                    }
+                    return isMatch;
+                });
+            }
+
+            if (rawData.length === 0) {
+                showToast("No passengers to export", "error");
+                return;
+            }
+
+            const headers = ["ID", "Name", "Phone", "Email", "Status", "Joined Date"];
+            const formattedData = rawData.map(p => [
+                p.id,
+                `${p.first_name || ''} ${p.last_name || ''}`,
+                p.phone || 'N/A',
+                p.email || 'N/A',
+                p.status?.toUpperCase() || (activeTab === 'active' ? 'ACTIVE' : 'BLOCKED'),
+                formatDate(p.created_at)
+            ]);
+
+            const filename = `passengers_report_${activeTab}_${new Date().toISOString().split('T')[0]}`;
+            const title = `RIDEN | ${activeTab.toUpperCase()} PASSENGERS DIRECTORY`;
+
+            if (exportFormat === 'csv') exportToCSV(formattedData, filename, headers);
+            else if (exportFormat === 'xlsx') exportToExcel(formattedData, filename, headers);
+            else if (exportFormat === 'pdf') exportToPDF(formattedData, filename, headers, title);
+
+            showToast("Report generated successfully", "success");
+        } catch (error) {
+            console.error("Export Error:", error);
+            showToast("Failed to generate report", "error");
+        } finally {
+            setExportOpen(false);
+        }
+    };
+
     useEffect(() => {
         fetchPassengers();
-    }, [currentPage, searchTerm, activeTab]);
+    }, [currentPage, searchTerm, activeTab, startDate, endDate]);
 
     return (
         <AdminLayout title="Passenger Management">
@@ -68,9 +172,9 @@ export default function PassengerManagement() {
                 />
 
                 <div className="flex flex-wrap items-center gap-1 w-full lg:w-auto">
-                    <Button variant="pill" className="flex-1 lg:flex-none" onClick={() => navigate('/passenger/create')}>
+                    {/* <Button variant="pill" className="flex-1 lg:flex-none" onClick={() => navigate('/passenger/create')}>
                         <i className="bi bi-person-plus-fill"></i> Add Passenger
-                    </Button>
+                    </Button> */}
 
                     <DateRangePicker
                         startDate={startDate}
@@ -79,23 +183,32 @@ export default function PassengerManagement() {
                         onEndDateChange={setEndDate}
                     />
 
-                    <div className="relative">
+                    <div className="relative" ref={exportRef}>
                         <button
                             onClick={() => setExportOpen(!exportOpen)}
-                            className="flex rounded-full items-center gap-1 px-4 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[700] text-[#111] hover:bg-gray-50 transition-all"
+                            className="flex rounded-full items-center gap-1 px-4 py-3 bg-white border border-[#E5E7EB] text-[13px] font-[600] text-[#111] hover:bg-gray-50 transition-all"
                         >
                             <i className="bi bi-file-earmark-excel-fill text-[#1D7E4D]"></i> Export
                             <i className={`bi bi-chevron-down text-[#1D7E4D] text-sm transition-all ${exportOpen ? 'rotate-180' : ''}`}></i>
                         </button>
                         {exportOpen && (
-                            <div className="absolute right-0 mt-2 w-44 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg overflow-hidden py-1 z-10">
-                                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] border-b border-[#F3F4F6] transition-colors">
+                            <div className="absolute right-0 mt-2 w-44 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg overflow-hidden py-1 z-10 transition-all animate-fade-in">
+                                <button
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] border-b border-[#F3F4F6] transition-colors"
+                                    onClick={() => handleExport('csv')}
+                                >
                                     <i className="bi bi-filetype-csv mr-2 text-[#1D7E4D]"></i> CSV Format
                                 </button>
-                                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors">
+                                <button
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors"
+                                    onClick={() => handleExport('pdf')}
+                                >
                                     <i className="bi bi-filetype-pdf mr-2 text-[#E72929]"></i> PDF Format
                                 </button>
-                                <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors border-t border-[#F3F4F6]">
+                                <button
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-[600] text-[#111] transition-colors border-t border-[#F3F4F6]"
+                                    onClick={() => handleExport('xlsx')}
+                                >
                                     <i className="bi bi-file-earmark-excel-fill mr-2 text-[#1D7E4D]"></i> Excel Format
                                 </button>
                             </div>
@@ -112,7 +225,7 @@ export default function PassengerManagement() {
                     setCurrentPage(1);
                 }}
                 options={[
-                    { id: 'active', label: 'Active Passengers' },
+                    { id: 'active', label: 'Active ' },
                     { id: 'blocked', label: 'Blocked' }
                 ]}
             />
@@ -128,7 +241,7 @@ export default function PassengerManagement() {
                         </tr>
                     ) : passengers.length === 0 ? (
                         <tr>
-                            <td colSpan="5" className="text-center py-24 text-gray-400 font-bold">
+                            <td colSpan="5" className="text-center py-24 text-gray-400 font-[600]">
                                 No passengers found in {activeTab} list
                             </td>
                         </tr>
@@ -145,7 +258,7 @@ export default function PassengerManagement() {
                                     onClick={() => navigate(`/passenger/detail/${p.id}`)}
                                     className="cursor-pointer hover:bg-gray-50/50 transition-all border-b border-gray-50 last:border-0"
                                 >
-                                    <td className="py-[18px] px-[30px] font-bold text-gray-400 italic">{p.id}</td>
+                                    <td className="py-[18px] px-[30px] font-[600] text-gray-400 italic">{p.id}</td>
                                     <td className="py-[18px] px-[30px]">
                                         <div className="flex items-center gap-3">
                                             <div className="w-[44px] h-[44px] rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
@@ -160,11 +273,11 @@ export default function PassengerManagement() {
                                                     }}
                                                 />
                                             </div>
-                                            <span className="font-bold text-[#111]">{p.first_name + " " + p.last_name || p.name}</span>
+                                            <span className="font-[600] text-[#111]">{p.first_name + " " + p.last_name || p.name}</span>
                                         </div>
                                     </td>
-                                    <td className="py-[18px] px-[30px] text-gray-700 font-extrabold">{p.phone}</td>
-                                    <td className="py-[18px] px-[30px] text-gray-500 font-bold">{new Date(p.created_at).toLocaleDateString()}</td>
+                                    <td className="py-[18px] px-[30px] text-gray-700 font-[600]">{p.phone}</td>
+                                    <td className="py-[18px] px-[30px] text-gray-500 font-[600]">{formatDate(p.created_at)}</td>
                                     <td className="py-[18px] px-[30px]">
                                         <Badge variant={badgeVariant}>{displayStatus}</Badge>
                                     </td>

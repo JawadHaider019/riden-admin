@@ -74,7 +74,7 @@ export default function ManageNotifications() {
                             <i className="bi bi-chevron-left text-sm"></i>
 
                         </button>
-                        <h2 className="text-2xl font-bold text-gray-800">Send Alert</h2>
+                        <h2 className="text-2xl font-[600] text-gray-800">Send Alert</h2>
                     </div>
 
                     <div className="bg-white border border-[#E5E7EB] rounded-[30px] p-8 shadow-sm space-y-8">

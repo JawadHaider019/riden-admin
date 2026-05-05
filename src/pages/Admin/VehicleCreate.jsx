@@ -102,7 +102,7 @@ export default function VehicleCreate() {
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Add New Vehicle</h1>
+                            <h1 className="text-2xl font-[600] text-gray-900 leading-tight">Add New Vehicle</h1>
                             <p className="text-sm text-gray-500 font-medium">Fill in the specifications of the new vehicle</p>
                         </div>
                     </div>
@@ -111,12 +111,12 @@ export default function VehicleCreate() {
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-[3px] h-5 bg-[#D10000] rounded-full"></div>
-                                <h2 className="text-[17px] font-black text-gray-900 uppercase">Vehicle Identification</h2>
+                                <h2 className="text-[17px] font-[600] text-gray-900 uppercase">Vehicle Identification</h2>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">Assign Driver *</Label>
+                                    <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Assign Driver *</Label>
                                     <InputWrapper className="bg-white">
                                         <Select
                                             name="driver_id"
@@ -136,7 +136,7 @@ export default function VehicleCreate() {
                                 </div>
 
                                 <div>
-                                    <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">Car Model Name *</Label>
+                                    <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Car Model Name *</Label>
                                     <InputWrapper className="bg-white">
                                         <Input
                                             name="model"
@@ -149,7 +149,7 @@ export default function VehicleCreate() {
                                 </div>
 
                                 <div>
-                                    <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">License Plate *</Label>
+                                    <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">License Plate *</Label>
                                     <InputWrapper className="bg-white">
                                         <Input
                                             name="license_plate"
@@ -166,13 +166,13 @@ export default function VehicleCreate() {
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-[3px] h-5 bg-[#D10000] rounded-full"></div>
-                                <h2 className="text-[17px] font-black text-gray-900 uppercase">Vehicle Specifications</h2>
+                                <h2 className="text-[17px] font-[600] text-gray-900 uppercase">Vehicle Specifications</h2>
                             </div>
 
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">Year</Label>
+                                        <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Year</Label>
                                         <InputWrapper className="bg-white">
                                             <Input
                                                 name="year"
@@ -183,7 +183,7 @@ export default function VehicleCreate() {
                                         </InputWrapper>
                                     </div>
                                     <div>
-                                        <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">Color</Label>
+                                        <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Color</Label>
                                         <InputWrapper className="bg-white">
                                             <Input
                                                 name="color"
@@ -196,7 +196,7 @@ export default function VehicleCreate() {
                                 </div>
 
                                 <div>
-                                    <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">Category</Label>
+                                    <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Category</Label>
                                     <InputWrapper className="bg-white">
                                         <Select
                                             name="vehicle_type"
@@ -213,7 +213,7 @@ export default function VehicleCreate() {
                                 </div>
 
                                 <div>
-                                    <Label className="text-[14px] font-[700] text-[#4B5563] mb-2 normal-case tracking-normal">Number of Seats</Label>
+                                    <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Number of Seats</Label>
                                     <InputWrapper className="bg-white">
                                         <Input
                                             name="no_of_seats"
@@ -230,12 +230,12 @@ export default function VehicleCreate() {
                     <div className="space-y-6 border-t border-gray-100 pt-8">
                         <div className="flex items-center gap-2 mb-4">
                             <div className="w-[3px] h-5 bg-[#D10000] rounded-full"></div>
-                            <h2 className="text-[17px] font-black text-gray-900 uppercase">Vehicle Media</h2>
+                            <h2 className="text-[17px] font-[600] text-gray-900 uppercase">Vehicle Media</h2>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
-                                <Label className="text-[14px] font-[700] text-gray-400 mb-2 normal-case tracking-normal">Front View Image *</Label>
+                                <Label className="text-[14px] font-[600] text-gray-400 mb-2 normal-case tracking-normal">Front View Image *</Label>
                                 <div
                                     className="relative border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center bg-gray-50/30 mb-3 cursor-pointer hover:bg-gray-100 transition-all h-[120px]"
                                     onClick={() => frontInputRef.current.click()}
@@ -258,7 +258,7 @@ export default function VehicleCreate() {
                                     <button
                                         type="button"
                                         onClick={() => frontInputRef.current.click()}
-                                        className="h-full px-4 bg-gray-100 text-[13px] font-bold text-gray-600 border-r border-gray-200 hover:bg-gray-200 transition-colors uppercase"
+                                        className="h-full px-4 bg-gray-100 text-[13px] font-[600] text-gray-600 border-r border-gray-200 hover:bg-gray-200 transition-colors uppercase"
                                     >
                                         Choose file
                                     </button>
@@ -269,7 +269,7 @@ export default function VehicleCreate() {
                             </div>
 
                             <div>
-                                <Label className="text-[14px] font-[700] text-gray-400 mb-2 normal-case tracking-normal">Back View Image *</Label>
+                                <Label className="text-[14px] font-[600] text-gray-400 mb-2 normal-case tracking-normal">Back View Image *</Label>
                                 <div
                                     className="relative border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center bg-gray-50/30 mb-3 cursor-pointer hover:bg-gray-100 transition-all h-[120px]"
                                     onClick={() => backInputRef.current.click()}
@@ -292,7 +292,7 @@ export default function VehicleCreate() {
                                     <button
                                         type="button"
                                         onClick={() => backInputRef.current.click()}
-                                        className="h-full px-4 bg-gray-100 text-[13px] font-bold text-gray-600 border-r border-gray-200 hover:bg-gray-200 transition-colors uppercase"
+                                        className="h-full px-4 bg-gray-100 text-[13px] font-[600] text-gray-600 border-r border-gray-200 hover:bg-gray-200 transition-colors uppercase"
                                     >
                                         Choose file
                                     </button>
