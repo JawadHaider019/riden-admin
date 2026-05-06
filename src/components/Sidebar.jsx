@@ -161,7 +161,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                     )}
                 </div>
 
-                <nav className="flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-0 riden-scrollbar pt-4">
+                <nav className="flex-1 flex flex-col gap-2 lg:gap-3 overflow-y-auto overflow-x-hidden px-0 riden-scrollbar pt-4">
                     {menuItems
                         .filter(item => {
                             if (item.public) return true;
@@ -188,7 +188,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                                                     toggleSubmenu(e, item.label);
                                                 }
                                             }}
-                                            className={`flex items-center gap-2 py-1 px-3 rounded-r-full text-[12px] font-[600] transition-all duration-300 relative group overflow-hidden w-full ${isHighlighted
+                                            className={`flex items-center gap-2 py-1 lg:py-2 px-3 rounded-r-full text-[12px] font-[600] transition-all duration-300 relative group overflow-hidden w-full ${isHighlighted
                                                 ? 'bg-white text-[#D10000]'
                                                 : 'text-white/90 hover:bg-white/10'
                                                 }`}
@@ -207,7 +207,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                                     ) : (
                                         <Link
                                             to={item.href}
-                                            className={`flex items-center gap-2 py-1 px-3 rounded-r-full text-[12px] font-[600] transition-all duration-300 relative group overflow-hidden ${isActive
+                                            className={`flex items-center gap-2 py-1 lg:py-2 px-3 rounded-r-full text-[12px] font-[600] transition-all duration-300 relative group overflow-hidden ${isActive
                                                 ? 'bg-white text-[#D10000]'
                                                 : 'text-white/90 hover:bg-white/10'
                                                 }`}
@@ -223,7 +223,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                                     )}
 
                                     {hasSub && isExpanded && !isCollapsed && (
-                                        <div className="flex flex-col gap-1 my-1 ml-10 relative">
+                                        <div className="flex flex-col gap-1 lg:gap-2 my-1 lg:my-2 ml-10 relative">
                                             {(() => {
                                                 const activeSubHref = item.subItems
                                                     .filter(s => url === s.href || url.startsWith(s.href + '/'))
@@ -256,7 +256,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                 <div className="mt-auto p-2 border-t border-white/10">
                     <button
                         onClick={handleLogout}
-                        className={`w-full flex items-center gap-4  py-2 px-3 rounded-full bg-white text-[#D10000] font-[600] text-[14px] transition-all duration-300 ${isCollapsed ? 'justify-center' : 'hover:bg-red-500 hover:text-white'}`}
+                        className={`w-full flex items-center gap-4 py-2 lg:py-3 px-3 rounded-full bg-white text-[#D10000] font-[600] text-[14px] transition-all duration-300 ${isCollapsed ? 'justify-center' : 'hover:bg-red-500 hover:text-white'}`}
                         title="Logout"
                     >
                         <i className="bi bi-box-arrow-right text-lg w-[24px] text-center shrink-0" aria-hidden="true"></i>

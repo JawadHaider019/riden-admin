@@ -258,7 +258,11 @@ export const DatePickerStyles = () => (
             color: white !important;
             border-radius: 8px !important;
         }
-        .react-datepicker__day:hover {
+        .react-datepicker__day--selected:hover, .react-datepicker__day--keyboard-selected:hover {
+            background-color: #D10000 !important;
+            color: white !important;
+        }
+        .react-datepicker__day:not(.react-datepicker__day--selected):not(.react-datepicker__day--keyboard-selected):hover {
             background-color: #FFF1F1 !important;
             border-radius: 8px !important;
         }
