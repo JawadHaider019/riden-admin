@@ -16,10 +16,10 @@ export default function VehicleEdit() {
 
     const [formData, setFormData] = useState({
         driver_id: '',
-        model: '',
-        license_plate: '',
-        year: '',
-        color: '',
+        vehicle_name: '',
+        vehicle_number: '',
+        vehicle_model: '',
+        vehicle_color: '',
         vehicle_type: 'Sedan',
         no_of_seats: '4',
     });
@@ -49,10 +49,10 @@ export default function VehicleEdit() {
                 const vehicleData = vehicleRes.data || vehicleRes;
                 setFormData({
                     driver_id: vehicleData.driver_id || '',
-                    model: vehicleData.model || '',
-                    license_plate: vehicleData.license_plate || '',
-                    year: vehicleData.year || '',
-                    color: vehicleData.color || '',
+                    vehicle_name: vehicleData.vehicle_name || vehicleData.model || '',
+                    vehicle_number: vehicleData.vehicle_number || vehicleData.license_plate || '',
+                    vehicle_model: vehicleData.vehicle_model || vehicleData.year || '',
+                    vehicle_color: vehicleData.vehicle_color || vehicleData.color || '',
                     vehicle_type: vehicleData.vehicle_type || 'Sedan',
                     no_of_seats: vehicleData.no_of_seats || '4',
                 });
@@ -88,7 +88,7 @@ export default function VehicleEdit() {
     const handleSave = async (e) => {
         e.preventDefault();
 
-        if (!formData.driver_id || !formData.model || !formData.license_plate) {
+        if (!formData.driver_id || !formData.vehicle_name || !formData.vehicle_number) {
             showToast("Please fill in all required fields", "error");
             return;
         }
@@ -101,11 +101,11 @@ export default function VehicleEdit() {
             Object.keys(formData).forEach(key => {
                 data.append(key, formData[key]);
 
-                // Dual-send for backend inconsistencies
-                if (key === 'model') data.append('vehicle_name', formData[key]);
-                if (key === 'license_plate') data.append('plate_number', formData[key]);
-                if (key === 'vehicle_type') data.append('type', formData[key]);
-                if (key === 'no_of_seats') data.append('seat_count', formData[key]);
+                // Backward compatibility fallbacks
+                if (key === 'vehicle_name') data.append('model', formData[key]);
+                if (key === 'vehicle_number') data.append('license_plate', formData[key]);
+                if (key === 'vehicle_model') data.append('year', formData[key]);
+                if (key === 'vehicle_color') data.append('color', formData[key]);
             });
 
             // Laravel PATCH files workaround
@@ -148,7 +148,7 @@ export default function VehicleEdit() {
                         </Link>
                         <div>
                             <h1 className="text-2xl font-[600] text-gray-900 leading-tight">Edit Vehicle</h1>
-                            <p className="text-sm text-gray-500 font-medium">Update the specifications for {formData.model}</p>
+                            <p className="text-sm text-gray-500 font-medium">Update the specifications for {formData.vehicle_name || formData.model}</p>
                         </div>
                     </div>
 
@@ -184,8 +184,8 @@ export default function VehicleEdit() {
                                     <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Car Model Name *</Label>
                                     <InputWrapper className="bg-white">
                                         <Input
-                                            name="model"
-                                            value={formData.model}
+                                            name="vehicle_name"
+                                            value={formData.vehicle_name}
                                             onChange={handleChange}
                                             placeholder="e.g. Toyota Corolla"
                                             required
@@ -197,8 +197,8 @@ export default function VehicleEdit() {
                                     <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">License Plate *</Label>
                                     <InputWrapper className="bg-white">
                                         <Input
-                                            name="license_plate"
-                                            value={formData.license_plate}
+                                            name="vehicle_number"
+                                            value={formData.vehicle_number}
                                             onChange={handleChange}
                                             placeholder="e.g. ABC-123"
                                             required
@@ -220,8 +220,8 @@ export default function VehicleEdit() {
                                         <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Year</Label>
                                         <InputWrapper className="bg-white">
                                             <Input
-                                                name="year"
-                                                value={formData.year}
+                                                name="vehicle_model"
+                                                value={formData.vehicle_model}
                                                 onChange={handleChange}
                                                 placeholder="2024"
                                             />
@@ -231,8 +231,8 @@ export default function VehicleEdit() {
                                         <Label className="text-[14px] font-[600] text-[#4B5563] mb-2 normal-case tracking-normal">Color</Label>
                                         <InputWrapper className="bg-white">
                                             <Input
-                                                name="color"
-                                                value={formData.color}
+                                                name="vehicle_color"
+                                                value={formData.vehicle_color}
                                                 onChange={handleChange}
                                                 placeholder="White"
                                             />

@@ -76,9 +76,10 @@ export default function BookingDetail() {
         );
     }
 
-    const isOngoing = bookingData.status === 'pending' || bookingData.status === 'ongoing';
+    const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
+    const isOngoing = ongoingStatuses.includes(bookingData.status);
     const isCompleted = bookingData.status === 'completed' || bookingData.status === 'success';
-    const isCancelled = bookingData.status === 'cancelled' || bookingData.status === 'danger';
+    const isCancelled = bookingData.status === 'cancelled' || bookingData.status === 'danger' || bookingData.status === 'rejected';
 
     const statusVariant = isOngoing ? 'online' : isCompleted ? 'success' : 'danger';
 
@@ -98,10 +99,24 @@ export default function BookingDetail() {
             name: (bookingData.vehicle?.model || bookingData.driver?.vehicle?.model) || 'N/A',
             vehNo: (bookingData.vehicle?.license_plate || bookingData.driver?.vehicle?.license_plate || bookingData.vehicle?.plate_number || bookingData.driver?.vehicle?.plate_number) || 'N/A'
         } : { name: 'N/A', vehNo: bookingData.vehicle_id || 'N/A' },
-        pickup: { label: 'Pickup Location', address: bookingData.pickup_location || 'N/A' },
-        dropoff: { label: 'Dropoff Location', address: bookingData.dropoff_location || 'N/A' },
-        distance: bookingData.distance ? (typeof bookingData.distance === 'string' && (bookingData.distance.includes('km') || bookingData.distance.includes('meters')) ? bookingData.distance : `${bookingData.distance} km`) : 'N/A',
-        time: bookingData.duration ? (typeof bookingData.duration === 'string' && (bookingData.duration.includes('min') || bookingData.duration.includes('hour')) ? bookingData.duration : `${bookingData.duration} mins`) : 'N/A',
+        pickup: {
+            label: 'Pickup Location',
+            address: bookingData.pickup_location || (bookingData.pickup_lat ? `${bookingData.pickup_lat}, ${bookingData.pickup_lng}` : 'N/A')
+        },
+        dropoff: {
+            label: 'Dropoff Location',
+            address: bookingData.dropoff_location || (bookingData.dropoff_lat ? `${bookingData.dropoff_lat}, ${bookingData.dropoff_lng}` : 'N/A')
+        },
+        distance: (bookingData.estimated_distance || bookingData.distance) ?
+            (() => {
+                const val = bookingData.estimated_distance || bookingData.distance;
+                return typeof val === 'string' && (val.includes('km') || val.includes('meters')) ? val : `${val} km`;
+            })() : 'N/A',
+        time: (bookingData.estimated_time || bookingData.duration) ?
+            (() => {
+                const val = bookingData.estimated_time || bookingData.duration;
+                return typeof val === 'string' && (val.includes('min') || val.includes('hour')) ? val : `${val} mins`;
+            })() : 'N/A',
         fare: bookingData.fare ? `Rs ${bookingData.fare}` : 'N/A',
         passenger: bookingData.passenger ? {
             name: `${bookingData.passenger.first_name || ''} ${bookingData.passenger.last_name || ''}`.trim() || 'N/A',

@@ -104,10 +104,11 @@ export default function BookingManagement() {
     }, [currentPage, searchTerm, startDate, endDate]);
 
     const filteredBookings = bookings.filter(b => {
+        const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
         if (type === 'ongoing') {
-            return b.status === 'pending';
+            return ongoingStatuses.includes(b.status);
         } else {
-            return b.status !== 'pending';
+            return !ongoingStatuses.includes(b.status);
         }
     });
 
@@ -131,8 +132,9 @@ export default function BookingManagement() {
             else if (res?.data) rawData = res.data;
 
             let finalData = rawData.filter(b => {
-                if (type === 'ongoing') return b.status === 'pending';
-                return b.status !== 'pending';
+                const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
+                if (type === 'ongoing') return ongoingStatuses.includes(b.status);
+                return !ongoingStatuses.includes(b.status);
             });
 
             if (startDate || endDate) {
@@ -166,9 +168,9 @@ export default function BookingManagement() {
                 b.passenger?.name || (b.passenger?.first_name ? `${b.passenger.first_name} ${b.passenger.last_name || ''}` : 'N/A'),
                 `Rs ${b.fare || '0'}`,
                 (b.vehicle?.license_plate || b.driver?.vehicle?.license_plate || 'N/A'),
-                b.pickup_location,
-                b.dropoff_location,
-                b.distance || '0 km',
+                b.pickup_location || (b.pickup_lat ? `${b.pickup_lat}, ${b.pickup_lng}` : 'N/A'),
+                b.dropoff_location || (b.dropoff_lat ? `${b.dropoff_lat}, ${b.dropoff_lng}` : 'N/A'),
+                b.estimated_distance || b.distance || '0 km',
                 b.status?.toUpperCase() || 'N/A'
             ]);
 
@@ -314,30 +316,32 @@ export default function BookingManagement() {
                             </td>
 
                             <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280]">
-                                {booking.pickup_location}
+                                {booking.pickup_location || (booking.pickup_lat ? `${booking.pickup_lat}, ${booking.pickup_lng}` : 'N/A')}
                             </td>
 
                             <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280]">
-                                {booking.dropoff_location}
+                                {booking.dropoff_location || (booking.dropoff_lat ? `${booking.dropoff_lat}, ${booking.dropoff_lng}` : 'N/A')}
                             </td>
 
                             <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
                                 {(() => {
-                                    if (!booking.distance) return 'N/A';
-                                    const distStr = String(booking.distance).toLowerCase();
-                                    if (distStr.includes('km') || distStr.includes('meter')) return booking.distance;
+                                    const dist = booking.estimated_distance || booking.distance;
+                                    if (!dist) return 'N/A';
+                                    const distStr = String(dist).toLowerCase();
+                                    if (distStr.includes('km') || distStr.includes('meter')) return dist;
                                     return `${distStr} km`;
                                 })()}
                             </td>
 
                             <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
                                 {(() => {
-                                    if (!booking.duration) return 'N/A';
-                                    const durationStr = String(booking.duration).toLowerCase();
-                                    if (durationStr.includes('min') || durationStr.includes('hour')) return booking.duration;
+                                    const duration = booking.estimated_time || booking.duration;
+                                    if (!duration) return 'N/A';
+                                    const durationStr = String(duration).toLowerCase();
+                                    if (durationStr.includes('min') || durationStr.includes('hour')) return duration;
 
                                     const numValue = parseFloat(durationStr);
-                                    if (isNaN(numValue)) return booking.duration;
+                                    if (isNaN(numValue)) return duration;
 
                                     if (numValue >= 60) {
                                         return `${Math.floor(numValue / 60)} hr ${Math.round(numValue % 60)} mins`;

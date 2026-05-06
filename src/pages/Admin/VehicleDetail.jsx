@@ -49,7 +49,7 @@ export default function VehicleDetail() {
     const handleDelete = async () => {
         try {
             await deleteVehicle(id);
-            showToast(`Vehicle ${vehicle.model} has been removed successfully`, "delete");
+            showToast(`Vehicle ${vehicle.vehicle_name || vehicle.model} has been removed successfully`, "delete");
             setModalType(null);
             navigate('/vehicles');
         } catch (error) {
@@ -139,7 +139,7 @@ export default function VehicleDetail() {
                         <div className="absolute top-4 right-4 flex flex-col gap-2 scale-90 origin-top-right">
                             <div className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm min-w-[100px]">
                                 <span className="text-[10px] font-[600] text-gray-400 uppercase tracking-widest block leading-tight">License Plate</span>
-                                <span className="text-sm font-[600] text-[#D10000] uppercase italic tracking-tighter">{vehicle.license_plate}</span>
+                                <span className="text-sm font-[600] text-[#D10000] uppercase italic tracking-tighter">{vehicle.vehicle_number || vehicle.license_plate}</span>
                             </div>
                         </div>
                     </div>
@@ -175,7 +175,7 @@ export default function VehicleDetail() {
                         <div className="px-6 pt-5 pb-6">
                             <div className="mb-4">
                                 <p className="text-[11px] text-gray-400 font-[600] uppercase tracking-widest mb-2">Vehicle Identity</p>
-                                <h3 className="text-xl font-[600] text-gray-900 lowercase">{vehicle.model}</h3>
+                                <h3 className="text-xl font-[600] text-gray-900 lowercase">{vehicle.vehicle_name || vehicle.model}</h3>
                             </div>
 
                             {/* Driver Assignment Section */}
@@ -212,14 +212,14 @@ export default function VehicleDetail() {
                                             <i className="bi bi-calendar-event text-gray-400"></i>
                                             <span className="text-sm font-[600] text-gray-500">Manufacturing Year</span>
                                         </div>
-                                        <span className="text-sm font-[600] text-gray-900">{vehicle.year}</span>
+                                        <span className="text-sm font-[600] text-gray-900">{vehicle.vehicle_model || vehicle.year}</span>
                                     </div>
                                     <div className="flex items-center justify-between border-b border-gray-50 pb-3 h-10">
                                         <div className="flex items-center gap-2">
                                             <i className="bi bi-palette text-gray-400"></i>
                                             <span className="text-sm font-[600] text-gray-500">Paint Color</span>
                                         </div>
-                                        <span className="text-sm font-[600] text-gray-900">{vehicle.color}</span>
+                                        <span className="text-sm font-[600] text-gray-900">{vehicle.vehicle_color || vehicle.color}</span>
                                     </div>
                                 </div>
                             </div>
@@ -286,9 +286,9 @@ export default function VehicleDetail() {
 
                         <p className="text-xs font-semibold text-gray-600 mb-8 max-w-[250px] mx-auto leading-relaxed">
                             {modalType === 'delete' ? (
-                                <>Are you sure to Delete the <span className="text-[#EE1B24]">{vehicle.model}</span> ({vehicle.license_plate}). This action can't be undone.</>
+                                <>Are you sure to Delete the <span className="text-[#EE1B24]">{vehicle.vehicle_name || vehicle.model}</span> ({vehicle.vehicle_number || vehicle.license_plate}). This action can't be undone.</>
                             ) : (
-                                <>Are you sure to {modalType} the <span className="text-[#EE1B24]">{vehicle.model}</span> Vehicle identity?</>
+                                <>Are you sure to {modalType} the <span className="text-[#EE1B24]">{vehicle.vehicle_name || vehicle.model}</span> Vehicle identity?</>
                             )}
                         </p>
 

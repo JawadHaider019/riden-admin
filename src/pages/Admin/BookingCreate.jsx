@@ -31,11 +31,15 @@ export default function BookingCreate() {
         driver_id: '',
         vehicle_id: '',
         pickup_location: '',
+        pickup_lat: '',
+        pickup_lng: '',
         dropoff_location: '',
+        dropoff_lat: '',
+        dropoff_lng: '',
         fare: '',
-        distance: '',
-        duration: '',
-        status: 'pending',
+        estimated_distance: '',
+        estimated_time: '',
+        status: 'requested',
         pickup_time: '',
         payment_method: '',
     });
@@ -88,10 +92,14 @@ export default function BookingCreate() {
                 driver_id: formData.driver_id,
                 vehicle_id: formData.vehicle_id || undefined,
                 pickup_location: formData.pickup_location,
+                pickup_lat: formData.pickup_lat || undefined,
+                pickup_lng: formData.pickup_lng || undefined,
                 dropoff_location: formData.dropoff_location,
+                dropoff_lat: formData.dropoff_lat || undefined,
+                dropoff_lng: formData.dropoff_lng || undefined,
                 fare: formData.fare,
-                distance: formData.distance || undefined,
-                duration: formData.duration || undefined,
+                estimated_distance: formData.estimated_distance || undefined,
+                estimated_time: formData.estimated_time || undefined,
                 status: formData.status,
                 pickup_time: formData.pickup_time,
                 payment_method: formData.payment_method,
@@ -219,6 +227,19 @@ export default function BookingCreate() {
                                     </InputWrapper>
                                 </Field>
 
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Field label="Pickup Lat" name="pickup_lat" errors={errors}>
+                                        <InputWrapper className="bg-white">
+                                            <Input name="pickup_lat" value={formData.pickup_lat} onChange={handleChange} placeholder="31.5204" />
+                                        </InputWrapper>
+                                    </Field>
+                                    <Field label="Pickup Lng" name="pickup_lng" errors={errors}>
+                                        <InputWrapper className="bg-white">
+                                            <Input name="pickup_lng" value={formData.pickup_lng} onChange={handleChange} placeholder="74.3587" />
+                                        </InputWrapper>
+                                    </Field>
+                                </div>
+
                                 <Field label="Dropoff Location" name="dropoff_location" errors={errors} required>
                                     <InputWrapper className={`bg-white ${errors.dropoff_location ? 'border-red-400' : ''}`}>
                                         <Input
@@ -229,6 +250,19 @@ export default function BookingCreate() {
                                         />
                                     </InputWrapper>
                                 </Field>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Field label="Dropoff Lat" name="dropoff_lat" errors={errors}>
+                                        <InputWrapper className="bg-white">
+                                            <Input name="dropoff_lat" value={formData.dropoff_lat} onChange={handleChange} placeholder="31.5204" />
+                                        </InputWrapper>
+                                    </Field>
+                                    <Field label="Dropoff Lng" name="dropoff_lng" errors={errors}>
+                                        <InputWrapper className="bg-white">
+                                            <Input name="dropoff_lng" value={formData.dropoff_lng} onChange={handleChange} placeholder="74.3587" />
+                                        </InputWrapper>
+                                    </Field>
+                                </div>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <Field label="Pickup Time" name="pickup_time" errors={errors} required>
@@ -258,22 +292,22 @@ export default function BookingCreate() {
                                         </InputWrapper>
                                     </Field>
 
-                                    <Field label="Distance (km)" name="distance" errors={errors}>
+                                    <Field label="Distance (km)" name="estimated_distance" errors={errors}>
                                         <InputWrapper className="bg-white">
                                             <Input
-                                                name="distance"
-                                                value={formData.distance}
+                                                name="estimated_distance"
+                                                value={formData.estimated_distance}
                                                 onChange={handleChange}
                                                 placeholder="5.2"
                                             />
                                         </InputWrapper>
                                     </Field>
 
-                                    <Field label="Duration (min)" name="duration" errors={errors}>
+                                    <Field label="Duration (min)" name="estimated_time" errors={errors}>
                                         <InputWrapper className="bg-white">
                                             <Input
-                                                name="duration"
-                                                value={formData.duration}
+                                                name="estimated_time"
+                                                value={formData.estimated_time}
                                                 onChange={handleChange}
                                                 placeholder="15"
                                             />

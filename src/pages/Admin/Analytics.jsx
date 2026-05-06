@@ -293,11 +293,11 @@ export default function Analytics() {
 
                                 <div className="flex justify-between border-t border-[#F1F5F9] pt-6 mb-4">
                                     <div className="text-center">
-                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Distance</p>
+                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">EST Distance</p>
                                         <p className="text-[13px] font-[600] text-[#111]">0.2 km</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Time</p>
+                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">EST Time</p>
                                         <p className="text-[13px] font-[600] text-[#111]">2 min</p>
                                     </div>
                                     <div className="text-center">

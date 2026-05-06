@@ -150,15 +150,15 @@ export default function VehicleManagement() {
                 return;
             }
 
-            const headers = ["ID", "Driver Name", "Car Name", "Year", "Color", "License Plate", "Type", "Seats", "Status"];
+            const headers = ["ID", "Driver Name", "Car Name", "Year", "Color", "Number Plate", "Type", "Seats", "Status"];
             const formattedData = rawData.map(v => [
                 v.id,
                 driverMap[v.driver_id]?.name || v.driver_id || 'N/A',
-                v.model,
-                v.year,
-                v.color,
-                v.license_plate,
-                v.vehicle_type,
+                v.vehicle_name || v.model || 'N/A',
+                v.vehicle_model || v.year || 'N/A',
+                v.vehicle_color || v.color || 'N/A',
+                v.vehicle_number || v.license_plate || 'N/A',
+                v.vehicle_type || v.type || 'N/A',
                 v.no_of_seats || 'N/A',
                 v.status?.toUpperCase() || 'ACTIVE'
             ]);
@@ -292,14 +292,14 @@ export default function VehicleManagement() {
                                 </Tooltip>
                             </td>
                             <td className="py-[18px] px-[30px] text-[15px] font-[600] text-[#111] lowercase">
-                                {v.model}
+                                {v.vehicle_name || v.model}
                             </td>
                             <td className="py-[18px] px-[30px] text-[14px] font-[600] text-gray-400">
-                                {v.year} | {v.color}
+                                {v.vehicle_model || v.year} | {v.vehicle_color || v.color}
                             </td>
                             <td className="py-[18px] px-[30px] whitespace-nowrap">
                                 <span className=" px-4 py-1.5  text-[13px] font-[600] ">
-                                    {v.license_plate}
+                                    {v.vehicle_number || v.license_plate}
                                 </span>
                             </td>
                             <td className="py-[18px] px-[30px]">
