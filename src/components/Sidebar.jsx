@@ -103,10 +103,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             icon: 'bi bi-life-preserver',
             permission: 'Support Ticket', href: '/support'
 
-        },
-        { label: 'Manage Notifications', icon: 'bi bi-bell', href: '/alerts', permission: 'Notifications' },
-        { label: 'CMS Management', icon: 'bi bi-window', href: '/cms-management', permission: 'CMS management' },
-    ];
+        }];
 
     React.useEffect(() => {
         const activeItem = menuItems.find(item => item.subItems && item.subItems.some(sub => url === sub.href || url.startsWith(sub.href + '/')));
@@ -161,7 +158,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
                     )}
                 </div>
 
-                <nav className="flex-1 flex flex-col gap-2 lg:gap-3 overflow-y-auto overflow-x-hidden px-0 riden-scrollbar pt-4">
+                <nav className="flex-1 flex flex-col gap-1  overflow-y-auto overflow-x-hidden px-0 riden-scrollbar">
                     {menuItems
                         .filter(item => {
                             if (item.public) return true;

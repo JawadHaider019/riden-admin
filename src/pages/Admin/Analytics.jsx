@@ -9,7 +9,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
-import { format, startOfWeek, startOfMonth, startOfYear, parseISO } from 'date-fns';
+import { format, startOfWeek, startOfMonth, startOfYear, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 export default function Analytics() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -32,23 +32,39 @@ export default function Analytics() {
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const [analyticsRes, statsRes] = await Promise.all([
-                getDashboardAnalytics(),
-                getDashboardStats()
-            ]);
 
-            if (analyticsRes.status === 'success') {
-                setAnalytics(analyticsRes.data);
-                setError(null);
-            } else {
-                setError('Failed to load analytics data');
-            }
+            // Console error as requested
+            console.error("Showing dummy data on analytics page. Error: its dummy data and error is this");
 
-            if (statsRes.status === 'success') {
-                setStats(statsRes.data);
-            } else {
-                setStats(statsRes.data || statsRes);
-            }
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const dummyStats = {
+                total_bookings: 1542,
+                total_passengers: 982,
+                total_drivers: 124,
+                revenue: 52400.50,
+                completed_bookings: 1420
+            };
+
+            // Generate some dummy trends for the last 30 days
+            const dummyTrends = Array.from({ length: 30 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (29 - i));
+                return {
+                    date: d.toISOString().split('T')[0],
+                    total: Math.floor(Math.random() * 50) + 10
+                };
+            });
+
+            const dummyAnalytics = {
+                passenger_growth: dummyTrends.map(t => ({ ...t, total: t.total + 5 })),
+                booking_trends: dummyTrends
+            };
+
+            setAnalytics(dummyAnalytics);
+            setStats(dummyStats);
+            setError(null);
         } catch (error) {
             console.error("Error loading dashboard data", error);
             setError(error.message || 'An error occurred while fetching analytics');
@@ -72,23 +88,31 @@ export default function Analytics() {
         });
     }, [startDate, endDate]);
 
-    const handleGlobalPeriodChange = (e) => {
+    const handleGlobalPeriodChange = useCallback((e) => {
         const val = e.target.value;
         setGlobalPeriod(val);
+        const now = new Date();
         if (val === 'Today') {
-            setStartDate(new Date());
-            setEndDate(new Date());
+            setStartDate(startOfDay(now));
+            setEndDate(endOfDay(now));
         } else if (val === 'This Week') {
-            setStartDate(startOfWeek(new Date()));
-            setEndDate(new Date());
+            setStartDate(startOfWeek(now));
+            setEndDate(endOfDay(now));
         } else if (val === 'This Month') {
-            setStartDate(startOfMonth(new Date()));
-            setEndDate(new Date());
+            setStartDate(startOfMonth(now));
+            setEndDate(endOfDay(now));
         } else if (val === 'This Year') {
-            setStartDate(startOfYear(new Date()));
-            setEndDate(new Date());
+            setStartDate(startOfYear(now));
+            setEndDate(endOfDay(now));
         }
-    };
+    }, [setGlobalPeriod, setStartDate, setEndDate]);
+
+    // Initial date setup
+    useEffect(() => {
+        const now = new Date();
+        setStartDate(startOfWeek(now));
+        setEndDate(endOfDay(now));
+    }, []);
 
     if (loading) {
         return (
@@ -324,21 +348,29 @@ export default function Analytics() {
                 {activeTab === 'driver' && (
                     <DriverAnalytics
                         bookingTrends={filterDataByDateRange(analytics?.booking_trends)}
+                        period={globalPeriod}
+                        onPeriodChange={handleGlobalPeriodChange}
                     />
                 )}
                 {activeTab === 'passenger' && (
                     <PassengerAnalytics
                         passengerGrowth={filterDataByDateRange(analytics?.passenger_growth)}
+                        period={globalPeriod}
+                        onPeriodChange={handleGlobalPeriodChange}
                     />
                 )}
                 {activeTab === 'ride' && (
                     <RideAnalytics
                         bookingTrends={filterDataByDateRange(analytics?.booking_trends)}
+                        period={globalPeriod}
+                        onPeriodChange={handleGlobalPeriodChange}
                     />
                 )}
                 {activeTab === 'financial' && (
                     <FinancialAnalytics
                         bookingTrends={filterDataByDateRange(analytics?.booking_trends)}
+                        period={globalPeriod}
+                        onPeriodChange={handleGlobalPeriodChange}
                     />
                 )}
             </div>
@@ -397,8 +429,7 @@ export default function Analytics() {
 }
 
 // Driver Analytics Component with Real Data
-function DriverAnalytics({ bookingTrends }) {
-    const [period, setPeriod] = useState('This Week');
+function DriverAnalytics({ bookingTrends, period, onPeriodChange }) {
 
     // Transform booking trends for chart display
     const chartData = useMemo(() => {
@@ -445,7 +476,7 @@ function DriverAnalytics({ bookingTrends }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 <div className="lg:col-span-3 bg-white border-[1.5px] border-[#666]/10 rounded-[30px] p-6 shadow-sm">
-                    <ModuleHeader title="Booking Trends" period={period} onPeriodChange={(e) => setPeriod(e.target.value)} />
+                    <ModuleHeader title="Booking Trends" period={period} onPeriodChange={onPeriodChange} />
                     <div className="h-[300px] w-full mt-2">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -500,8 +531,7 @@ function DriverAnalytics({ bookingTrends }) {
 }
 
 // Passenger Analytics with Real Data
-function PassengerAnalytics({ passengerGrowth }) {
-    const [period, setPeriod] = useState('This Week');
+function PassengerAnalytics({ passengerGrowth, period, onPeriodChange }) {
 
     const chartData = useMemo(() => {
         if (!passengerGrowth || passengerGrowth.length === 0) return [];
@@ -549,7 +579,7 @@ function PassengerAnalytics({ passengerGrowth }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 <div className="lg:col-span-3 bg-white border-[1.5px] border-[#666]/10 rounded-[30px] p-6 shadow-sm">
-                    <ModuleHeader title="Passenger Growth Over Time" period={period} onPeriodChange={(e) => setPeriod(e.target.value)} />
+                    <ModuleHeader title="Passenger Growth Over Time" period={period} onPeriodChange={onPeriodChange} />
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -605,8 +635,7 @@ function PassengerAnalytics({ passengerGrowth }) {
 }
 
 // Ride Analytics with Real Data
-function RideAnalytics({ bookingTrends }) {
-    const [period, setPeriod] = useState('This Week');
+function RideAnalytics({ bookingTrends, period, onPeriodChange }) {
 
     const chartData = useMemo(() => {
         if (!bookingTrends || bookingTrends.length === 0) return [];
@@ -649,7 +678,7 @@ function RideAnalytics({ bookingTrends }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 <div className="lg:col-span-3 bg-white border-[1.5px] border-[#666]/10 rounded-[30px] p-6 shadow-sm">
-                    <ModuleHeader title="Ride Volume Over Time" period={period} onPeriodChange={(e) => setPeriod(e.target.value)} />
+                    <ModuleHeader title="Ride Volume Over Time" period={period} onPeriodChange={onPeriodChange} />
                     <div className="h-[320px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -723,8 +752,7 @@ function RideAnalytics({ bookingTrends }) {
 }
 
 // Financial Analytics with Real Data
-function FinancialAnalytics({ bookingTrends }) {
-    const [period, setPeriod] = useState('This Week');
+function FinancialAnalytics({ bookingTrends, period, onPeriodChange }) {
 
     const chartData = useMemo(() => {
         if (!bookingTrends || bookingTrends.length === 0) return [];
@@ -770,7 +798,7 @@ function FinancialAnalytics({ bookingTrends }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 <div className="lg:col-span-3 bg-white border-[1.5px] border-[#666]/10 rounded-[30px] p-6 shadow-sm">
-                    <ModuleHeader title="Revenue Trend" period={period} onPeriodChange={(e) => setPeriod(e.target.value)} />
+                    <ModuleHeader title="Revenue Trend" period={period} onPeriodChange={onPeriodChange} />
                     <div className="h-[300px] w-full mt-2">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>

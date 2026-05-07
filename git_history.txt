@@ -1,0 +1,52 @@
+﻿* 46ca021 fix booking
+* 0102882 rebuild
+* 35847bc working eport
+* e6d9eb0 working eport
+* ac81209 vercel
+* b96f870 updated fare
+*   99878a0 Merge branch 'main' of https://github.com/RidenTech/riden-web-portal
+|\  
+| * 713674d Disable SoftDeletes in Booking model
+* | 05f6e9c FIX: Resolved SQL error in Admin Dashboard stats API.
+|/  
+* 9ae4e4d API: Synced BookingFare model, controller, and routes with database schema.
+* c3400f4 API: Finalized Passenger Web APIs and synced for Admin Portal visibility.
+* 969ed0d DATABASE: Added SoftDeletes to booking_fares table and model.
+* b56baf1 API: Moved driver booking routes outside sanctum for easier mobile integration.
+* ff3c39f FIX: Implemented missing BookingController methods (store, index, show, cancel) to resolve 500 errors.
+* f8b618b FIX: Implemented Sanctum token expiration and removed stateless-incompatible session usage.
+* 3b33f69 API: Implemented dual login (Email/Phone) for Driver for parity with Passenger.
+* 310fd8d API: Implemented dual login (Email/Phone) for Passenger and synced latest controllers.
+* 55bb8a1 API: Implemented Driver Booking Management endpoints (Ongoing & History).
+* d4b6e4d API: Simplified vehicle types response and cleaned up migration routes.
+* 4065116 SEEDER: Added diverse vehicle dummy data (Toyota, Honda, Tesla, Hyundai).
+* b5c3596 SEEDER: Implemented FareSeeder for automatic pricing data population.
+* ba58f6f Comment out run-migrate route and add vehicle types route
+* 1355b08 API: Added getAllVehiclesTypes endpoint and integrated it into driver routes.
+* b163721 UI: Added passenger capacity to vehicle categories in both Web and API controllers.
+* a8749a1 REFACTOR: Renamed FareApiController to FareController for API consistency.
+* 21c5a4d API: Implemented RESTful Fare Management endpoints for React integration.
+* a96e80a DATA: Synchronized Fare Management dropdown with the official 'vehicle_types' database table.
+* c768b43 FIX: Resolved sidebar visibility issue by removing global .d-none override.
+* ecac96a UI: Implemented high-fidelity Edit-to-Update flow for Fare Management matching design.
+* 702ba5d FEATURE: Fully dynamic Fare Management module with auto-initialization and custom vehicle types.
+* 05e916a Add route to trigger database migrations
+* e3aab13 FEATURE: Implemented Driver Bank Details module for mobile app and web portal.
+* 8c14382 FINAL FIX: Resolved dead media links by updating APP_URL and unifying storage accessors across all models.
+* e3fb84e FIX: Enabled Driver Documents visibility on Web Portal and added Admin verification API.
+* 388be84 REFACTOR: Unified notification system into GeneralNotification with dynamic event payloads.
+* d9b1cc4 IMPROVEMENT: Refactored Driver Document upload with flexible fields, validation, and storage cleanup.
+* d57515a FEATURE: Implemented professional Admin Notification system for new driver registrations.
+* b00f695 Remove password confirmation requirement from validation
+* 8b1bbab FIX: Removed unique_id from Drivers and Passengers models/controllers/migrations to match database schema.
+* c342cb0 FIX: Resolved 401 error by correcting Driver API route nesting and fixed syntax error in Driver model.
+* 119d0ce DRIVER APIs: Implemented professional mobile authentication, profile management, and vehicle management for drivers.
+* 90c7ab4 MAINTENANCE: Updated AdminSeeder with new Super Admin credentials.
+* 210f3d7 BLOG SYSTEM: Implemented professional seeders for 10 categories and 10 posts with high-quality content.
+* dc980e4 BLOG SYSTEM: Added professional dummy data seeding for React/Next.js integration.
+* 26af509 SECURITY: Implemented professional SecureSessionCheck middleware (1-hour timeout + IP validation).
+* 3fc8cb1 MAINTENANCE: Commented out automatic session validation logic in base Controller.
+* e07f36b SECURITY: Added ValidateSession model and finalized security logic.
+* 2c1e95f SECURITY UPDATE: Implemented session validation with IP check and 2-hour timeout. Fixed missing imports in base Controller.
+* 31b5a82 FINAL POLISH: Optimized fix-database route for automatic migrations.
+* ba49ac4 FIX: Resolved duplicate Request use statement in Blog controllers.
