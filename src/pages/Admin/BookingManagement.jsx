@@ -302,7 +302,7 @@ export default function BookingManagement() {
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap">
-                                {booking.passenger?.first_name} {booking.passenger?.last_name}
+                                {booking.passenger?.name || (booking.passenger?.first_name ? `${booking.passenger.first_name} ${booking.passenger.last_name || ''}` : 'N/A')}
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#111] text-center whitespace-nowrap">

@@ -41,16 +41,27 @@ export default function DriverManagement() {
         try {
             setLoading(true);
             const params = {
-                page: currentPage,
-                search: searchTerm,
-                // Status mapping for API
-                status: activeTab === 'active' ? 'Active' :
+                page: currentPage
+            };
+
+            if (searchTerm.trim()) {
+                params.search = searchTerm.trim();
+            }
+
+            if (activeTab) {
+                params.status = activeTab === 'active' ? 'Active' :
                     activeTab === 'requested' ? 'Pending' :
                         activeTab === 'blocked' ? 'Blocked' :
-                            activeTab === 'suspended' ? 'Suspended' : undefined,
-                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
-            };
+                            activeTab === 'suspended' ? 'Suspended' : undefined;
+            }
+
+            if (startDate) {
+                params.start_date = format(startDate, 'yyyy-MM-dd');
+            }
+
+            if (endDate) {
+                params.end_date = format(endDate, 'yyyy-MM-dd');
+            }
             const response = await getDrivers(params);
 
             // Laravel paginated structure: response.data.data
@@ -120,12 +131,24 @@ export default function DriverManagement() {
             showToast("Preparing export data...", "info");
 
             const params = {
-                limit: 1000,
-                search: searchTerm,
-                status: activeTab === 'active' ? 'Active' : (activeTab === 'requested' ? 'Pending' : undefined),
-                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+                limit: 1000
             };
+
+            if (searchTerm.trim()) {
+                params.search = searchTerm.trim();
+            }
+
+            if (activeTab) {
+                params.status = activeTab === 'active' ? 'Active' : (activeTab === 'requested' ? 'Pending' : undefined);
+            }
+
+            if (startDate) {
+                params.start_date = format(startDate, 'yyyy-MM-dd');
+            }
+
+            if (endDate) {
+                params.end_date = format(endDate, 'yyyy-MM-dd');
+            }
 
             const response = await getDrivers(params);
             let rawData = response.data?.data || response.data || [];

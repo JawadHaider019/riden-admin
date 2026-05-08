@@ -37,12 +37,24 @@ export default function PassengerManagement() {
         try {
             setLoading(true);
             const params = {
-                page: currentPage,
-                search: searchTerm,
-                status: activeTab === 'active' ? 'Active' : 'Blocked',
-                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+                page: currentPage
             };
+
+            if (searchTerm.trim()) {
+                params.search = searchTerm.trim();
+            }
+
+            if (activeTab) {
+                params.status = activeTab === 'active' ? 'Active' : 'Blocked';
+            }
+
+            if (startDate) {
+                params.start_date = format(startDate, 'yyyy-MM-dd');
+            }
+
+            if (endDate) {
+                params.end_date = format(endDate, 'yyyy-MM-dd');
+            }
             const response = await getPassengers(params);
 
             const apiData = response.data || {};
@@ -93,12 +105,24 @@ export default function PassengerManagement() {
             showToast("Preparing export data...", "info");
 
             const params = {
-                limit: 1000,
-                search: searchTerm,
-                status: activeTab === 'active' ? 'Active' : 'Blocked',
-                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+                limit: 1000
             };
+
+            if (searchTerm.trim()) {
+                params.search = searchTerm.trim();
+            }
+
+            if (activeTab) {
+                params.status = activeTab === 'active' ? 'Active' : 'Blocked';
+            }
+
+            if (startDate) {
+                params.start_date = format(startDate, 'yyyy-MM-dd');
+            }
+
+            if (endDate) {
+                params.end_date = format(endDate, 'yyyy-MM-dd');
+            }
 
             const response = await getPassengers(params);
             const apiData = response.data || {};

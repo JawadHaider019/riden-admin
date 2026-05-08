@@ -33,37 +33,20 @@ export default function Analytics() {
         try {
             setLoading(true);
 
-            // Console error as requested
-            console.error("Showing dummy data on analytics page. Error: its dummy data and error is this");
+            // Fetch real data from backend
+            const [statsRes, analyticsRes] = await Promise.all([
+                getDashboardStats(),
+                getDashboardAnalytics()
+            ]);
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (statsRes.status === 'success') {
+                setStats(statsRes.data);
+            }
 
-            const dummyStats = {
-                total_bookings: 1542,
-                total_passengers: 982,
-                total_drivers: 124,
-                revenue: 52400.50,
-                completed_bookings: 1420
-            };
+            if (analyticsRes.status === 'success') {
+                setAnalytics(analyticsRes.data);
+            }
 
-            // Generate some dummy trends for the last 30 days
-            const dummyTrends = Array.from({ length: 30 }, (_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - (29 - i));
-                return {
-                    date: d.toISOString().split('T')[0],
-                    total: Math.floor(Math.random() * 50) + 10
-                };
-            });
-
-            const dummyAnalytics = {
-                passenger_growth: dummyTrends.map(t => ({ ...t, total: t.total + 5 })),
-                booking_trends: dummyTrends
-            };
-
-            setAnalytics(dummyAnalytics);
-            setStats(dummyStats);
             setError(null);
         } catch (error) {
             console.error("Error loading dashboard data", error);

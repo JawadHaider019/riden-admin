@@ -37,11 +37,20 @@ export default function VehicleManagement() {
         try {
             setLoading(true);
             const params = {
-                page: currentPage,
-                search: searchTerm,
-                start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-                end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null
+                page: currentPage
             };
+
+            if (searchTerm.trim()) {
+                params.search = searchTerm.trim();
+            }
+
+            if (startDate) {
+                params.start_date = format(startDate, 'yyyy-MM-dd');
+            }
+
+            if (endDate) {
+                params.end_date = format(endDate, 'yyyy-MM-dd');
+            }
             const res = await getVehicles(params);
             const paginationDetails = res.data || res;
             let vehicleList = paginationDetails?.data || [];
