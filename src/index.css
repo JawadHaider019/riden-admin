@@ -75,4 +75,15 @@
   strong {
     font-weight: 700 !important;
   }
+
+  button,
+  [role="button"],
+  a,
+  select,
+  label,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    cursor: pointer;
+  }
 }
