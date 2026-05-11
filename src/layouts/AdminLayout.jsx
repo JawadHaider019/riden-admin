@@ -20,31 +20,14 @@ export default function AdminLayout({ children, title }) {
     const [unreadCount, setUnreadCount] = useState(0);
     const prevUnreadCountRef = React.useRef(0);
 
-    // Generate a pleasant notification chime using Web Audio API (no file needed)
+    // Play notification sound using the provided audio file
     const playNotificationSound = () => {
         try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-
-            const playTone = (freq, startTime, duration, gainVal) => {
-                const oscillator = ctx.createOscillator();
-                const gainNode = ctx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(ctx.destination);
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(freq, startTime);
-                gainNode.gain.setValueAtTime(0, startTime);
-                gainNode.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-                oscillator.start(startTime);
-                oscillator.stop(startTime + duration);
-            };
-
-            // Two-tone chime: E5 then G5
-            const now = ctx.currentTime;
-            playTone(659.25, now, 0.3, 0.3);
-            playTone(783.99, now + 0.18, 0.4, 0.25);
+            const audio = new Audio('/universfield-new-notification-054-494259.mp3.mpeg');
+            audio.volume = 0.7;
+            audio.play().catch(() => {
+                // Silently fail if browser blocks autoplay
+            });
         } catch (e) {
             // Silently fail if audio not supported
         }
@@ -85,7 +68,7 @@ export default function AdminLayout({ children, title }) {
 
     useEffect(() => {
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 60000);
+        const interval = setInterval(fetchNotifications, 15000);
         return () => clearInterval(interval);
     }, []);
 
