@@ -19,6 +19,35 @@ export default function PassengerManagement() {
     const { showToast } = useToast();
     const [totalItems, setTotalItems] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
+    const [statusCounts, setStatusCounts] = useState({
+        active: 0,
+        blocked: 0
+    });
+
+    const fetchCounts = async () => {
+        try {
+            const response = await getPassengers({ limit: 1000 });
+            const allPassengers = response.data?.data || response.data || [];
+
+            const counts = {
+                active: 0,
+                blocked: 0
+            };
+
+            allPassengers.forEach(p => {
+                const s = p.status?.toLowerCase();
+                if (s === 'active') {
+                    counts.active++;
+                } else if (s === 'blocked' || s === 'block' || s === 'inactive') {
+                    counts.blocked++;
+                }
+            });
+
+            setStatusCounts(counts);
+        } catch (error) {
+            console.error("Error fetching passenger counts:", error);
+        }
+    };
     const navigate = useNavigate();
     const exportRef = useRef(null);
 
@@ -89,7 +118,14 @@ export default function PassengerManagement() {
 
             setPassengers(list);
 
-            setTotalItems(apiData.total || list.length);
+            const total = list.length;
+            setTotalItems(total);
+
+            // Update status counts for current tab
+            setStatusCounts(prev => ({
+                ...prev,
+                [activeTab]: total
+            }));
         }
         catch (error) {
             console.error("Error fetching passengers:", error);
@@ -182,6 +218,10 @@ export default function PassengerManagement() {
         fetchPassengers();
     }, [currentPage, searchTerm, activeTab, startDate, endDate]);
 
+    useEffect(() => {
+        fetchCounts();
+    }, []);
+
     return (
         <AdminLayout title="Passenger Management">
             <DatePickerStyles />
@@ -249,8 +289,8 @@ export default function PassengerManagement() {
                     setCurrentPage(1);
                 }}
                 options={[
-                    { id: 'active', label: 'Active ' },
-                    { id: 'blocked', label: 'Blocked' }
+                    { id: 'active', label: 'Active', count: statusCounts.active },
+                    { id: 'blocked', label: 'Blocked', count: statusCounts.blocked }
                 ]}
             />
 

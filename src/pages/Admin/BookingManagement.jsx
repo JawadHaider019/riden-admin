@@ -21,6 +21,34 @@ export default function BookingManagement() {
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [exportOpen, setExportOpen] = useState(false);
+    const [statusCounts, setStatusCounts] = useState({
+        ongoing: 0,
+        previous: 0
+    });
+
+    const fetchCounts = async () => {
+        try {
+            // Fetch batch to count locally
+            const res = await getBookings({ limit: 1000 });
+            let list = [];
+            if (Array.isArray(res)) list = res;
+            else if (res?.data && Array.isArray(res.data)) list = res.data;
+            else if (res?.data?.data && Array.isArray(res.data.data)) list = res.data.data;
+
+            const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
+            let ongoing = 0;
+            let previous = 0;
+
+            list.forEach(b => {
+                if (ongoingStatuses.includes(b.status?.toLowerCase())) ongoing++;
+                else previous++;
+            });
+
+            setStatusCounts({ ongoing, previous });
+        } catch (error) {
+            console.error("Error fetching booking counts:", error);
+        }
+    };
     const exportRef = useRef(null);
 
     // Click outside to close export dropdown
@@ -88,9 +116,14 @@ export default function BookingManagement() {
 
             setBookings(list);
 
-            const total = res?.total || res?.data?.total || res?.data?.data?.total || list.length;
+            const total = list.length;
             setTotalItems(total);
 
+            // Update current tab count
+            setStatusCounts(prev => ({
+                ...prev,
+                [type]: total
+            }));
         } catch (error) {
             console.error("Error fetching bookings:", error);
             showToast(error.response?.data?.message || error.message, 'error');
@@ -102,6 +135,10 @@ export default function BookingManagement() {
     useEffect(() => {
         fetchBookings();
     }, [currentPage, searchTerm, startDate, endDate]);
+
+    useEffect(() => {
+        fetchCounts();
+    }, []);
 
     const filteredBookings = bookings.filter(b => {
         const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
@@ -253,8 +290,8 @@ export default function BookingManagement() {
                 activeTab={type}
                 onTabChange={setType}
                 options={[
-                    { id: 'ongoing', label: 'Ongoing Bookings' },
-                    { id: 'previous', label: 'Previous Bookings' }
+                    { id: 'ongoing', label: 'Ongoing Bookings', count: statusCounts.ongoing },
+                    { id: 'previous', label: 'Previous Bookings', count: statusCounts.previous }
                 ]}
             />
 

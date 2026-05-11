@@ -36,6 +36,45 @@ export default function DriverManagement() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [statusCounts, setStatusCounts] = useState({
+        active: 0,
+        requested: 0,
+        suspended: 0,
+        blocked: 0
+    });
+
+    const fetchCounts = async () => {
+        try {
+            // The API appears to return the total for all records regardless of status filter
+            // So we fetch a large batch and count them locally for the badges
+            const response = await getDrivers({ limit: 1000 });
+            const allDrivers = response.data?.data || response.data || [];
+
+            const counts = {
+                active: 0,
+                requested: 0,
+                suspended: 0,
+                blocked: 0
+            };
+
+            allDrivers.forEach(d => {
+                const s = d.status?.toLowerCase();
+                if (s === 'active') {
+                    counts.active++;
+                } else if (s === 'pending' || s === 'requested') {
+                    counts.requested++;
+                } else if (s === 'blocked' || s === 'block') {
+                    counts.blocked++;
+                } else if (s === 'suspended' || s === 'suspend' || s === 'inactive' || !!d.suspended_until) {
+                    counts.suspended++;
+                }
+            });
+
+            setStatusCounts(counts);
+        } catch (error) {
+            console.error("Error fetching status counts:", error);
+        }
+    };
 
     const fetchDrivers = async () => {
         try {
@@ -110,10 +149,16 @@ export default function DriverManagement() {
 
             setDrivers(driversData);
 
-
             // Pagination info
             setTotalPages(response.data?.last_page || 1);
-            setTotalItems(response.data?.total || driversData.length);
+            const currentTabCount = driversData.length;
+            setTotalItems(currentTabCount);
+
+            // Update current tab count in the summary state
+            setStatusCounts(prev => ({
+                ...prev,
+                [activeTab]: currentTabCount
+            }));
         } catch (error) {
             console.error("Error fetching drivers:", error);
             showToast("Failed to load drivers", "error");
@@ -125,6 +170,10 @@ export default function DriverManagement() {
     useEffect(() => {
         fetchDrivers();
     }, [currentPage, searchTerm, activeTab, startDate, endDate]);
+
+    useEffect(() => {
+        fetchCounts();
+    }, []);
 
     const handleExport = async (exportFormat) => {
         try {
@@ -266,10 +315,10 @@ export default function DriverManagement() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 options={[
-                    { id: 'active', label: 'Active' },
-                    { id: 'requested', label: 'Requested' },
-                    { id: 'suspended', label: 'Suspended' },
-                    { id: 'blocked', label: 'Blocked' }
+                    { id: 'active', label: 'Active', count: statusCounts.active },
+                    { id: 'requested', label: 'Requested', count: statusCounts.requested },
+                    { id: 'suspended', label: 'Suspended', count: statusCounts.suspended },
+                    { id: 'blocked', label: 'Blocked', count: statusCounts.blocked }
                 ]}
             />
 

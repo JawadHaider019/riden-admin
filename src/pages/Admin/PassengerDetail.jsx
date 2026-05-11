@@ -223,12 +223,12 @@ export default function PassengerDetail() {
                             <div className="text-[10px] font-[600] text-gray-400 uppercase tracking-widest">{passenger.since}</div>
                             <div className="text-xs font-[600] text-black uppercase tracking-tighter">Registered</div>
                         </div>
-                        <button
+                        {/* <button
                             onClick={handleEditClick}
                             className="px-6 py-2 rounded-full text-xs font-[600] uppercase tracking-widest transition-all shadow-sm bg-[#D10000] text-white hover:bg-[#b00000] active:scale-95"
                         >
                             {isEditing ? 'Cancel' : 'Edit profile'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 

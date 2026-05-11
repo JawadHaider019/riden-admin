@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getAdminProfile } from '../api/auth';
 import { getImageUrl } from '../api/api';
 
-export default function Header({ title, isCollapsed, onNotificationClick }) {
+export default function Header({ title, isCollapsed, onNotificationClick, unreadCount }) {
     // 💡 Initialize from storage to prevent "flicker" on reload/navigation
     const [admin, setAdmin] = useState(() => {
         try {
@@ -53,9 +53,11 @@ export default function Header({ title, isCollapsed, onNotificationClick }) {
                         aria-label="Notifications"
                     >
                         <i className="bi bi-bell transition-transform group-hover:rotate-12"></i>
-                        <span className="absolute top-2 right-2 w-4 h-4 bg-[#D10000] border-2 border-white rounded-full flex items-center justify-center text-[8px] font-[600] text-white shadow-sm">
-                            5
-                        </span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 bg-[#D10000] border-2 border-white rounded-full flex items-center justify-center text-[8px] font-[700] text-white shadow-sm animate-pulse">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                        )}
                     </button>
 
                     {/* User Profile */}

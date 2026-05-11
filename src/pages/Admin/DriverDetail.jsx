@@ -322,7 +322,7 @@ export default function DriverDetail() {
                                     }}
                                 />
                             </div>
-                            <div className={`absolute top-0 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${driverStatus === 'active' ? 'bg-green-500' : driverStatus === 'blocked' ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
+                            {/* <div className={`absolute top-0 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${driverStatus === 'active' ? 'bg-green-500' : driverStatus === 'blocked' ? 'bg-red-500' : 'bg-yellow-500'}`}></div> */}
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -344,12 +344,12 @@ export default function DriverDetail() {
                             <div className="text-[10px] font-[600] text-gray-400 uppercase tracking-widest">{driver.since}</div>
                             <div className="text-xs font-[600] text-black uppercase tracking-tighter">Registered</div>
                         </div>
-                        <button
+                        {/* <button
                             onClick={handleEditClick}
                             className="px-6 py-2 rounded-full text-xs font-[600] uppercase tracking-widest transition-all shadow-sm bg-[#D10000] text-white hover:bg-[#b00000] active:scale-95"
                         >
                             {isEditing ? 'Cancel' : 'Edit profile'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -605,35 +605,54 @@ export default function DriverDetail() {
                                         ].map((docType, idx) => {
                                             const doc = driver.documents?.find(d => d.document_name === docType.key);
                                             const isOpen = openDocIndex === idx;
-                                            const status = doc?.status || 'Missing';
+                                            const status = doc ? (doc.status || 'Pending') : 'Missing';
 
                                             return (
                                                 <div key={idx} className="flex flex-col border-b border-gray-100">
                                                     <div
                                                         className={`flex items-center justify-between py-5 px-4 cursor-pointer hover:bg-gray-50 transition-colors ${isOpen ? 'bg-gray-50' : ''}`}
                                                         onClick={(e) => {
-                                                            if (e.target.tagName !== 'SELECT' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
+                                                            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
                                                                 setOpenDocIndex(isOpen ? null : idx);
                                                             }
                                                         }}
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <span className="text-sm font-[600] text-gray-900">{docType.name}</span>
-                                                            {isEditing ? (
-                                                                <select
-                                                                    className="border border-gray-300 rounded text-xs px-2 py-1.5 text-gray-700 outline-none focus:border-[#D10000]"
-                                                                    value={status}
-                                                                    onChange={(e) => handleDocumentStatusChange(doc?.id, e.target.value, docType.name)}
-                                                                >
-                                                                    <option value="Missing">Missing</option>
-                                                                    <option value="Pending">Pending</option>
-                                                                    <option value="Verified">Verified</option>
-                                                                    <option value="Rejected">Rejected</option>
-                                                                </select>
+                                                            {status === 'Missing' ? (
+                                                                <span className="text-xs font-[600] text-gray-400 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-wider">Missing</span>
                                                             ) : (
-                                                                <span className={`text-sm font-medium ${status?.toLowerCase() === 'verified' ? 'text-green-600' : status?.toLowerCase() === 'rejected' ? 'text-red-600' : 'text-amber-500'}`}>
-                                                                    ({status})
-                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleDocumentStatusChange(doc?.id, 'Verified', docType.name);
+                                                                        }}
+                                                                        className={`px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider transition-all border ${status === 'Verified'
+                                                                            ? 'bg-[#12B76A] text-white border-[#12B76A] shadow-sm'
+                                                                            : 'bg-white text-gray-500 border-gray-200 hover:border-[#12B76A] hover:text-[#12B76A]'
+                                                                            }`}
+                                                                    >
+                                                                        Approve
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleDocumentStatusChange(doc?.id, 'Rejected', docType.name);
+                                                                        }}
+                                                                        className={`px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider transition-all border ${status === 'Rejected'
+                                                                            ? 'bg-[#D10000] text-white border-[#D10000] shadow-sm'
+                                                                            : 'bg-white text-gray-500 border-gray-200 hover:border-[#D10000] hover:text-[#D10000]'
+                                                                            }`}
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                    {status === 'Pending' && (
+                                                                        <span className="px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider bg-amber-100 text-amber-600 border border-amber-200">
+                                                                            Pending
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-3">
@@ -669,9 +688,9 @@ export default function DriverDetail() {
                                                                             href={doc.file_url}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
-                                                                            className="text-xs font-[600] text-[#D10000] hover:underline"
+                                                                            className="text-xs font-[600] bg-[#D10000] px-4 py-1.5 rounded-full text-white hover:underline"
                                                                         >
-                                                                            View Original File
+                                                                            View Full
                                                                         </a>
                                                                     </div>
                                                                 </div>
@@ -851,254 +870,264 @@ export default function DriverDetail() {
                 </div>
 
                 {/* Modals Overlay */}
-                {['block', 'unblock', 'delete'].includes(modalType) && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                        <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl">
-                            <div className="mb-4">
-                                <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-[600]'}`}></i>
-                            </div>
-
-                            <h3 className="text-xl font-[600] text-gray-900 mb-3">
-                                {modalType === 'block' ? 'Block Driver' : modalType === 'unblock' ? 'unblock Driver' : 'Delete Driver'}
-                            </h3>
-
-                            <p className="text-xs font-semibold text-gray-600 mb-8 max-w-[250px] mx-auto">
-                                {modalType === 'delete' ? (
-                                    <>Are you sure to Delete the <span className="text-[#EE1B24]">{driver.name}</span> Driver. This action can't be undone.</>
-                                ) : (
-                                    <>Are you sure to {modalType === 'block' ? 'Block' : 'unblock'} the <span className="text-[#EE1B24]">{driver.name}</span> Driver</>
-                                )}
-                            </p>
-
-                            <div className="flex items-center gap-3 w-full">
-                                <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-[600] text-sm hover:bg-[#d01019] transition-colors" onClick={async () => {
-                                    try {
-                                        if (modalType === 'block' || modalType === 'unblock') {
-                                            const newStatus = modalType === 'block' ? 'Blocked' : 'Active';
-                                            await updateDriver(driver.id, { status: newStatus });
-                                            setDriverStatus(modalType === 'block' ? 'blocked' : 'active');
-                                            setDriver(prev => ({ ...prev, status: newStatus }));
-                                            showToast(`Driver ${modalType === 'block' ? 'blocked' : 'activated'} successfully`, "success");
-                                        }
-                                        if (modalType === 'delete') {
-                                            await deleteDriver(driver.id);
-                                            showToast("Driver deleted successfully", "success");
-                                            navigate('/drivers');
-                                        }
-                                    } catch (error) {
-                                        showToast("Action failed", "error");
-                                    }
-                                    setModalType(null);
-                                }}>
-                                    Confirm
-                                </button>
-                                <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-[600] text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {modalType === 'suspend' && (
-                    <div className="fixed top-16 inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                        <div className="bg-white rounded-[30px] p-2 w-[90%] max-w-[360px] flex flex-col shadow-2xl overflow-hidden ">
-                            <div className="bg-[#EE1B24] py-3 px-4 rounded-full shadow-sm text-center">
-                                <h3 className="text-white font-[600] text-[15px]">Temporarily Suspend Driver</h3>
-                            </div>
-
-                            <div className="p-6">
-                                <p className="text-[13px] font-medium text-gray-800 mb-6 font-semibold">Driver : {driver.name} (ID: {driver.id})</p>
-
-                                <div className="mb-6">
-                                    <p className="text-[15px] font-[600] text-gray-900 mb-3">Duration Type</p>
-                                    <div className="flex gap-6">
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
-                                            <div className="relative flex items-center justify-center">
-                                                <input type="radio" name="durationType" className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[#EE1B24]" checked={suspensionForm.type === 'Minutes'} onChange={() => setSuspensionForm({ ...suspensionForm, type: 'Minutes' })} />
-                                                <div className="absolute w-2.5 h-2.5 bg-[#EE1B24] rounded-full opacity-0 peer-checked:opacity-100"></div>
-                                            </div>
-                                            Minutes
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
-                                            <div className="relative flex items-center justify-center">
-                                                <input type="radio" name="durationType" className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[#EE1B24]" checked={suspensionForm.type === 'Hours'} onChange={() => setSuspensionForm({ ...suspensionForm, type: 'Hours' })} />
-                                                <div className="absolute w-2.5 h-2.5 bg-[#EE1B24] rounded-full opacity-0 peer-checked:opacity-100"></div>
-                                            </div>
-                                            Hours
-                                        </label>
-                                    </div>
+                {
+                    ['block', 'unblock', 'delete'].includes(modalType) && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                            <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl">
+                                <div className="mb-4">
+                                    <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-[600]'}`}></i>
                                 </div>
 
-                                <div className="mb-5">
-                                    <p className="text-[15px] font-[600] text-gray-900 mb-2">Duration</p>
-                                    <input type="number" placeholder={`Enter ${suspensionForm.type}`} className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE1B24] font-medium placeholder:text-gray-400" value={suspensionForm.duration} onChange={(e) => setSuspensionForm({ ...suspensionForm, duration: e.target.value })} />
-                                </div>
+                                <h3 className="text-xl font-[600] text-gray-900 mb-3">
+                                    {modalType === 'block' ? 'Block Driver' : modalType === 'unblock' ? 'unblock Driver' : 'Delete Driver'}
+                                </h3>
 
-                                <div className="mb-8">
-                                    <p className="text-[15px] font-[600] text-gray-900 mb-2">Reason<span className="text-gray-600 font-medium">(Optional)</span></p>
-                                    <textarea placeholder="Write Reason..." rows={4} className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE1B24] resize-none font-medium placeholder:text-gray-400" value={suspensionForm.reason} onChange={(e) => setSuspensionForm({ ...suspensionForm, reason: e.target.value })}></textarea>
-                                </div>
+                                <p className="text-xs font-semibold text-gray-600 mb-8 max-w-[250px] mx-auto">
+                                    {modalType === 'delete' ? (
+                                        <>Are you sure to Delete the <span className="text-[#EE1B24]">{driver.name}</span> Driver. This action can't be undone.</>
+                                    ) : (
+                                        <>Are you sure to {modalType === 'block' ? 'Block' : 'unblock'} the <span className="text-[#EE1B24]">{driver.name}</span> Driver</>
+                                    )}
+                                </p>
 
                                 <div className="flex items-center gap-3 w-full">
-                                    <button
-                                        className="flex-1 py-3 bg-[#EE1B24] text-white rounded-xl font-[600] text-base hover:bg-[#d01019] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                                        disabled={!suspensionForm.duration || updating}
-                                        onClick={async () => {
-                                            try {
-                                                setUpdating(true);
-                                                const now = new Date();
-                                                const durationMs = suspensionForm.type === 'Minutes' ? suspensionForm.duration * 60000 : suspensionForm.duration * 3600000;
-                                                const endTimestamp = now.getTime() + durationMs;
-                                                const until = new Date(endTimestamp).toISOString();
-
-                                                // Prepare data for API - use 'inactive' as requested for suspended state
-                                                const updateData = {
-                                                    status: 'inactive',
-                                                    suspended_until: until,
-                                                    suspension_reason: suspensionForm.reason
-                                                };
-
-                                                // Use the general update endpoint instead of toggleStatus to ensure all fields are saved
-                                                await updateDriver(driver.id, updateData);
-
-                                                setDriver(prev => ({
-                                                    ...prev,
-                                                    status: 'inactive',
-                                                    suspended_until: until,
-                                                    suspension_reason: suspensionForm.reason
-                                                }));
-                                                setDriverStatus('suspended');
-                                                setModalType('suspend_success');
-                                                showToast("Driver suspended successfully", "success");
-                                            } catch (error) {
-                                                console.error("Suspension error:", error);
-                                                showToast("Failed to suspend driver", "error");
-                                            } finally {
-                                                setUpdating(false);
+                                    <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-[600] text-sm hover:bg-[#d01019] transition-colors" onClick={async () => {
+                                        try {
+                                            if (modalType === 'block' || modalType === 'unblock') {
+                                                const newStatus = modalType === 'block' ? 'Blocked' : 'Active';
+                                                await updateDriver(driver.id, { status: newStatus });
+                                                setDriverStatus(modalType === 'block' ? 'blocked' : 'active');
+                                                setDriver(prev => ({ ...prev, status: newStatus }));
+                                                showToast(`Driver ${modalType === 'block' ? 'blocked' : 'activated'} successfully`, "success");
                                             }
-                                        }}
-                                    >
-                                        {updating ? <i className="bi bi-hourglass-split animate-spin"></i> : 'Suspend'}
+                                            if (modalType === 'delete') {
+                                                await deleteDriver(driver.id);
+                                                showToast("Driver deleted successfully", "success");
+                                                navigate('/drivers');
+                                            }
+                                        } catch (error) {
+                                            showToast("Action failed", "error");
+                                        }
+                                        setModalType(null);
+                                    }}>
+                                        Confirm
                                     </button>
-                                    <button className="flex-[0.8] py-3 bg-white text-gray-900 border-[1.5px] border-black rounded-xl font-[600] text-base hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
+                                    <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-[600] text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
                                         Cancel
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
-                {modalType === 'suspend_success' && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                        <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl pb-10 pt-10">
-                            <div className="mb-4 text-[#16A34A]">
-                                <i className="bi bi-patch-check-fill text-[75px]"></i>
-                            </div>
-                            <p className="text-[15px] font-medium text-gray-900 my-4 leading-relaxed px-2">
-                                Your Driver <span className="text-[#EE1B24]">{driver.name}</span> is successfully suspended for {suspensionForm.duration} {suspensionForm.type.toLowerCase()}
-                            </p>
-                            <div className="w-full px-4 mt-2">
-                                <button className="w-full py-3.5 bg-[#EE1B24] text-white rounded-[14px] font-[600] text-[17px] hover:bg-[#d01019] transition-colors" onClick={() => { setDriverStatus('suspended'); setModalType(null); }}>
-                                    Okay
-                                </button>
+                {
+                    modalType === 'suspend' && (
+                        <div className="fixed top-16 inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                            <div className="bg-white rounded-[30px] p-2 w-[90%] max-w-[360px] flex flex-col shadow-2xl overflow-hidden ">
+                                <div className="bg-[#EE1B24] py-3 px-4 rounded-full shadow-sm text-center">
+                                    <h3 className="text-white font-[600] text-[15px]">Temporarily Suspend Driver</h3>
+                                </div>
+
+                                <div className="p-6">
+                                    <p className="text-[13px] font-medium text-gray-800 mb-6 font-semibold">Driver : {driver.name} (ID: {driver.id})</p>
+
+                                    <div className="mb-6">
+                                        <p className="text-[15px] font-[600] text-gray-900 mb-3">Duration Type</p>
+                                        <div className="flex gap-6">
+                                            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                                                <div className="relative flex items-center justify-center">
+                                                    <input type="radio" name="durationType" className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[#EE1B24]" checked={suspensionForm.type === 'Minutes'} onChange={() => setSuspensionForm({ ...suspensionForm, type: 'Minutes' })} />
+                                                    <div className="absolute w-2.5 h-2.5 bg-[#EE1B24] rounded-full opacity-0 peer-checked:opacity-100"></div>
+                                                </div>
+                                                Minutes
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                                                <div className="relative flex items-center justify-center">
+                                                    <input type="radio" name="durationType" className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[#EE1B24]" checked={suspensionForm.type === 'Hours'} onChange={() => setSuspensionForm({ ...suspensionForm, type: 'Hours' })} />
+                                                    <div className="absolute w-2.5 h-2.5 bg-[#EE1B24] rounded-full opacity-0 peer-checked:opacity-100"></div>
+                                                </div>
+                                                Hours
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-5">
+                                        <p className="text-[15px] font-[600] text-gray-900 mb-2">Duration</p>
+                                        <input type="number" placeholder={`Enter ${suspensionForm.type}`} className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE1B24] font-medium placeholder:text-gray-400" value={suspensionForm.duration} onChange={(e) => setSuspensionForm({ ...suspensionForm, duration: e.target.value })} />
+                                    </div>
+
+                                    <div className="mb-8">
+                                        <p className="text-[15px] font-[600] text-gray-900 mb-2">Reason<span className="text-gray-600 font-medium">(Optional)</span></p>
+                                        <textarea placeholder="Write Reason..." rows={4} className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE1B24] resize-none font-medium placeholder:text-gray-400" value={suspensionForm.reason} onChange={(e) => setSuspensionForm({ ...suspensionForm, reason: e.target.value })}></textarea>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 w-full">
+                                        <button
+                                            className="flex-1 py-3 bg-[#EE1B24] text-white rounded-xl font-[600] text-base hover:bg-[#d01019] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                            disabled={!suspensionForm.duration || updating}
+                                            onClick={async () => {
+                                                try {
+                                                    setUpdating(true);
+                                                    const now = new Date();
+                                                    const durationMs = suspensionForm.type === 'Minutes' ? suspensionForm.duration * 60000 : suspensionForm.duration * 3600000;
+                                                    const endTimestamp = now.getTime() + durationMs;
+                                                    const until = new Date(endTimestamp).toISOString();
+
+                                                    // Prepare data for API - use 'inactive' as requested for suspended state
+                                                    const updateData = {
+                                                        status: 'inactive',
+                                                        suspended_until: until,
+                                                        suspension_reason: suspensionForm.reason
+                                                    };
+
+                                                    // Use the general update endpoint instead of toggleStatus to ensure all fields are saved
+                                                    await updateDriver(driver.id, updateData);
+
+                                                    setDriver(prev => ({
+                                                        ...prev,
+                                                        status: 'inactive',
+                                                        suspended_until: until,
+                                                        suspension_reason: suspensionForm.reason
+                                                    }));
+                                                    setDriverStatus('suspended');
+                                                    setModalType('suspend_success');
+                                                    showToast("Driver suspended successfully", "success");
+                                                } catch (error) {
+                                                    console.error("Suspension error:", error);
+                                                    showToast("Failed to suspend driver", "error");
+                                                } finally {
+                                                    setUpdating(false);
+                                                }
+                                            }}
+                                        >
+                                            {updating ? <i className="bi bi-hourglass-split animate-spin"></i> : 'Suspend'}
+                                        </button>
+                                        <button className="flex-[0.8] py-3 bg-white text-gray-900 border-[1.5px] border-black rounded-xl font-[600] text-base hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
+
+                {
+                    modalType === 'suspend_success' && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                            <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl pb-10 pt-10">
+                                <div className="mb-4 text-[#16A34A]">
+                                    <i className="bi bi-patch-check-fill text-[75px]"></i>
+                                </div>
+                                <p className="text-[15px] font-medium text-gray-900 my-4 leading-relaxed px-2">
+                                    Your Driver <span className="text-[#EE1B24]">{driver.name}</span> is successfully suspended for {suspensionForm.duration} {suspensionForm.type.toLowerCase()}
+                                </p>
+                                <div className="w-full px-4 mt-2">
+                                    <button className="w-full py-3.5 bg-[#EE1B24] text-white rounded-[14px] font-[600] text-[17px] hover:bg-[#d01019] transition-colors" onClick={() => { setDriverStatus('suspended'); setModalType(null); }}>
+                                        Okay
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
 
                 {/* Suspension Details Modal */}
-                {modalType === 'suspension_details' && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <div className="bg-white rounded-[28px] w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-                            {/* Header - Compact Red Style */}
-                            <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
-                                <h3 className="text-sm font-[600] uppercase tracking-wider">Suspension Details</h3>
-                                <button onClick={() => setModalType(null)} className="text-white/80 hover:text-white transition-colors">
-                                    <i className="bi bi-x-lg text-sm"></i>
-                                </button>
-                            </div>
-
-                            <div className="p-6 space-y-5">
-                                <div className="text-center">
-                                    <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-100">
-                                        <i className="bi bi-clock-history text-2xl text-amber-500"></i>
-                                    </div>
-                                    <p className="text-gray-500 text-xs font-semibold">Access restricted temporarily</p>
-                                </div>
-
-                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                                    <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1">Time Remaining</div>
-                                    <div className="text-2xl font-[600] text-[#EE1B24] tracking-tighter">
-                                        {timeLeft || '00h 00m 00s'}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1.5">Reason</div>
-                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-[13px] text-gray-700 leading-snug italic">
-                                        "{driver?.suspension_reason || 'No reason provided.'}"
-                                    </div>
-                                </div>
-
-                                <div className="pt-1">
-                                    <button
-                                        onClick={() => setModalType(null)}
-                                        className="w-full py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95"
-                                    >
-                                        Close Details
+                {
+                    modalType === 'suspension_details' && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-[28px] w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+                                {/* Header - Compact Red Style */}
+                                <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
+                                    <h3 className="text-sm font-[600] uppercase tracking-wider">Suspension Details</h3>
+                                    <button onClick={() => setModalType(null)} className="text-white/80 hover:text-white transition-colors">
+                                        <i className="bi bi-x-lg text-sm"></i>
                                     </button>
+                                </div>
+
+                                <div className="p-6 space-y-5">
+                                    <div className="text-center">
+                                        <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-100">
+                                            <i className="bi bi-clock-history text-2xl text-amber-500"></i>
+                                        </div>
+                                        <p className="text-gray-500 text-xs font-semibold">Access restricted temporarily</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                                        <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1">Time Remaining</div>
+                                        <div className="text-2xl font-[600] text-[#EE1B24] tracking-tighter">
+                                            {timeLeft || '00h 00m 00s'}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1.5">Reason</div>
+                                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-[13px] text-gray-700 leading-snug italic">
+                                            "{driver?.suspension_reason || 'No reason provided.'}"
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-1">
+                                        <button
+                                            onClick={() => setModalType(null)}
+                                            className="w-full py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95"
+                                        >
+                                            Close Details
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* Document Rejection Modal */}
-                {rejectionModal.isOpen && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <div className="bg-white rounded-[28px] w-full max-w-[400px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-                            <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
-                                <h3 className="text-sm font-[600] uppercase tracking-wider">Reject Document</h3>
-                                <button onClick={() => setRejectionModal({ ...rejectionModal, isOpen: false })} className="text-white/80 hover:text-white transition-colors">
-                                    <i className="bi bi-x-lg text-sm"></i>
-                                </button>
-                            </div>
-
-                            <div className="p-6 space-y-5">
-                                <div>
-                                    <h4 className="text-sm font-[600] text-gray-900 mb-1">{rejectionModal.docName}</h4>
-                                    <p className="text-xs text-gray-500">Please provide a reason why this document is being rejected. This will be shown to the driver.</p>
+                {
+                    rejectionModal.isOpen && (
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-[28px] w-full max-w-[400px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+                                <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
+                                    <h3 className="text-sm font-[600] uppercase tracking-wider">Reject Document</h3>
+                                    <button onClick={() => setRejectionModal({ ...rejectionModal, isOpen: false })} className="text-white/80 hover:text-white transition-colors">
+                                        <i className="bi bi-x-lg text-sm"></i>
+                                    </button>
                                 </div>
 
-                                <textarea
-                                    className="w-full border border-gray-300 rounded-2xl p-4 text-sm focus:outline-none focus:border-[#EE1B24] min-h-[120px] resize-none"
-                                    placeholder="Enter rejection reason..."
-                                    value={rejectionModal.rejectionReason}
-                                    onChange={(e) => setRejectionModal({ ...rejectionModal, rejectionReason: e.target.value })}
-                                ></textarea>
+                                <div className="p-6 space-y-5">
+                                    <div>
+                                        <h4 className="text-sm font-[600] text-gray-900 mb-1">{rejectionModal.docName}</h4>
+                                        <p className="text-xs text-gray-500">Please provide a reason why this document is being rejected. This will be shown to the driver.</p>
+                                    </div>
 
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setRejectionModal({ ...rejectionModal, isOpen: false })}
-                                        className="flex-1 py-3 rounded-full border border-gray-300 text-gray-700 font-[600] text-xs hover:bg-gray-50 transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleRejectionSubmit}
-                                        disabled={updating || !rejectionModal.rejectionReason.trim()}
-                                        className="flex-1 py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95 disabled:opacity-50"
-                                    >
-                                        {updating ? 'Submitting...' : 'Confirm Rejection'}
-                                    </button>
+                                    <textarea
+                                        className="w-full border border-gray-300 rounded-2xl p-4 text-sm focus:outline-none focus:border-[#EE1B24] min-h-[120px] resize-none"
+                                        placeholder="Enter rejection reason..."
+                                        value={rejectionModal.rejectionReason}
+                                        onChange={(e) => setRejectionModal({ ...rejectionModal, rejectionReason: e.target.value })}
+                                    ></textarea>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setRejectionModal({ ...rejectionModal, isOpen: false })}
+                                            className="flex-1 py-3 rounded-full border border-gray-300 text-gray-700 font-[600] text-xs hover:bg-gray-50 transition-all"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleRejectionSubmit}
+                                            disabled={updating || !rejectionModal.rejectionReason.trim()}
+                                            className="flex-1 py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95 disabled:opacity-50"
+                                        >
+                                            {updating ? 'Submitting...' : 'Confirm Rejection'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )
+                }
+            </div >
         </AdminLayout >
     );
 }
