@@ -5,13 +5,15 @@ import { Table, Badge, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Butto
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getBookings } from '@/api/bookingApi';
+import { getVehicleDetail } from '@/api/vehicleApi';
+import { reverseGeocode } from '@/utils/geoUtils';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 
 export default function BookingManagement() {
     const { showToast } = useToast();
     const navigate = useNavigate();
 
-    const [type, setType] = useState('ongoing');
+    const [type, setType] = useState('requested');
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -23,28 +25,60 @@ export default function BookingManagement() {
     const [exportOpen, setExportOpen] = useState(false);
     const [statusCounts, setStatusCounts] = useState({
         ongoing: 0,
-        previous: 0
+        requested: 0,
+        accepted: 0,
+        arrived: 0,
+        completed: 0,
+        cancelled: 0
     });
 
     const fetchCounts = async () => {
         try {
             // Fetch batch to count locally
             const res = await getBookings({ limit: 1000 });
-            let list = [];
-            if (Array.isArray(res)) list = res;
-            else if (res?.data && Array.isArray(res.data)) list = res.data;
-            else if (res?.data?.data && Array.isArray(res.data.data)) list = res.data.data;
+            // Reset counts to zero
+            const counts = { ongoing: 0, requested: 0, accepted: 0, arrived: 0, completed: 0, cancelled: 0 };
+            const groupedIds = { ongoing: [], requested: [], accepted: [], arrived: [], completed: [], cancelled: [] };
 
-            const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
-            let ongoing = 0;
-            let previous = 0;
+            // Deep extract list or single object
+            let list = [];
+            if (Array.isArray(res)) {
+                list = res;
+            } else if (res?.data) {
+                if (Array.isArray(res.data)) {
+                    list = res.data;
+                } else if (res.data?.data && Array.isArray(res.data.data)) {
+                    list = res.data.data;
+                } else if (res.data?.id) {
+                    console.log("DEBUG: Detected single booking object (ID:", res.data.id, ")");
+                    list = [res.data];
+                }
+            }
+
+            console.log("DEBUG: fetchCounts final list size:", list.length);
+
+            const cancelledStatuses = ['cancelled', 'rejected', 'failed', 'danger', 'expired'];
 
             list.forEach(b => {
-                if (ongoingStatuses.includes(b.status?.toLowerCase())) ongoing++;
-                else previous++;
+                const s = b.status?.toLowerCase() || 'unknown';
+                let category = null;
+
+                if (s === 'ongoing') category = 'ongoing';
+                else if (s === 'requested' || s === 'pending') category = 'requested';
+                else if (s === 'accepted') category = 'accepted';
+                else if (s === 'arrived') category = 'arrived';
+                else if (s === 'completed' || s === 'success') category = 'completed';
+                else if (cancelledStatuses.includes(s)) category = 'cancelled';
+
+                if (category) {
+                    counts[category]++;
+                    groupedIds[category].push({ id: b.id, rawStatus: b.status });
+                }
             });
 
-            setStatusCounts({ ongoing, previous });
+            console.log("DEBUG: Final Calculated Counts:", counts);
+            console.log("DEBUG: Grouped IDs by Tab:", groupedIds);
+            setStatusCounts(counts);
         } catch (error) {
             console.error("Error fetching booking counts:", error);
         }
@@ -70,6 +104,14 @@ export default function BookingManagement() {
                 page: currentPage
             };
 
+            // Map frontend type to backend status filter
+            if (type === 'requested') params.status = 'Requested';
+            else if (type === 'accepted') params.status = 'Accepted';
+            else if (type === 'arrived') params.status = 'Arrived';
+            else if (type === 'ongoing') params.status = 'Ongoing';
+            else if (type === 'completed') params.status = 'Completed';
+            else if (type === 'cancelled') params.status = 'Cancelled';
+
             if (searchTerm.trim() !== '') {
                 params.search = searchTerm.trim();
             }
@@ -81,6 +123,7 @@ export default function BookingManagement() {
                 params.end_date = format(endDate, 'yyyy-MM-dd');
             }
 
+            console.log("DEBUG: Fetching bookings with params:", params);
             const res = await getBookings(params);
             console.log("DEBUG: Booking API Raw Response:", res);
 
@@ -142,14 +185,46 @@ export default function BookingManagement() {
             setBookings(list);
             console.log("DEBUG: Bookings state updated. Count:", list.length);
 
+            // Resolve data in background (Addresses & Vehicles)
+            if (list.length > 0) {
+                const resolveData = async () => {
+                    const vehicleCache = {}; // Cache to avoid multiple calls for same vehicle in the same page
+                    const updatedList = await Promise.all(list.map(async (b) => {
+                        // 1. Resolve Addresses
+                        const pickupAddr = b.pickup_location || await reverseGeocode(b.pickup_lat, b.pickup_lng);
+                        const dropoffAddr = b.dropoff_location || await reverseGeocode(b.dropoff_lat, b.dropoff_lng);
+
+                        // 2. Resolve Vehicle Info if missing but ID exists
+                        let vehicleInfo = b.vehicle || b.driver?.vehicle;
+                        if (!vehicleInfo && b.vehicle_id) {
+                            if (vehicleCache[b.vehicle_id]) {
+                                vehicleInfo = vehicleCache[b.vehicle_id];
+                            } else {
+                                console.log("DEBUG: Fetching details for vehicle ID:", b.vehicle_id);
+                                try {
+                                    const vRes = await getVehicleDetail(b.vehicle_id);
+                                    vehicleInfo = vRes.data || vRes;
+                                    vehicleCache[b.vehicle_id] = vehicleInfo;
+                                } catch (err) {
+                                    console.error(`DEBUG: Failed to fetch vehicle ${b.vehicle_id}`, err);
+                                }
+                            }
+                        }
+
+                        return {
+                            ...b,
+                            pickup_location: pickupAddr,
+                            dropoff_location: dropoffAddr,
+                            vehicle: vehicleInfo
+                        };
+                    }));
+                    setBookings(updatedList);
+                };
+                resolveData();
+            }
+
             const total = list.length;
             setTotalItems(total);
-
-            // Update current tab count
-            setStatusCounts(prev => ({
-                ...prev,
-                [type]: total
-            }));
         } catch (error) {
             console.error("DEBUG: Error fetching bookings:", error);
             showToast(error.response?.data?.message || error.message, 'error');
@@ -159,17 +234,31 @@ export default function BookingManagement() {
     };
 
     useEffect(() => {
-        fetchBookings();
-    }, [currentPage, searchTerm, startDate, endDate]);
+        setCurrentPage(1);
+    }, [type, searchTerm, startDate, endDate]);
+
+    useEffect(() => {
+        const delay = setTimeout(() => {
+            fetchBookings();
+        }, 300);
+        return () => clearTimeout(delay);
+    }, [currentPage, searchTerm, startDate, endDate, type]);
 
     useEffect(() => {
         fetchCounts();
     }, []);
 
     const filteredBookings = bookings.filter(b => {
-        const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
-        const isOngoing = ongoingStatuses.includes(b.status?.toLowerCase());
-        return type === 'ongoing' ? isOngoing : !isOngoing;
+        const s = b.status?.toLowerCase();
+        const cancelledStatuses = ['cancelled', 'rejected', 'failed', 'danger', 'expired'];
+
+        if (type === 'ongoing') return s === 'ongoing';
+        if (type === 'requested') return s === 'requested' || s === 'pending';
+        if (type === 'accepted') return s === 'accepted';
+        if (type === 'arrived') return s === 'arrived';
+        if (type === 'completed') return s === 'completed' || s === 'success';
+        if (type === 'cancelled') return cancelledStatuses.includes(s);
+        return false;
     });
 
     console.log(`DEBUG: Tab: ${type}, Filtered Bookings for Render:`, filteredBookings);
@@ -194,9 +283,15 @@ export default function BookingManagement() {
             else if (res?.data) rawData = res.data;
 
             let finalData = rawData.filter(b => {
-                const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
-                if (type === 'ongoing') return ongoingStatuses.includes(b.status);
-                return !ongoingStatuses.includes(b.status);
+                const s = b.status?.toLowerCase();
+                const cancelledStatuses = ['cancelled', 'rejected', 'failed', 'danger', 'expired'];
+                if (type === 'ongoing') return s === 'ongoing';
+                if (type === 'requested') return s === 'requested' || s === 'pending';
+                if (type === 'accepted') return s === 'accepted';
+                if (type === 'arrived') return s === 'arrived';
+                if (type === 'completed') return s === 'completed' || s === 'success';
+                if (type === 'cancelled') return cancelledStatuses.includes(s);
+                return false;
             });
 
             if (startDate || endDate) {
@@ -228,7 +323,7 @@ export default function BookingManagement() {
                 b.id,
                 b.driver?.name || (b.driver?.first_name ? `${b.driver.first_name} ${b.driver.last_name || ''}` : 'N/A'),
                 b.passenger?.name || (b.passenger?.first_name ? `${b.passenger.first_name} ${b.passenger.last_name || ''}` : 'N/A'),
-                `Rs ${b.fare || '0'}`,
+                `C$ ${b.fare || '0'}`,
                 (b.vehicle?.license_plate || b.driver?.vehicle?.license_plate || 'N/A'),
                 b.pickup_location || (b.pickup_lat ? `${b.pickup_lat}, ${b.pickup_lng}` : 'N/A'),
                 b.dropoff_location || (b.dropoff_lat ? `${b.dropoff_lat}, ${b.dropoff_lng}` : 'N/A'),
@@ -315,34 +410,40 @@ export default function BookingManagement() {
                 activeTab={type}
                 onTabChange={setType}
                 options={[
-                    { id: 'ongoing', label: 'Ongoing Bookings', count: statusCounts.ongoing },
-                    { id: 'previous', label: 'Previous Bookings', count: statusCounts.previous }
+                    { id: 'ongoing', label: 'Ongoing', count: statusCounts.ongoing },
+                    { id: 'requested', label: 'Requested', count: statusCounts.requested },
+                    { id: 'accepted', label: 'Accepted', count: statusCounts.accepted },
+                    { id: 'arrived', label: 'Arrived', count: statusCounts.arrived },
+                    { id: 'completed', label: 'Completed', count: statusCounts.completed },
+                    { id: 'cancelled', label: 'Cancelled', count: statusCounts.cancelled }
                 ]}
             />
 
             {/* Table */}
             <Table headers={[
-                'ID',
-                'Driver',
-                'Passenger',
+                { label: 'ID', align: 'text-center' },
+                { label: 'Driver', align: 'text-center' },
+                { label: 'Passenger', align: 'text-center' },
+                { label: 'Vehicle', align: 'text-center' },
                 { label: 'Fare', align: 'text-center' },
-                { label: 'License Plate', align: 'text-center' },
-                'Pickup Location',
-                'Dropoff Location',
+                { label: 'Pickup Location', align: 'text-center' },
+                { label: 'Dropoff Location', align: 'text-center' },
                 { label: 'Distance', align: 'text-center' },
                 { label: 'Duration', align: 'text-center' },
+                { label: 'Booked At', align: 'text-center' },
+                { label: 'Completed At', align: 'text-center' },
                 { label: 'Status', align: 'text-center' }
             ]}>
 
                 {loading ? (
                     <tr>
-                        <td colSpan="10" className="text-center py-8">
+                        <td colSpan="12" className="text-center py-8">
                             <div className="animate-spin w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full mx-auto"></div>
                         </td>
                     </tr>
                 ) : filteredBookings.length === 0 ? (
                     <tr>
-                        <td colSpan="10" className="text-center py-8 text-gray-500">
+                        <td colSpan="12" className="text-center py-8 text-gray-500">
                             No bookings found
                         </td>
                     </tr>
@@ -353,13 +454,13 @@ export default function BookingManagement() {
                             onClick={() => navigate(`/bookings/detail/${booking.id}`)}
                             className="cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
                         >
-                            <td className="py-[18px] px-[30px]">
+                            <td className="py-[18px] px-[10px] text-center">
                                 <span className="text-[13px] font-[600] text-[#111] tracking-tight">
                                     {booking.id}
                                 </span>
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] text-center whitespace-nowrap">
                                 {booking.driver ? (
                                     <Tooltip content={
                                         <div className="flex flex-col gap-1 py-1">
@@ -375,7 +476,7 @@ export default function BookingManagement() {
                                 ) : 'Not Assigned'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] text-center whitespace-nowrap">
                                 {booking.passenger ? (
                                     <Tooltip content={
                                         <div className="flex flex-col gap-1 py-1">
@@ -391,40 +492,85 @@ export default function BookingManagement() {
                                 ) : 'N/A'}
                             </td>
 
+                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] text-center">
+                                <Tooltip content={
+                                    <div className="flex flex-col gap-1 py-1 min-w-[200px]">
+
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <i className="bi bi-hash text-[#D10000]"></i>
+                                            <span>ID: {booking.vehicle?.id || booking.vehicle_id || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <i className="bi bi-tag-fill text-[#D10000]"></i>
+                                            <span>Plate: {booking.vehicle?.license_plate || booking.driver?.vehicle?.license_plate || 'N/A'}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <i className="bi bi-people-fill text-[#D10000]"></i>
+                                            <span>
+                                                Seats: {(() => {
+                                                    const val = booking.vehicle?.capacity || booking.vehicle?.seats || 'N/A';
+                                                    return typeof val === 'object' ? (val?.capacity || val?.name || 'N/A') : val;
+                                                })()}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <i className="bi bi-gear-fill text-[#D10000]"></i>
+                                            <span>
+                                                Type: {(() => {
+                                                    const val = booking.vehicle?.type || booking.vehicle?.category || 'N/A';
+                                                    return typeof val === 'object' ? (val?.category || val?.name || 'N/A') : val;
+                                                })()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                }>
+                                    <span className="hover:text-[#D10000] cursor-help font-semibold">
+                                        {booking.vehicle?.model || booking.driver?.vehicle?.model || `${booking.vehicle_id || 'N/A'}`}
+                                    </span>
+                                </Tooltip>
+                            </td>
+
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#111] text-center whitespace-nowrap">
-                                Rs {booking.fare || '0.00'}
+                                C$ {booking.fare || '0.00'}
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-center">
-                                <span className="text-[14px] font-[600] text-[#D10000] border-b-2 border-dashed border-[#D10000]/30 pb-0.5">
-                                    {(booking.vehicle?.license_plate || booking.driver?.vehicle?.license_plate || booking.vehicle_id || 'N/A')}
-                                </span>
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center">
+                                {booking.pickup_location || (booking.pickup_lat ? `${parseFloat(booking.pickup_lat).toFixed(4)}, ${parseFloat(booking.pickup_lng).toFixed(4)}` : 'N/A')}
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280]">
-                                {booking.pickup_location || (booking.pickup_lat ? `${booking.pickup_lat}, ${booking.pickup_lng}` : 'N/A')}
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center">
+                                {booking.dropoff_location || (booking.dropoff_lat ? `${parseFloat(booking.dropoff_lat).toFixed(4)}, ${parseFloat(booking.dropoff_lng).toFixed(4)}` : 'N/A')}
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280]">
-                                {booking.dropoff_location || (booking.dropoff_lat ? `${booking.dropoff_lat}, ${booking.dropoff_lng}` : 'N/A')}
-                            </td>
-
-                            <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
                                 {(() => {
                                     const dist = booking.estimated_distance || booking.distance;
                                     if (!dist) return 'N/A';
-                                    const distStr = String(dist).toLowerCase();
-                                    if (distStr.includes('km') || distStr.includes('meter')) return dist;
-                                    return `${distStr} km`;
+                                    const numValue = parseFloat(dist);
+                                    if (isNaN(numValue)) return dist;
+                                    return `${numValue.toFixed(1)} km`;
                                 })()}
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
                                 {(() => {
                                     const duration = booking.estimated_time || booking.duration;
                                     if (!duration) return 'N/A';
-                                    const durationStr = String(duration).toLowerCase();
-                                    if (durationStr.includes('min') || durationStr.includes('hour')) return duration;
+                                    const durationStr = String(duration);
+
+                                    // Handle HH:MM:SS format
+                                    if (durationStr.includes(':')) {
+                                        const parts = durationStr.split(':');
+                                        if (parts.length === 3) {
+                                            const h = parseInt(parts[0], 10);
+                                            const m = parseInt(parts[1], 10);
+                                            if (h > 0) return `${h} hr ${m} mins`;
+                                            return `${m} mins`;
+                                        }
+                                    }
+
+                                    if (durationStr.toLowerCase().includes('min') || durationStr.toLowerCase().includes('hour')) return duration;
 
                                     const numValue = parseFloat(durationStr);
                                     if (isNaN(numValue)) return duration;
@@ -436,11 +582,20 @@ export default function BookingManagement() {
                                 })()}
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-center">
-                                <Badge variant={booking.status}>
+
+                            <td className="py-[18px] px-[10px] text-[13px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
+                                {booking.created_at ? format(new Date(booking.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
+                            </td>
+
+                            <td className="py-[18px] px-[10px] text-[13px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
+                                {booking.dropoff_time ? format(new Date(booking.dropoff_time), 'MMM dd, yyyy HH:mm') : (booking.status === 'completed' ? 'N/A' : '—')}
+                            </td>
+                            <td className="py-[18px] px-[10px] text-center">
+                                <Badge variant={booking.status?.toLowerCase()}>
                                     {booking.status}
                                 </Badge>
                             </td>
+
                         </tr>
                     ))
                 )}

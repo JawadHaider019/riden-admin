@@ -4,6 +4,9 @@ import { Link, useParams } from 'react-router-dom';
 import { Badge, useToast } from '@/components/UI';
 import { getBookingDetail } from '@/api/bookingApi';
 import api, { getImageUrl } from '@/api/api';
+import { reverseGeocode } from '@/utils/geoUtils';
+
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
 export default function BookingDetail() {
     const { id } = useParams();
@@ -20,6 +23,16 @@ export default function BookingDetail() {
                 const data = res.data?.data || res.data || res;
                 if (data) {
                     setBookingData(data);
+
+                    // Resolve addresses
+                    const pAddr = data.pickup_location || await reverseGeocode(data.pickup_lat, data.pickup_lng);
+                    const dAddr = data.dropoff_location || await reverseGeocode(data.dropoff_lat, data.dropoff_lng);
+
+                    setBookingData(prev => ({
+                        ...prev,
+                        pickup_location: pAddr,
+                        dropoff_location: dAddr
+                    }));
                 }
             } catch (error) {
                 console.error("Error fetching booking detail:", error);
@@ -117,7 +130,7 @@ export default function BookingDetail() {
                 const val = bookingData.estimated_time || bookingData.duration;
                 return typeof val === 'string' && (val.includes('min') || val.includes('hour')) ? val : `${val} mins`;
             })() : 'N/A',
-        fare: bookingData.fare ? `Rs ${bookingData.fare}` : 'N/A',
+        fare: bookingData.fare ? `C$ ${bookingData.fare}` : 'N/A',
         passenger: bookingData.passenger ? {
             name: `${bookingData.passenger.first_name || ''} ${bookingData.passenger.last_name || ''}`.trim() || 'N/A',
             avatar: (bookingData.passenger.avatar ? getImageUrl(bookingData.passenger.avatar) : bookingData.passenger.avatar_url) || null,
@@ -127,7 +140,7 @@ export default function BookingDetail() {
         payment: { brand: bookingData.payment_method || 'N/A', last4: bookingData.card_last_four || 'N/A' },
         rating: bookingData.rating || 0,
         reviewText: bookingData.review || 'N/A',
-        tip: bookingData.tip_amount ? `Passenger gave Rs ${bookingData.tip_amount} as tip` : 'N/A',
+        tip: bookingData.tip_amount ? `Passenger gave C$ ${bookingData.tip_amount} as tip` : 'N/A',
         cancellationReason: bookingData.cancellation_reason || 'N/A'
     };
 
@@ -168,7 +181,12 @@ export default function BookingDetail() {
                     <div className="relative rounded-[22px] overflow-hidden h-[420px] border border-gray-100 shadow-sm">
                         <iframe
                             className="w-full h-full border-none contrast-[1.05]"
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1469550.0538914043!2d-80.443189!3d43.834789!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4cd44b1c1d1a8d05%3A0xe10ad5de81c4e7ab!2sToronto%2C%20ON%2C%20Canada!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
+                            src={(bookingData?.pickup_lat && bookingData?.dropoff_lat)
+                                ? `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_KEY}&origin=${bookingData.pickup_lat},${bookingData.pickup_lng}&destination=${bookingData.dropoff_lat},${bookingData.dropoff_lng}&mode=driving`
+                                : bookingData?.pickup_lat
+                                    ? `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${bookingData.pickup_lat},${bookingData.pickup_lng}`
+                                    : `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1469550!2d72!3d31!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38db02b66236b283%3A0x444d36f32e92178d!2sPakistan!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s`
+                            }
                             allowFullScreen=""
                             loading="lazy"
                             title="Ride Map"
