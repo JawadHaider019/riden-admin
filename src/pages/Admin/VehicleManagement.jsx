@@ -279,22 +279,13 @@ export default function VehicleManagement() {
                                 </div>
                             </td>
                             <td className="py-[18px] px-[30px]" onClick={(e) => e.stopPropagation()}>
-                                <Tooltip content={(
+                                <Tooltip content={
                                     <div className="flex flex-col gap-1 py-1">
-                                        <div className="flex justify-between items-center gap-2">
-                                            <span className="text-gray-500 font-[600] uppercase text-[9px]">ID</span>
-                                            <span className="font-[600] text-[#D10000] text-[11px] tracking-tight">#{driverMap[v.driver_id]?.id || v.driver_id}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center gap-2 border-t border-red-100 pt-1">
-                                            <span className="text-gray-500 font-[600] uppercase text-[9px]">Phone</span>
-                                            <span className="font-[600] text-[#111] text-[11px] tracking-tight">{driverMap[v.driver_id]?.phone || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center gap-2 border-t border-red-100 pt-1">
-                                            <span className="text-gray-500 font-[600] uppercase text-[9px]">Email</span>
-                                            <span className="font-[600] text-[#111] text-[11px] tracking-tight lowercase">{driverMap[v.driver_id]?.email || 'N/A'}</span>
-                                        </div>
+                                        <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {driverMap[v.driver_id]?.id || v.driver_id}</span></div>
+                                        <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{driverMap[v.driver_id]?.phone || 'N/A'}</span></div>
+                                        <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{driverMap[v.driver_id]?.email || 'N/A'}</span></div>
                                     </div>
-                                )}>
+                                }>
                                     <span className="text-[14px] font-[600] text-[#111] pb-0.5 cursor-help transition-colors hover:text-[#D10000]">
                                         {driverMap[v.driver_id]?.name || v.driver_id}
                                     </span>

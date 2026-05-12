@@ -43,6 +43,9 @@ export const Badge = ({ children, variant = 'info' }) => {
         ongoing: 'bg-[#D1F8D3] text-[#065F46]',
         completed: 'bg-[#D1F8D3] text-[#065F46]',
         cancelled: 'bg-[#FFE4E6] text-[#9F1239]',
+        approved: 'bg-[#D1F8D3] text-[#065F46]',
+        rejected: 'bg-[#FEE2E2] text-[#991B1B]',
+        active: 'bg-[#D1F8D3] text-[#065F46]',
     };
     return (
         <span className={`px-[20px] py-[6px] rounded-[30px] text-[12px] font-[600] inline-flex items-center justify-center ${variants[variant] || variants.info}`}>

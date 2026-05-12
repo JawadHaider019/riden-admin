@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip } from '@/components/UI';
 import { getPassengers } from '@/api/passengerApi';
 import { getImageUrl } from '@/api/api';
 import { formatDate } from '@/utils/formatters';
@@ -337,7 +337,7 @@ export default function PassengerManagement() {
                                                     }}
                                                 />
                                             </div>
-                                            <span className="font-[600] text-[#111]">{p.first_name + " " + p.last_name || p.name}</span>
+                                            <span className="font-[600] text-[#111]">{p.first_name + " " + (p.last_name || '')}</span>
                                         </div>
                                     </td>
                                     <td className="py-[18px] px-[30px] text-gray-700 font-[600]">{p.phone}</td>

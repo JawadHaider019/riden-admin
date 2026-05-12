@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getDrivers } from '../../api/driverApi';
@@ -12,7 +12,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 export default function DriverManagement() {
     const navigate = useNavigate();
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState('active');
+    const [activeTab, setActiveTab] = useState('approved');
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [exportOpen, setExportOpen] = useState(false);
@@ -37,37 +37,23 @@ export default function DriverManagement() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [statusCounts, setStatusCounts] = useState({
-        active: 0,
+        approved: 0,
         requested: 0,
-        suspended: 0,
-        blocked: 0
+        suspended: 0
     });
 
     const fetchCounts = async () => {
         try {
-            // The API appears to return the total for all records regardless of status filter
-            // So we fetch a large batch and count them locally for the badges
             const response = await getDrivers({ limit: 1000 });
             const allDrivers = response.data?.data || response.data || [];
 
-            const counts = {
-                active: 0,
-                requested: 0,
-                suspended: 0,
-                blocked: 0
-            };
+            const counts = { approved: 0, requested: 0, suspended: 0 };
 
             allDrivers.forEach(d => {
                 const s = d.status?.toLowerCase();
-                if (s === 'active') {
-                    counts.active++;
-                } else if (s === 'pending' || s === 'requested') {
-                    counts.requested++;
-                } else if (s === 'blocked' || s === 'block') {
-                    counts.blocked++;
-                } else if (s === 'suspended' || s === 'suspend' || s === 'inactive' || !!d.suspended_until) {
-                    counts.suspended++;
-                }
+                if (s === 'approved' || s === 'active') counts.approved++;
+                else if (s === 'requested' || s === 'pending') counts.requested++;
+                else if (s === 'suspended' || s === 'suspend' || s === 'inactive' || !!d.suspended_until) counts.suspended++;
             });
 
             setStatusCounts(counts);
@@ -88,11 +74,12 @@ export default function DriverManagement() {
             }
 
             if (activeTab) {
-                params.status = activeTab === 'active' ? 'Active' :
-                    activeTab === 'requested' ? 'Pending' :
-                        activeTab === 'blocked' ? 'Blocked' :
-                            activeTab === 'suspended' ? 'Suspended' : undefined;
+                params.status = activeTab === 'approved' ? 'Approved' :
+                    activeTab === 'requested' ? 'Requested' :
+                        activeTab === 'suspended' ? 'Suspended' : undefined;
             }
+
+            console.log("Fetching drivers. Tab:", activeTab, "Params:", params);
 
             if (startDate) {
                 params.start_date = format(startDate, 'yyyy-MM-dd');
@@ -106,26 +93,23 @@ export default function DriverManagement() {
             // Laravel paginated structure: response.data.data
             let driversData = response.data?.data || response.data || [];
 
-            // Apply local filtering to ensure tab consistency 
-            console.log(`Filtering for tab: ${activeTab}, All Drivers:`, driversData.map(d => `${d.first_name}: ${d.status}`));
-
-            if (activeTab === 'active') {
-                driversData = driversData.filter(d => d.status?.toLowerCase() === 'active');
+            // Apply local filtering to ensure tab consistency
+            if (activeTab === 'approved') {
+                driversData = driversData.filter(d => {
+                    const s = d.status?.toLowerCase();
+                    return s === 'approved' || s === 'active';
+                });
             } else if (activeTab === 'requested') {
-                driversData = driversData.filter(d => d.status?.toLowerCase() === 'pending' || d.status?.toLowerCase() === 'requested');
-            } else if (activeTab === 'blocked') {
-                // Handle various possible status strings for "blocked"
                 driversData = driversData.filter(d =>
-                    d.status?.toLowerCase() === 'blocked' ||
-                    d.status?.toLowerCase() === 'block'
+                    d.status?.toLowerCase() === 'requested' ||
+                    d.status?.toLowerCase() === 'pending'
                 );
             } else if (activeTab === 'suspended') {
-                driversData = driversData.filter(d =>
-                    d.status?.toLowerCase() === 'suspended' ||
-                    d.status?.toLowerCase() === 'suspend' ||
-                    d.status?.toLowerCase() === 'inactive' ||
-                    !!d.suspended_until
-                );
+                driversData = driversData.filter(d => {
+                    const s = d.status?.toLowerCase();
+                    const isSuspendedDate = d.suspended_until && new Date(d.suspended_until) > new Date();
+                    return isSuspendedDate || s === 'suspended' || s === 'suspend' || (s === 'inactive' && d.suspended_until);
+                });
             }
 
             if (startDate || endDate) {
@@ -154,11 +138,7 @@ export default function DriverManagement() {
             const currentTabCount = driversData.length;
             setTotalItems(currentTabCount);
 
-            // Update current tab count in the summary state
-            setStatusCounts(prev => ({
-                ...prev,
-                [activeTab]: currentTabCount
-            }));
+            setStatusCounts(prev => ({ ...prev, [activeTab]: currentTabCount }));
         } catch (error) {
             console.error("Error fetching drivers:", error);
             showToast("Failed to load drivers", "error");
@@ -188,7 +168,10 @@ export default function DriverManagement() {
             }
 
             if (activeTab) {
-                params.status = activeTab === 'active' ? 'Active' : (activeTab === 'requested' ? 'Pending' : undefined);
+                params.status = activeTab === 'approved' ? 'Approved' :
+                    activeTab === 'requested' ? 'Requested' :
+                        activeTab === 'suspended' ? 'Suspended' :
+                            activeTab === 'blocked' ? 'Blocked' : undefined;
             }
 
             if (startDate) {
@@ -315,10 +298,9 @@ export default function DriverManagement() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 options={[
-                    { id: 'active', label: 'Active', count: statusCounts.active },
+                    { id: 'approved', label: 'Approved', count: statusCounts.approved },
                     { id: 'requested', label: 'Requested', count: statusCounts.requested },
-                    { id: 'suspended', label: 'Suspended', count: statusCounts.suspended },
-                    { id: 'blocked', label: 'Blocked', count: statusCounts.blocked }
+                    { id: 'suspended', label: 'Suspended', count: statusCounts.suspended }
                 ]}
             />
 
@@ -357,16 +339,7 @@ export default function DriverManagement() {
                             <td className="py-[18px] px-[30px] text-[#111] font-[600]">{d.phone}</td>
                             <td className="py-[18px] px-[30px] text-[#111] font-[600]">{formatDate(d.created_at)}</td>
                             <td className="py-[18px] px-[30px]">
-                                {(() => {
-                                    const status = d.status?.toLowerCase();
-                                    const isSuspended = !!d.suspended_until || status === 'suspended' || status === 'suspend' || status === 'inactive';
-                                    const isBlocked = !isSuspended && (status === 'blocked' || status === 'block');
-
-                                    const displayStatus = isSuspended ? 'Suspended' : (isBlocked ? 'Blocked' : d.status);
-                                    const variant = isSuspended ? 'suspended' : (isBlocked ? 'blocked' : (status === 'active' ? 'active' : status));
-
-                                    return <Badge variant={variant}>{displayStatus}</Badge>;
-                                })()}
+                                <Badge variant={d.status?.toLowerCase()}>{d.status}</Badge>
                             </td>
                         </tr>
                     ))

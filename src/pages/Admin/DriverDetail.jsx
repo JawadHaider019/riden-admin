@@ -3,6 +3,7 @@ import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { InputWrapper, Input, useToast } from '@/components/UI';
 import { getDriverById, updateDriver, toggleDriverStatus, deleteDriver, updateDocumentStatus } from '../../api/driverApi';
+import { getBookings } from '../../api/bookingApi';
 import { getImageUrl } from '@/api/api';
 import { formatDate } from '@/utils/formatters';
 
@@ -12,9 +13,10 @@ export default function DriverDetail() {
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState('personal');
     const [openDocIndex, setOpenDocIndex] = useState(null);
+    const [openVehicleIndex, setOpenVehicleIndex] = useState(0);
     const [modalType, setModalType] = useState(null);
     const [showAllRides, setShowAllRides] = useState(false);
-    const [driverStatus, setDriverStatus] = useState('active'); // 'active', 'blocked', 'suspended'
+    const [driverStatus, setDriverStatus] = useState('requested'); // 'approved', 'blocked', 'suspended', 'requested'
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [driver, setDriver] = useState(null);
@@ -95,34 +97,83 @@ export default function DriverDetail() {
                     completed_rides: driverData.completed_rides || driverData.stats?.completed_rides || 0,
                     revenue: driverData.revenue || driverData.stats?.revenue || '$0.00'
                 },
-                vehicle: driverData.vehicle ? {
+                vehicles: driverData.vehicles || (driverData.vehicle ? [{
                     ...driverData.vehicle,
                     license_plate: driverData.vehicle.license_plate || 'N/A',
                     type: driverData.vehicle.type || 'N/A'
-                } : {
+                }] : [{
                     model: driverData.vehicle_model || 'N/A',
                     year: driverData.vehicle_year || 'N/A',
                     color: driverData.vehicle_color || 'N/A',
                     license_plate: driverData.license_plate || 'N/A',
                     type: driverData.vehicle_type || 'N/A'
-                },
+                }]),
                 gender: driverData.gender || 'N/A',
                 phone: driverData.phone || 'N/A',
                 email: driverData.email || 'N/A',
                 avatar: driverData.avatar || driverData.profile_image || null,
                 documents: driverData.documents || [],
+                rides: [],
                 payments: driverData.payments || {
                     p1: 'N/A', p2: 'N/A', p3: 'N/A',
                     o1: 'N/A', o2: 'N/A'
                 }
             };
+
+            // Fetch rides with a robust strategy
+            let ridesData = driverData.rides || driverData.bookings;
+            if (!ridesData || ridesData.length === 0) {
+                console.log(`DEBUG: Starting robust bookings fetch for ID: ${id}`);
+                try {
+                    // Strategy 1: Try multiple param names
+                    let bookingsRes = await getBookings({ driver_id: id, driver: id, limit: 100 });
+                    console.log("DEBUG: Strategy 1 (driver_id/driver) Response:", bookingsRes);
+
+                    let list = bookingsRes.data?.data || bookingsRes.data || [];
+
+                    // Strategy 2: If empty, try fetching recent and filtering locally
+                    if (!Array.isArray(list) || list.length === 0) {
+                        console.log("DEBUG: Strategy 1 empty. Trying Strategy 2 (local filter)");
+                        const allBookingsRes = await getBookings({ limit: 200 });
+                        const allList = allBookingsRes.data?.data || allBookingsRes.data || [];
+                        list = allList.filter(b =>
+                            String(b.driver_id) === String(id) ||
+                            String(b.driver?.id) === String(id)
+                        );
+                        console.log(`DEBUG: Strategy 2 found ${list.length} matches locally`);
+                    }
+
+                    ridesData = list;
+                } catch (e) {
+                    console.error("DEBUG: Error in robust bookings fetch:", e);
+                    ridesData = [];
+                }
+            }
+
+            console.log("DEBUG: Final Rides/Bookings data for UI:", ridesData);
+
+            finalDriver.rides = (Array.isArray(ridesData) ? ridesData : []).map(r => ({
+                ...r,
+                unique_id: r.unique_id || r.id,
+                passenger_name: r.passenger_name || (r.passenger ? `${r.passenger.first_name || ''} ${r.passenger.last_name || ''}`.trim() : 'N/A'),
+                pickup_address: r.pickup_address || r.pickup_location || (r.pickup_lat ? `Lat: ${r.pickup_lat}, Lng: ${r.pickup_lng}` : 'N/A')
+            }));
+
+            console.log("DEBUG: Finalized Driver Data with Rides:", finalDriver);
             setDriver(finalDriver);
             setOriginalDriver(JSON.parse(JSON.stringify(finalDriver)));
-            const rawStatus = driverData.status?.toLowerCase() || 'active';
-            const hasSuspension = !!driverData.suspended_until || rawStatus === 'inactive' || rawStatus === 'suspend' || rawStatus === 'suspended';
+            const rawStatus = driverData.status?.toLowerCase() || 'requested';
+
+            // Stricter suspension check: must have a valid date string AND that date must be in the future
+            const suspensionDate = driverData.suspended_until ? new Date(driverData.suspended_until) : null;
+            const isSuspendedDate = suspensionDate && !isNaN(suspensionDate.getTime()) && suspensionDate > new Date();
+
+            // Only treat as suspended if explicit 'suspended' status or a valid future date
+            const hasSuspension = isSuspendedDate || rawStatus === 'suspended' || rawStatus === 'suspend';
+
             const normalizedStatus =
                 hasSuspension ? 'suspended' :
-                    (rawStatus === 'block' || rawStatus === 'blocked') ? 'blocked' :
+                    (rawStatus === 'approved' || rawStatus === 'active' || rawStatus === 'inactive') ? 'approved' :
                         rawStatus;
             setDriverStatus(normalizedStatus);
         } catch (error) {
@@ -169,11 +220,11 @@ export default function DriverDetail() {
                 email: driver.email,
                 phone: driver.phone,
                 gender: driver.gender,
-                vehicle_model: driver.vehicle?.model,
-                vehicle_year: driver.vehicle?.year,
-                vehicle_color: driver.vehicle?.color,
-                license_plate: driver.vehicle?.license_plate || driver.license_plate,
-                vehicle_type: driver.vehicle?.type,
+                vehicle_model: driver.vehicles?.[0]?.model,
+                vehicle_year: driver.vehicles?.[0]?.year,
+                vehicle_color: driver.vehicles?.[0]?.color,
+                license_plate: driver.vehicles?.[0]?.license_plate || driver.license_plate,
+                vehicle_type: driver.vehicles?.[0]?.type,
             };
 
             const response = await updateDriver(driver.id, updateData);
@@ -273,7 +324,22 @@ export default function DriverDetail() {
         { id: 'vehicle', label: 'Vehicle Information', icon: 'bi bi-car-front-fill' },
         { id: 'rides', label: 'All Rides', icon: 'bi bi-truck-front-fill' },
         { id: 'payments', label: 'Payment Methods', icon: 'bi bi-wallet-fill' }
+    ].filter(tab => !(tab.id === 'rides' && driverStatus === 'requested'));
+
+    const requiredDocs = [
+        'proof_of_work_eligibility',
+        'profile_photo',
+        "class_5_driver's_licence",
+        'commercial_driving_record',
+        "owner's_certificate_of_insurance_and_vehicle_registration",
+        'vehicle_inspection',
+        'legal_agreements'
     ];
+
+    const allDocumentsApproved = requiredDocs.every(key => {
+        const doc = driver?.documents?.find(d => d.document_name === key);
+        return doc && doc.status === 'Verified';
+    });
 
     if (loading) {
         return (
@@ -327,16 +393,22 @@ export default function DriverDetail() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-xl font-[600] text-black">{driver.name}</h2>
-                                <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full uppercase tracking-wider ${driverStatus === 'active' ? 'bg-green-100 text-green-600' : driverStatus === 'blocked' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                                    {driverStatus === 'active' ? 'Active' : driverStatus === 'blocked' ? 'Blocked' : 'Suspended'}
+                                <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full uppercase tracking-wider ${(driverStatus === 'approved' || driverStatus === 'active') ? 'bg-green-100 text-green-600' :
+                                    driverStatus === 'rejected' ? 'bg-red-100 text-red-600' :
+                                        driverStatus === 'suspended' ? 'bg-yellow-100 text-yellow-600' :
+                                            'bg-blue-100 text-blue-600'
+                                    }`}>
+                                    {(driverStatus === 'approved' || driverStatus === 'active') ? 'Approved' : driverStatus === 'rejected' ? 'Rejected' : driverStatus === 'suspended' ? 'Suspended' : 'Requested'}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1 mt-0.5 text-xs font-semibold text-gray-500">
-                                <div className="flex gap-0.5 text-[#FBBF24]">
-                                    {[1, 2, 3, 4, 5].map(s => <i key={s} className="bi bi-star-fill text-[12px]"></i>)}
+                            {driverStatus !== 'requested' && (
+                                <div className="flex items-center gap-1 mt-0.5 text-xs font-semibold text-gray-500">
+                                    <div className="flex gap-0.5 text-[#FBBF24]">
+                                        {[1, 2, 3, 4, 5].map(s => <i key={s} className="bi bi-star-fill text-[12px]"></i>)}
+                                    </div>
+                                    <span className="ml-1">({driver.reviews_count || 0})</span>
                                 </div>
-                                <span className="ml-1">({driver.reviews_count})</span>
-                            </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -354,57 +426,59 @@ export default function DriverDetail() {
                 </div>
 
                 {/* Stats Banner */}
-                <div className="bg-[#FFEAEA] rounded-[16px] py-6 px-10 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
-                    {/* Total Rides */}
-                    <div className="flex items-center gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-car-front-fill text-xl"></i>
+                {driverStatus !== 'requested' && (
+                    <div className="bg-[#FFEAEA] rounded-[16px] py-6 px-10 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
+                        {/* Total Rides */}
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
+                                <i className="bi bi-car-front-fill text-xl"></i>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-gray-800 mb-0.5">Total Rides</span>
+                                <span className="text-2xl font-[600] text-black leading-none">{driver.stats.total_rides}</span>
+                            </div>
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Total Rides</span>
-                            <span className="text-2xl font-[600] text-black leading-none">{driver.stats.total_rides}</span>
+
+                        <div className="hidden md:block w-0.5 h-12 bg-[#D10000]"></div>
+
+                        {/* Completed Rides */}
+                        <div className="flex items-center gap-4 flex-1 justify-center">
+                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
+                                <i className="bi bi-check-circle-fill text-xl"></i>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-gray-800 mb-0.5">Completed Rides</span>
+                                <span className="text-2xl font-[600] text-black leading-none">{driver.stats.completed_rides}</span>
+                            </div>
+                        </div>
+
+                        <div className="hidden md:block w-0.5 h-12 bg-[#D10000]"></div>
+
+                        {/* Cancelled Rides */}
+                        <div className="flex items-center gap-4 flex-1 justify-center">
+                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
+                                <i className="bi bi-x-circle-fill text-xl"></i>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-gray-800 mb-0.5">Cancelled Rides</span>
+                                <span className="text-2xl font-[600] text-black leading-none"> 0</span>
+                            </div>
+                        </div>
+
+                        <div className="hidden md:block w-0.5 h-12 bg-[#D10000]"></div>
+
+                        {/* Revenue */}
+                        <div className="flex items-center gap-4 flex-1 justify-end">
+                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
+                                <i className="bi bi-bar-chart-line-fill text-xl"></i>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-gray-800 mb-0.5">Revenue</span>
+                                <span className="text-2xl font-[600] text-black leading-none">{driver.stats.revenue}</span>
+                            </div>
                         </div>
                     </div>
-
-                    <div className="hidden md:block w-0.5 h-12 bg-[#D10000]"></div>
-
-                    {/* Completed Rides */}
-                    <div className="flex items-center gap-4 flex-1 justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-check-circle-fill text-xl"></i>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Completed Rides</span>
-                            <span className="text-2xl font-[600] text-black leading-none">{driver.stats.completed_rides}</span>
-                        </div>
-                    </div>
-
-                    <div className="hidden md:block w-0.5 h-12 bg-[#D10000]"></div>
-
-                    {/* Cancelled Rides */}
-                    <div className="flex items-center gap-4 flex-1 justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-x-circle-fill text-xl"></i>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Cancelled Rides</span>
-                            <span className="text-2xl font-[600] text-black leading-none"> 0</span>
-                        </div>
-                    </div>
-
-                    <div className="hidden md:block w-0.5 h-12 bg-[#D10000]"></div>
-
-                    {/* Revenue */}
-                    <div className="flex items-center gap-4 flex-1 justify-end">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-bar-chart-line-fill text-xl"></i>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Revenue</span>
-                            <span className="text-2xl font-[600] text-black leading-none">{driver.stats.revenue}</span>
-                        </div>
-                    </div>
-                </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                     {/* Left Sidebar */}
@@ -447,13 +521,35 @@ export default function DriverDetail() {
                                 </button>
                             ) : (
                                 <>
-                                    {driverStatus === 'blocked' ? (
-                                        <button onClick={() => setModalType('unblock')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
-                                            <i className="bi bi-slash-circle font-[600]"></i> unblock Driver
-                                        </button>
-                                    ) : (
-                                        <button onClick={() => setModalType('block')} className="w-full py-3.5 rounded-full bg-[#D10000] text-white font-[600] text-sm flex items-center justify-center gap-2 hover:bg-[#b00000] transition-colors shadow-sm">
-                                            <i className="bi bi-slash-circle font-[600]"></i> Block Driver
+                                    {/* Requested drivers: show Approve / Reject */}
+                                    {driverStatus === 'requested' && (
+                                        <>
+                                            <button
+                                                onClick={() => setModalType('approve')}
+                                                // disabled={!allDocumentsApproved}
+                                                title={!allDocumentsApproved ? "All documents must be approved first" : ""}
+                                                className={`w-full py-3.5 rounded-full text-white font-[600] text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${!allDocumentsApproved ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-[#12B76A] hover:bg-[#039855]'}`}
+                                            >
+                                                <i className="bi bi-check-circle-fill"></i> Approve Driver
+                                            </button>
+                                            <button onClick={() => setModalType('reject')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
+                                                <i className="bi bi-x-circle-fill"></i> Reject Driver
+                                            </button>
+                                        </>
+                                    )}
+                                    {/* Approved drivers: can block */}
+                                    {driverStatus === 'approved' && (
+                                        null
+                                    )}
+                                    {/* Rejected drivers: can re-approve */}
+                                    {driverStatus === 'rejected' && (
+                                        <button
+                                            onClick={() => setModalType('approve')}
+                                            disabled={!allDocumentsApproved}
+                                            title={!allDocumentsApproved ? "All documents must be approved first" : ""}
+                                            className={`w-full py-3.5 rounded-full text-white font-[600] text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${!allDocumentsApproved ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-[#12B76A] hover:bg-[#039855]'}`}
+                                        >
+                                            <i className="bi bi-star-fill"></i> Approve Driver
                                         </button>
                                     )}
                                 </>
@@ -461,13 +557,14 @@ export default function DriverDetail() {
 
                             {!isEditing && (
                                 <>
-                                    {driverStatus === 'suspended' ? (
-                                        <button onClick={() => setModalType('suspension_details')} className="w-full py-3.5 rounded-full bg-amber-50 border border-amber-500 text-amber-700 font-[600] text-sm flex items-center justify-center gap-2 hover:bg-amber-100 transition-colors">
-                                            <i className="bi bi-info-circle-fill"></i> View Reason & {timeLeft || 'Time Left'}
-                                        </button>
-                                    ) : (
+                                    {(driverStatus === 'approved' || driverStatus === 'active') && (
                                         <button onClick={() => setModalType('suspend')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
                                             <i className="bi bi-pause-circle-fill"></i> Suspend Driver
+                                        </button>
+                                    )}
+                                    {driverStatus === 'suspended' && (
+                                        <button onClick={() => setModalType('unsuspend')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors shadow-sm">
+                                            <i className="bi bi-play-circle-fill"></i> Unsuspend Driver
                                         </button>
                                     )}
                                     <button onClick={() => setModalType('delete')} className="w-full py-3.5 rounded-full bg-white border border-[#D10000] text-[#D10000] font-[600] text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
@@ -710,53 +807,92 @@ export default function DriverDetail() {
                                 )}
 
                                 {activeTab === 'vehicle' && (
-                                    <div className="flex flex-col">
-                                        <div className="relative w-full h-[300px] rounded-2xl overflow-hidden mb-6 mt-2">
-                                            <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover" alt="Vehicle" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                                            <div className="absolute bottom-6 left-6 text-white">
-                                                <h3 className="text-2xl font-[600]">{driver.vehicle.color} {driver.vehicle.model}, ({driver.vehicle.license_plate})</h3>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col border border-white">
-                                            <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Model</span>
-                                                {isEditing ? (
-                                                    <div className="w-2/3"><InputWrapper icon="bi bi-truck" className="h-10 mb-0"><Input value={driver.vehicle.model} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, model: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.vehicle.model}</span>}
-                                            </div>
-                                            <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Year</span>
-                                                {isEditing ? (
-                                                    <div className="w-2/3"><InputWrapper icon="bi bi-calendar-event" className="h-10 mb-0"><Input value={driver.vehicle.year} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, year: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.vehicle.year}</span>}
-                                            </div>
-                                            <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Color</span>
-                                                {isEditing ? (
-                                                    <div className="w-2/3"><InputWrapper icon="bi bi-palette" className="h-10 mb-0"><Input value={driver.vehicle.color} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, color: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.vehicle.color}</span>}
-                                            </div>
-                                            <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                <span className="text-sm font-semibold text-gray-500 w-1/3">License Plate</span>
-                                                {isEditing ? (
-                                                    <div className="w-2/3"><InputWrapper icon="bi bi-card-text" className="h-10 mb-0"><Input value={driver.vehicle.license_plate} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, license_plate: e.target.value } })} /></InputWrapper></div>
-                                                ) : <span className="text-sm font-[600] text-[#D10000] tracking-wider w-2/3">{driver.vehicle.license_plate}</span>}
-                                            </div>
-                                            <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                <span className="text-sm font-semibold text-gray-500 w-1/3">Vehicle Type</span>
-                                                {isEditing ? (
-                                                    <div className="w-2/3 flex items-center gap-2">
-                                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-[#D10000] bg-red-50 shrink-0"><i className="bi bi-car-front-fill text-sm"></i></div>
-                                                        <InputWrapper icon="bi bi-truck" className="h-10 mb-0 w-full"><Input value={driver.vehicle.type} onChange={e => setDriver({ ...driver, vehicle: { ...driver.vehicle, type: e.target.value } })} /></InputWrapper>
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-2/3 flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[#D10000] bg-red-50"><i className="bi bi-car-front-fill text-sm"></i></div>
-                                                        <span className="text-sm font-[600] text-gray-900">{driver.vehicle.type}</span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                    <div className="flex flex-col  overflow-hidden border-b border-gray-100 ">
+
+
+                                        <div className="flex flex-col">
+                                            {driver.vehicles?.length === 0 ? (
+                                                <div className="text-center py-6">
+                                                    <i className="bi bi-car-front text-5xl text-gray-200"></i>
+                                                    <p className="text-gray-400 mt-4 font-medium uppercase tracking-widest text-[10px]">No vehicles registered</p>
+                                                </div>
+                                            ) : (
+                                                driver.vehicles.map((v, vIdx) => {
+                                                    const isvOpen = openVehicleIndex === vIdx;
+                                                    return (
+                                                        <div key={vIdx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                                            {/* List Item - Numbered style from image */}
+                                                            <div
+                                                                className="px-8 py-6 flex items-center justify-between cursor-pointer group"
+                                                                onClick={() => setOpenVehicleIndex(isvOpen ? null : vIdx)}
+                                                            >
+                                                                <div className="flex items-center gap-5">
+                                                                    <span className="text-sm font-[800] text-black w-6">#{vIdx + 1}</span>
+                                                                    <h4 className={`text-[15px] font-[600] group-hover:text-[#EE1B24] transition-colors ${isvOpen ? 'text-[#EE1B24]' : 'text-gray-900'}`}>
+                                                                        {v.model || 'Unknown Vehicle'}
+                                                                    </h4>
+                                                                    {!isvOpen && (
+                                                                        <span className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-md ml-2">
+                                                                            {v.license_plate}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <i className={`bi bi-chevron-${isvOpen ? 'up' : 'right'} text-sm font-bold ${isvOpen ? 'text-[#EE1B24]' : 'text-gray-400 group-hover:text-gray-600'} transition-all`}></i>
+                                                            </div>
+
+                                                            {/* Content - Designing matching 'before' as requested */}
+                                                            {isvOpen && (
+                                                                <div className="px-8 pb-8 pt-2 animate-in slide-in-from-top-2 duration-300">
+                                                                    <div className="relative w-full h-[240px] rounded-[24px] overflow-hidden mb-8 shadow-inner bg-gray-100 border border-gray-100">
+                                                                        <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover" alt="Vehicle" />
+                                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                                                                        <div className="absolute bottom-6 left-8 text-white text-left">
+                                                                            <h3 className="text-xl font-[600] tracking-tight">{v.color} {v.model}</h3>
+                                                                            <p className="text-xs font-semibold text-white/70 uppercase tracking-[0.2em]">{v.license_plate}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
+                                                                        {[
+                                                                            { label: 'Vehicle Model', value: v.model, key: 'model', icon: 'bi bi-truck' },
+                                                                            { label: 'Vehicle Year', value: v.year, key: 'year', icon: 'bi bi-calendar-event' },
+                                                                            { label: 'Vehicle Color', value: v.color, key: 'color', icon: 'bi bi-palette' },
+                                                                            { label: 'License Plate', value: v.license_plate, key: 'license_plate', icon: 'bi bi-card-text' },
+                                                                            { label: 'Vehicle Type', value: v.type, key: 'type', icon: 'bi bi-car-front-fill' }
+                                                                        ].map((item, idx) => (
+                                                                            <div key={idx} className="flex items-center justify-between py-5 border-b border-gray-100 last:md:border-b-0">
+                                                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-1/3 text-left">{item.label}</span>
+                                                                                {isEditing ? (
+                                                                                    <div className="w-2/3">
+                                                                                        <InputWrapper icon={item.icon} className="h-10 mb-0">
+                                                                                            <Input
+                                                                                                value={item.value}
+                                                                                                onChange={e => {
+                                                                                                    const newVehicles = [...driver.vehicles];
+                                                                                                    newVehicles[vIdx][item.key] = e.target.value;
+                                                                                                    setDriver({ ...driver, vehicles: newVehicles });
+                                                                                                }}
+                                                                                            />
+                                                                                        </InputWrapper>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="w-2/3 flex items-center gap-2">
+                                                                                        {item.key === 'type' && (
+                                                                                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[#EE1B24] bg-red-50 shrink-0">
+                                                                                                <i className={`${item.icon} text-[10px]`}></i>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <span className={`text-[13px] font-[700] text-left ${item.key === 'license_plate' ? 'text-[#EE1B24] tracking-wider' : 'text-gray-900'}`}>{item.value}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -871,45 +1007,78 @@ export default function DriverDetail() {
 
                 {/* Modals Overlay */}
                 {
-                    ['block', 'unblock', 'delete'].includes(modalType) && (
+                    ['unsuspend', 'approve', 'reject', 'delete'].includes(modalType) && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
                             <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl">
                                 <div className="mb-4">
-                                    <i className={`text-[40px] text-[#EE1B24] ${modalType === 'delete' ? 'bi bi-trash-fill' : 'bi bi-slash-circle font-[600]'}`}></i>
+                                    <i className={`text-[40px] ${modalType === 'delete' ? 'bi bi-trash-fill text-[#EE1B24]' :
+                                        modalType === 'approve' ? 'bi bi-check-circle-fill text-[#12B76A]' :
+                                            modalType === 'reject' ? 'bi bi-x-circle-fill text-[#EE1B24]' :
+                                                'bi bi-slash-circle text-[#EE1B24]'
+                                        }`}></i>
                                 </div>
 
                                 <h3 className="text-xl font-[600] text-gray-900 mb-3">
-                                    {modalType === 'block' ? 'Block Driver' : modalType === 'unblock' ? 'unblock Driver' : 'Delete Driver'}
+                                    {modalType === 'approve' ? 'Approve Driver' :
+                                        modalType === 'reject' ? 'Reject Driver' :
+                                            modalType === 'unsuspend' ? 'Unsuspend Driver' :
+                                                'Delete Driver'}
                                 </h3>
 
                                 <p className="text-xs font-semibold text-gray-600 mb-8 max-w-[250px] mx-auto">
                                     {modalType === 'delete' ? (
                                         <>Are you sure to Delete the <span className="text-[#EE1B24]">{driver.name}</span> Driver. This action can't be undone.</>
+                                    ) : modalType === 'approve' ? (
+                                        <>Are you sure to <span className="text-[#12B76A]">Approve</span> the <span className="text-[#EE1B24]">{driver.name}</span> Driver?</>
+                                    ) : modalType === 'unsuspend' ? (
+                                        <>Are you sure to <span className="text-[#12B76A]">Unsuspend</span> the <span className="text-[#EE1B24]">{driver.name}</span> Driver?</>
                                     ) : (
-                                        <>Are you sure to {modalType === 'block' ? 'Block' : 'unblock'} the <span className="text-[#EE1B24]">{driver.name}</span> Driver</>
+                                        <>Are you sure to <span className="text-[#EE1B24]">Reject</span> the <span className="text-[#EE1B24]">{driver.name}</span> Driver?</>
                                     )}
                                 </p>
 
                                 <div className="flex items-center gap-3 w-full">
-                                    <button className="flex-1 py-3 bg-[#EE1B24] text-white rounded-[12px] font-[600] text-sm hover:bg-[#d01019] transition-colors" onClick={async () => {
-                                        try {
-                                            if (modalType === 'block' || modalType === 'unblock') {
-                                                const newStatus = modalType === 'block' ? 'Blocked' : 'Active';
-                                                await updateDriver(driver.id, { status: newStatus });
-                                                setDriverStatus(modalType === 'block' ? 'blocked' : 'active');
-                                                setDriver(prev => ({ ...prev, status: newStatus }));
-                                                showToast(`Driver ${modalType === 'block' ? 'blocked' : 'activated'} successfully`, "success");
+                                    <button
+                                        className={`flex-1 py-3 text-white rounded-[12px] font-[600] text-sm transition-colors ${modalType === 'approve' ? 'bg-[#12B76A] hover:bg-[#039855]' : 'bg-[#EE1B24] hover:bg-[#d01019]'
+                                            }`}
+                                        onClick={async () => {
+                                            console.log("Modal action triggered:", modalType);
+                                            try {
+                                                if (modalType === 'approve') {
+                                                    const payload = { status: 'Approved', suspended_until: null };
+                                                    console.log("Approving driver. Payload:", payload);
+                                                    const response = await toggleDriverStatus(driver.id, payload);
+                                                    console.log("Approval response:", response);
+                                                    setDriverStatus('approved');
+                                                    setDriver(prev => ({ ...prev, status: 'Approved', suspended_until: null }));
+                                                    showToast("Driver approved successfully", "success");
+                                                } else if (modalType === 'reject') {
+                                                    const payload = { status: 'Rejected' };
+                                                    console.log("Rejecting driver. Payload:", payload);
+                                                    const response = await toggleDriverStatus(driver.id, payload);
+                                                    console.log("Rejection response:", response);
+                                                    setDriverStatus('rejected');
+                                                    setDriver(prev => ({ ...prev, status: 'Rejected' }));
+                                                    showToast("Driver rejected", "success");
+                                                } else if (modalType === 'unsuspend') {
+                                                    const payload = { status: 'Approved', suspended_until: null };
+                                                    console.log("Unsuspending driver. Payload:", payload);
+                                                    const response = await toggleDriverStatus(driver.id, payload);
+                                                    console.log("Unsuspension response:", response);
+                                                    setDriverStatus('approved');
+                                                    setDriver(prev => ({ ...prev, status: 'Approved', suspended_until: null }));
+                                                    showToast("Driver unsuspended", "success");
+                                                } else if (modalType === 'delete') {
+                                                    await deleteDriver(driver.id);
+                                                    showToast("Driver deleted successfully", "success");
+                                                    navigate('/drivers');
+                                                }
+                                            } catch (error) {
+                                                showToast("Action failed", "error");
                                             }
-                                            if (modalType === 'delete') {
-                                                await deleteDriver(driver.id);
-                                                showToast("Driver deleted successfully", "success");
-                                                navigate('/drivers');
-                                            }
-                                        } catch (error) {
-                                            showToast("Action failed", "error");
-                                        }
-                                        setModalType(null);
-                                    }}>
+                                            setModalType(null);
+                                        }}
+                                    >
                                         Confirm
                                     </button>
                                     <button className="flex-1 py-3 bg-white text-gray-900 border border-gray-900 rounded-[12px] font-[600] text-sm hover:bg-gray-50 transition-colors" onClick={() => setModalType(null)}>
@@ -974,19 +1143,20 @@ export default function DriverDetail() {
                                                     const endTimestamp = now.getTime() + durationMs;
                                                     const until = new Date(endTimestamp).toISOString();
 
-                                                    // Prepare data for API - use 'inactive' as requested for suspended state
+                                                    // Prepare data for API - use 'suspended' as the primary status
                                                     const updateData = {
-                                                        status: 'inactive',
+                                                        status: 'suspended',
                                                         suspended_until: until,
                                                         suspension_reason: suspensionForm.reason
                                                     };
+                                                    console.log("Suspending driver. Payload:", updateData);
 
-                                                    // Use the general update endpoint instead of toggleStatus to ensure all fields are saved
-                                                    await updateDriver(driver.id, updateData);
+                                                    // Use the status-specific endpoint to ensure suspension is processed correctly
+                                                    await toggleDriverStatus(driver.id, updateData);
 
                                                     setDriver(prev => ({
                                                         ...prev,
-                                                        status: 'inactive',
+                                                        status: 'suspended',
                                                         suspended_until: until,
                                                         suspension_reason: suspensionForm.reason
                                                     }));
@@ -1033,54 +1203,6 @@ export default function DriverDetail() {
                     )
                 }
 
-                {/* Suspension Details Modal */}
-                {
-                    modalType === 'suspension_details' && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <div className="bg-white rounded-[28px] w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-                                {/* Header - Compact Red Style */}
-                                <div className="bg-[#EE1B24] p-4 text-white flex justify-between items-center px-6">
-                                    <h3 className="text-sm font-[600] uppercase tracking-wider">Suspension Details</h3>
-                                    <button onClick={() => setModalType(null)} className="text-white/80 hover:text-white transition-colors">
-                                        <i className="bi bi-x-lg text-sm"></i>
-                                    </button>
-                                </div>
-
-                                <div className="p-6 space-y-5">
-                                    <div className="text-center">
-                                        <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-100">
-                                            <i className="bi bi-clock-history text-2xl text-amber-500"></i>
-                                        </div>
-                                        <p className="text-gray-500 text-xs font-semibold">Access restricted temporarily</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                                        <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1">Time Remaining</div>
-                                        <div className="text-2xl font-[600] text-[#EE1B24] tracking-tighter">
-                                            {timeLeft || '00h 00m 00s'}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="text-[9px] font-[600] text-gray-400 uppercase tracking-widest mb-1.5">Reason</div>
-                                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-[13px] text-gray-700 leading-snug italic">
-                                            "{driver?.suspension_reason || 'No reason provided.'}"
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-1">
-                                        <button
-                                            onClick={() => setModalType(null)}
-                                            className="w-full py-3 rounded-full bg-[#EE1B24] text-white font-[600] text-xs hover:bg-[#d01019] transition-all shadow-md active:scale-95"
-                                        >
-                                            Close Details
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
 
                 {/* Document Rejection Modal */}
                 {

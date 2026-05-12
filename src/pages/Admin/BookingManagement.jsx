@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Button, useToast, Pagination } from '@/components/UI';
+import { Table, Badge, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Button, useToast, Pagination, Tooltip } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getBookings } from '@/api/bookingApi';
@@ -82,17 +82,42 @@ export default function BookingManagement() {
             }
 
             const res = await getBookings(params);
+            console.log("DEBUG: Booking API Raw Response:", res);
 
             let list = [];
-            if (Array.isArray(res)) {
-                list = res;
-            } else if (res?.data && Array.isArray(res.data)) {
-                list = res.data;
-            } else if (res?.data?.data && Array.isArray(res.data.data)) {
-                list = res.data.data;
-            } else if (res?.data?.data?.data && Array.isArray(res.data.data.data)) {
-                list = res.data.data.data;
+
+            // Comprehensive extraction logic
+            const extract = (data) => {
+                if (Array.isArray(data)) return data;
+                // Handle objects with numeric keys (PHP objects)
+                if (data && typeof data === 'object' && Object.keys(data).some(k => !isNaN(k))) {
+                    return Object.values(data);
+                }
+                // Handle single object response
+                if (data && typeof data === 'object' && (data.id || data.unique_id)) {
+                    return [data];
+                }
+                return null;
+            };
+
+            const potentialSources = [
+                res?.data?.data?.data, // Heavily nested pagination
+                res?.data?.data,      // Standard pagination
+                res?.data,           // Direct data key
+                res?.bookings,       // Custom key
+                res?.rides,          // Custom key
+                res                  // Raw response
+            ];
+
+            for (const source of potentialSources) {
+                const found = extract(source);
+                if (found) {
+                    list = found;
+                    break;
+                }
             }
+
+            console.log("DEBUG: Extracted Bookings List:", list);
 
             // Apply local date filter in case backend ignores params
             if (startDate || endDate) {
@@ -115,6 +140,7 @@ export default function BookingManagement() {
             }
 
             setBookings(list);
+            console.log("DEBUG: Bookings state updated. Count:", list.length);
 
             const total = list.length;
             setTotalItems(total);
@@ -125,7 +151,7 @@ export default function BookingManagement() {
                 [type]: total
             }));
         } catch (error) {
-            console.error("Error fetching bookings:", error);
+            console.error("DEBUG: Error fetching bookings:", error);
             showToast(error.response?.data?.message || error.message, 'error');
         } finally {
             setLoading(false);
@@ -142,12 +168,11 @@ export default function BookingManagement() {
 
     const filteredBookings = bookings.filter(b => {
         const ongoingStatuses = ['requested', 'accepted', 'arrived', 'ongoing', 'pending'];
-        if (type === 'ongoing') {
-            return ongoingStatuses.includes(b.status);
-        } else {
-            return !ongoingStatuses.includes(b.status);
-        }
+        const isOngoing = ongoingStatuses.includes(b.status?.toLowerCase());
+        return type === 'ongoing' ? isOngoing : !isOngoing;
     });
+
+    console.log(`DEBUG: Tab: ${type}, Filtered Bookings for Render:`, filteredBookings);
 
     const handleExport = async (exportFormat) => {
         try {
@@ -334,12 +359,36 @@ export default function BookingManagement() {
                                 </span>
                             </td>
 
-                            <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap">
-                                {booking.driver?.first_name ? `${booking.driver.first_name} ${booking.driver.last_name || ''}` : 'Not Assigned'}
+                            <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                {booking.driver ? (
+                                    <Tooltip content={
+                                        <div className="flex flex-col gap-1 py-1">
+                                            <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {booking.driver.id}</span></div>
+                                            <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{booking.driver.phone || 'N/A'}</span></div>
+                                            <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{booking.driver.email || 'N/A'}</span></div>
+                                        </div>
+                                    }>
+                                        <span className="hover:text-[#D10000] cursor-help">
+                                            {booking.driver?.first_name ? `${booking.driver.first_name} ${booking.driver.last_name || ''}` : 'Not Assigned'}
+                                        </span>
+                                    </Tooltip>
+                                ) : 'Not Assigned'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap">
-                                {booking.passenger?.name || (booking.passenger?.first_name ? `${booking.passenger.first_name} ${booking.passenger.last_name || ''}` : 'N/A')}
+                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                {booking.passenger ? (
+                                    <Tooltip content={
+                                        <div className="flex flex-col gap-1 py-1">
+                                            <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {booking.passenger.id}</span></div>
+                                            <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{booking.passenger.phone || 'N/A'}</span></div>
+                                            <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{booking.passenger.email || 'N/A'}</span></div>
+                                        </div>
+                                    }>
+                                        <span className="hover:text-[#D10000] cursor-help">
+                                            {booking.passenger?.name || (booking.passenger?.first_name ? `${booking.passenger.first_name} ${booking.passenger.last_name || ''}` : 'N/A')}
+                                        </span>
+                                    </Tooltip>
+                                ) : 'N/A'}
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#111] text-center whitespace-nowrap">
