@@ -30,11 +30,35 @@ export default function BookingDetail() {
                 // Handle different payload wrappers
                 const data = res.data?.data || res.data || res;
                 if (data) {
-                    setBookingData(data);
+                    console.log('[BookingDetail] raw data:', data);
+                    let enriched = { ...data };
+
+                    // The detail endpoint omits requested_vehicle_type — fetch it from list if needed
+                    if (!enriched.requested_vehicle_type && !enriched.vehicle_type) {
+                        try {
+                            for (let page = 1; page <= 10; page++) {
+                                const loopRes = await api.get('/admin/bookings', { params: { page } });
+                                const list = loopRes.data?.data?.data || loopRes.data?.data || [];
+                                const match = list.find(b => b.id == id);
+                                if (match) {
+                                    enriched = {
+                                        ...enriched,
+                                        requested_vehicle_type: match.requested_vehicle_type || null,
+                                        vehicle_type: match.vehicle_type || null,
+                                    };
+                                    break;
+                                }
+                                const meta = loopRes.data?.data || {};
+                                if (meta.current_page >= meta.last_page || !meta.next_page_url) break;
+                            }
+                        } catch (_) { /* non-critical, ignore */ }
+                    }
+
+                    setBookingData(enriched);
 
                     // Resolve addresses
-                    const pAddr = data.pickup_location || await reverseGeocode(data.pickup_lat, data.pickup_lng);
-                    const dAddr = data.dropoff_location || await reverseGeocode(data.dropoff_lat, data.dropoff_lng);
+                    const pAddr = enriched.pickup_location || await reverseGeocode(enriched.pickup_lat, enriched.pickup_lng);
+                    const dAddr = enriched.dropoff_location || await reverseGeocode(enriched.dropoff_lat, enriched.dropoff_lng);
 
                     setBookingData(prev => ({
                         ...prev,
@@ -151,7 +175,14 @@ export default function BookingDetail() {
         tip: bookingData.tip_amount ? `Passenger gave C$ ${bookingData.tip_amount} as tip` : 'N/A',
         cancellationReason: bookingData.cancellation_reason || 'N/A',
         bookedAt: bookingData.created_at ? format(new Date(bookingData.created_at), 'MMM dd, yyyy HH:mm') : 'N/A',
-        completedAt: bookingData.dropoff_time ? format(new Date(bookingData.dropoff_time), 'MMM dd, yyyy HH:mm') : (bookingData.status === 'completed' ? 'N/A' : '—')
+        completedAt: bookingData.dropoff_time ? format(new Date(bookingData.dropoff_time), 'MMM dd, yyyy HH:mm') : (bookingData.status === 'completed' ? 'N/A' : '—'),
+        requested_vehicle_type:
+            bookingData.requested_vehicle_type ||
+            bookingData.vehicle_type ||
+            bookingData.requestedVehicleType ||
+            bookingData.requested_vehicle ||
+            null,
+        status: bookingData.status
     };
 
 
@@ -279,10 +310,9 @@ export default function BookingDetail() {
 
                     <div className="bg-white rounded-[22px] border border-gray-100 shadow-sm overflow-hidden">
                         <div className="px-6 pt-5 pb-2">
-                            <h3 className="text-lg font-[600] text-gray-900 mb-4">{booking.title}</h3>
 
                             {/* Driver Section */}
-                            <div className="mb-3">
+                            {!booking.status == "requested" && <div className="mb-3">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
                                     <span className="text-white font-[600] text-xs uppercase tracking-wider">Driver</span>
                                 </div>
@@ -311,24 +341,61 @@ export default function BookingDetail() {
                                     </div>
                                 </div>
 
-                                {/* Vehicle */}
-                                <div className="flex items-center gap-3 mt-3 px-1 py-3 border-t border-gray-50 text-[14px]">
-                                    <div className="w-14 h-10 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
-                                        <i className="bi bi-car-front-fill text-lg text-gray-400"></i>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
-                                            <span className="font-[600] text-gray-900">{booking.vehicle.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-xs text-gray-400 font-[600] uppercase tracking-wider">License Plate:</span>
-                                            <span className="text-xs font-[600] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">{booking.vehicle.vehNo}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
+                            </div>}
+                            {/* Vehicle Section */}
+                            <div className="mb-3">
+                                <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
+                                    <span className="text-white font-[600] text-xs uppercase tracking-wider">{bookingData.status === 'requested' ? 'Requested Vehicle' : 'Vehicle'}</span>
+                                </div>
+
+                                {/* Vehicle — conditional on status */}
+                                {bookingData.status === 'requested' ? (
+                                    <div className="flex items-center gap-3 mt-3 px-1 py-3 border-t border-gray-50 text-[14px]">
+                                        <div className="w-14 h-10 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                                            <i className="bi bi-car-front-fill text-lg text-gray-400"></i>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className='grid grid-cols-2'>
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <i className="bi bi-hash text-[#D10000]"></i>
+                                                    <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.id || booking.requested_vehicle_type?.id || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <i className="bi bi-car-front-fill text-[#D10000]"></i>
+                                                    <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.category || 'N/A'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <i className="bi bi-people-fill text-[#D10000]"></i>
+                                                <span className="text-gray-600">Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
+                                            </div>
+                                            {booking.requested_vehicle_type?.car_details && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <i className="bi bi-info-circle text-[#D10000]"></i>
+                                                    <span className="text-gray-600 break-words">{booking.requested_vehicle_type.car_details}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 mt-3 px-1 py-3 border-t border-gray-50 text-[14px]">
+                                        <div className="w-14 h-10 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                                            <i className="bi bi-car-front-fill text-lg text-gray-400"></i>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
+                                                <span className="font-[600] text-gray-900">{booking.vehicle.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-xs text-gray-400 font-[600] uppercase tracking-wider">License Plate:</span>
+                                                <span className="text-xs font-[600] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">{booking.vehicle.vehNo}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             {/* Booking Details */}
                             <div className="mb-3">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
@@ -396,7 +463,7 @@ export default function BookingDetail() {
                                     />
                                     <div>
                                         <p className="text-sm font-[600] text-gray-900">{booking.passenger.name}</p>
-                                        <p className="text-xs text-gray-400 font-medium">{booking.passenger.rides} Rides ({booking.passenger.reviews} reviews)</p>
+                                        <p className="text-xs text-gray-400 font-medium">{booking.passenger.rides > 1 ? `${booking.passenger.rides} Rides` : `${booking.passenger.rides} Ride`}</p>
                                     </div>
                                 </div>
                             </div>
