@@ -429,21 +429,18 @@ export default function BookingManagement() {
                 { label: 'Pickup Location', align: 'text-center' },
                 { label: 'Dropoff Location', align: 'text-center' },
                 { label: 'Distance', align: 'text-center' },
-                { label: 'Duration', align: 'text-center' },
-                { label: 'Booked At', align: 'text-center' },
-                { label: 'Completed At', align: 'text-center' },
-                { label: 'Status', align: 'text-center' }
+                { label: 'Duration', align: 'text-center' }
             ]}>
 
                 {loading ? (
                     <tr>
-                        <td colSpan="12" className="text-center py-8">
+                        <td colSpan="9" className="text-center py-8">
                             <div className="animate-spin w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full mx-auto"></div>
                         </td>
                     </tr>
                 ) : filteredBookings.length === 0 ? (
                     <tr>
-                        <td colSpan="12" className="text-center py-8 text-gray-500">
+                        <td colSpan="9" className="text-center py-8 text-gray-500">
                             No bookings found
                         </td>
                     </tr>
@@ -580,20 +577,6 @@ export default function BookingManagement() {
                                     }
                                     return `${Math.round(numValue)} mins`;
                                 })()}
-                            </td>
-
-
-                            <td className="py-[18px] px-[10px] text-[13px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
-                                {booking.created_at ? format(new Date(booking.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
-                            </td>
-
-                            <td className="py-[18px] px-[10px] text-[13px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
-                                {booking.dropoff_time ? format(new Date(booking.dropoff_time), 'MMM dd, yyyy HH:mm') : (booking.status === 'completed' ? 'N/A' : '—')}
-                            </td>
-                            <td className="py-[18px] px-[10px] text-center">
-                                <Badge variant={booking.status?.toLowerCase()}>
-                                    {booking.status}
-                                </Badge>
                             </td>
 
                         </tr>

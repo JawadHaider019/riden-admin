@@ -5,6 +5,7 @@ import { Badge, useToast } from '@/components/UI';
 import { getBookingDetail } from '@/api/bookingApi';
 import api, { getImageUrl } from '@/api/api';
 import { reverseGeocode } from '@/utils/geoUtils';
+import { format } from 'date-fns';
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
@@ -130,7 +131,7 @@ export default function BookingDetail() {
                 const val = bookingData.estimated_time || bookingData.duration;
                 return typeof val === 'string' && (val.includes('min') || val.includes('hour')) ? val : `${val} mins`;
             })() : 'N/A',
-        fare: bookingData.fare ? `C$ ${bookingData.fare}` : 'N/A',
+        fare: bookingData.fare ? `C$ ${bookingData.fare}` : '0.00',
         passenger: bookingData.passenger ? {
             name: `${bookingData.passenger.first_name || ''} ${bookingData.passenger.last_name || ''}`.trim() || 'N/A',
             avatar: (bookingData.passenger.avatar ? getImageUrl(bookingData.passenger.avatar) : bookingData.passenger.avatar_url) || null,
@@ -141,7 +142,9 @@ export default function BookingDetail() {
         rating: bookingData.rating || 0,
         reviewText: bookingData.review || 'N/A',
         tip: bookingData.tip_amount ? `Passenger gave C$ ${bookingData.tip_amount} as tip` : 'N/A',
-        cancellationReason: bookingData.cancellation_reason || 'N/A'
+        cancellationReason: bookingData.cancellation_reason || 'N/A',
+        bookedAt: bookingData.created_at ? format(new Date(bookingData.created_at), 'MMM dd, yyyy HH:mm') : 'N/A',
+        completedAt: bookingData.dropoff_time ? format(new Date(bookingData.dropoff_time), 'MMM dd, yyyy HH:mm') : (bookingData.status === 'completed' ? 'N/A' : '—')
     };
 
 
@@ -331,7 +334,20 @@ export default function BookingDetail() {
                                     <div className="w-px bg-gray-100"></div>
                                     <div className="text-center">
                                         <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">EST Fare</p>
-                                        <p className="text-sm font-[600] text-[#D10000]">{booking.fare}</p>
+                                        <p className="text-sm font-[600] text-[#D10000]"> C$ {booking.fare}</p>
+                                    </div>
+                                </div>
+
+                                {/* Timestamps */}
+                                <div className="flex justify-around border-t border-gray-50 pt-4 pb-2">
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">Booked At</p>
+                                        <p className="text-[11px] font-[600] text-gray-900">{booking.bookedAt}</p>
+                                    </div>
+                                    <div className="w-px bg-gray-100"></div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">Completed At</p>
+                                        <p className="text-[11px] font-[600] text-gray-900">{booking.completedAt}</p>
                                     </div>
                                 </div>
                             </div>
