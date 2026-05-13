@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip, Loader } from '@/components/UI';
 import { getPassengers } from '@/api/passengerApi';
 import { getImageUrl } from '@/api/api';
 import { formatDate } from '@/utils/formatters';
@@ -300,7 +300,7 @@ export default function PassengerManagement() {
                     {loading ? (
                         <tr>
                             <td colSpan="5" className="text-center py-20">
-                                <div className="animate-spin inline-block w-8 h-8 border-4 border-[#D10000] border-t-transparent rounded-full"></div>
+                                <Loader fullScreen={false} />
                             </td>
                         </tr>
                     ) : passengers.length === 0 ? (

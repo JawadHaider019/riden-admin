@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Button, useToast, Pagination, Tooltip } from '@/components/UI';
+import { Table, Badge, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Button, useToast, Pagination, Tooltip, Loader } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getBookings } from '@/api/bookingApi';
@@ -422,25 +422,25 @@ export default function BookingManagement() {
             {/* Table */}
             <Table headers={[
                 { label: 'ID', align: 'text-center' },
-                { label: 'Driver', align: 'text-center' },
+                ...(type !== 'requested' ? [{ label: 'Driver', align: 'text-center' }] : []),
                 { label: 'Passenger', align: 'text-center' },
-                { label: 'Vehicle', align: 'text-center' },
+                { label: type === 'requested' ? 'Requested Vehicle' : 'Vehicle', align: 'text-center' },
                 { label: 'Fare', align: 'text-center' },
                 { label: 'Pickup Location', align: 'text-center' },
                 { label: 'Dropoff Location', align: 'text-center' },
                 { label: 'Distance', align: 'text-center' },
                 { label: 'Duration', align: 'text-center' }
-            ]}>
+            ].filter(Boolean)}>
 
                 {loading ? (
                     <tr>
-                        <td colSpan="9" className="text-center py-8">
-                            <div className="animate-spin w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full mx-auto"></div>
+                        <td colSpan={type === 'requested' ? 8 : 9} className="py-20 text-center">
+                            <Loader fullScreen={false} />
                         </td>
                     </tr>
                 ) : filteredBookings.length === 0 ? (
                     <tr>
-                        <td colSpan="9" className="text-center py-8 text-gray-500">
+                        <td colSpan={type === 'requested' ? 8 : 9} className="text-center py-8 text-gray-500">
                             No bookings found
                         </td>
                     </tr>
@@ -457,23 +457,25 @@ export default function BookingManagement() {
                                 </span>
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] text-center whitespace-nowrap">
-                                {booking.driver ? (
-                                    <Tooltip content={
-                                        <div className="flex flex-col gap-1 py-1">
-                                            <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {booking.driver.id}</span></div>
-                                            <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{booking.driver.phone || 'N/A'}</span></div>
-                                            <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{booking.driver.email || 'N/A'}</span></div>
-                                        </div>
-                                    }>
-                                        <span className="hover:text-[#D10000] cursor-help">
-                                            {booking.driver?.first_name ? `${booking.driver.first_name} ${booking.driver.last_name || ''}` : 'Not Assigned'}
-                                        </span>
-                                    </Tooltip>
-                                ) : 'Not Assigned'}
-                            </td>
+                            {type !== 'requested' && (
+                                <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#D10000] text-center whitespace-nowrap">
+                                    {booking.driver ? (
+                                        <Tooltip content={
+                                            <div className="flex flex-col gap-1 py-1">
+                                                <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {booking.driver.id}</span></div>
+                                                <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{booking.driver.phone || 'N/A'}</span></div>
+                                                <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{booking.driver.email || 'N/A'}</span></div>
+                                            </div>
+                                        }>
+                                            <span className="hover:text-[#D10000] cursor-help">
+                                                {booking.driver?.first_name ? `${booking.driver.first_name} ${booking.driver.last_name || ''}` : 'Not Assigned'}
+                                            </span>
+                                        </Tooltip>
+                                    ) : 'Not Assigned'}
+                                </td>
+                            )}
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] text-center whitespace-nowrap">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#D10000] text-center whitespace-nowrap">
                                 {booking.passenger ? (
                                     <Tooltip content={
                                         <div className="flex flex-col gap-1 py-1">
@@ -489,41 +491,61 @@ export default function BookingManagement() {
                                 ) : 'N/A'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#6B7280] text-center">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#D10000] text-center whitespace-nowrap">
                                 <Tooltip content={
                                     <div className="flex flex-col gap-1 py-1 min-w-[200px]">
+                                        {type === 'requested' ? (
+                                            <>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-hash text-[#D10000]"></i>
+                                                    <span>Type ID: {booking.requested_vehicle_type?.id || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-people-fill text-[#D10000]"></i>
+                                                    <span>Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-info-circle text-[#D10000]"></i>
+                                                    <span className="break-words">Details: {booking.requested_vehicle_type?.car_details || 'N/A'}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-hash text-[#D10000]"></i>
+                                                    <span>ID: {booking.vehicle?.id || booking.vehicle_id || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-tag-fill text-[#D10000]"></i>
+                                                    <span>Plate: {booking.vehicle?.license_plate || booking.driver?.vehicle?.license_plate || 'N/A'}</span>
+                                                </div>
 
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <i className="bi bi-hash text-[#D10000]"></i>
-                                            <span>ID: {booking.vehicle?.id || booking.vehicle_id || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <i className="bi bi-tag-fill text-[#D10000]"></i>
-                                            <span>Plate: {booking.vehicle?.license_plate || booking.driver?.vehicle?.license_plate || 'N/A'}</span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <i className="bi bi-people-fill text-[#D10000]"></i>
-                                            <span>
-                                                Seats: {(() => {
-                                                    const val = booking.vehicle?.capacity || booking.vehicle?.seats || 'N/A';
-                                                    return typeof val === 'object' ? (val?.capacity || val?.name || 'N/A') : val;
-                                                })()}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <i className="bi bi-gear-fill text-[#D10000]"></i>
-                                            <span>
-                                                Type: {(() => {
-                                                    const val = booking.vehicle?.type || booking.vehicle?.category || 'N/A';
-                                                    return typeof val === 'object' ? (val?.category || val?.name || 'N/A') : val;
-                                                })()}
-                                            </span>
-                                        </div>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-people-fill text-[#D10000]"></i>
+                                                    <span>
+                                                        Seats: {(() => {
+                                                            const val = booking.vehicle?.capacity || booking.vehicle?.seats || 'N/A';
+                                                            return typeof val === 'object' ? (val?.capacity || val?.name || 'N/A') : val;
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <i className="bi bi-gear-fill text-[#D10000]"></i>
+                                                    <span>
+                                                        Type: {(() => {
+                                                            const val = booking.vehicle?.type || booking.vehicle?.category || 'N/A';
+                                                            return typeof val === 'object' ? (val?.category || val?.name || 'N/A') : val;
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 }>
                                     <span className="hover:text-[#D10000] cursor-help font-semibold">
-                                        {booking.vehicle?.model || booking.driver?.vehicle?.model || `${booking.vehicle_id || 'N/A'}`}
+                                        {type === 'requested'
+                                            ? (booking.requested_vehicle_type?.category || 'Any')
+                                            : (booking.vehicle?.model || booking.driver?.vehicle?.model || `${booking.vehicle_id || 'N/A'}`)}
                                     </span>
                                 </Tooltip>
                             </td>

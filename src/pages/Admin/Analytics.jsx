@@ -3,7 +3,7 @@ import AdminLayout from '@/layouts/AdminLayout';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { getDashboardAnalytics, getDashboardStats } from '../../api/dashboard';
-import { MiniChart } from '@/components/UI';
+import { MiniChart, Loader } from '@/components/UI';
 
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -100,11 +100,8 @@ export default function Analytics() {
     if (loading) {
         return (
             <AdminLayout title="Dashboard & Analytics">
-                <div className="flex justify-center items-center h-96">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D10000] mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading analytics data...</p>
-                    </div>
+                <div className="flex justify-center items-center min-h-[500px]">
+                    <Loader fullScreen={false} />
                 </div>
             </AdminLayout>
         );

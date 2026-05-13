@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams } from 'react-router-dom';
 import { Badge, useToast } from '@/components/UI';
+import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import { getBookingDetail } from '@/api/bookingApi';
 import api, { getImageUrl } from '@/api/api';
 import { reverseGeocode } from '@/utils/geoUtils';
@@ -14,6 +15,12 @@ export default function BookingDetail() {
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
+    const [directions, setDirections] = useState(null);
+
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: GOOGLE_MAPS_KEY
+    });
 
     useEffect(() => {
         const fetchBooking = async () => {
@@ -180,20 +187,43 @@ export default function BookingDetail() {
 
                 {/* LEFT — Map */}
                 <div className="flex flex-col gap-4">
-                    {/* Map iframe */}
+                    {/* Map — Google Maps JavaScript API */}
                     <div className="relative rounded-[22px] overflow-hidden h-[420px] border border-gray-100 shadow-sm">
-                        <iframe
-                            className="w-full h-full border-none contrast-[1.05]"
-                            src={(bookingData?.pickup_lat && bookingData?.dropoff_lat)
-                                ? `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_KEY}&origin=${bookingData.pickup_lat},${bookingData.pickup_lng}&destination=${bookingData.dropoff_lat},${bookingData.dropoff_lng}&mode=driving`
-                                : bookingData?.pickup_lat
-                                    ? `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${bookingData.pickup_lat},${bookingData.pickup_lng}`
-                                    : `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1469550!2d72!3d31!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38db02b66236b283%3A0x444d36f32e92178d!2sPakistan!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s`
-                            }
-                            allowFullScreen=""
-                            loading="lazy"
-                            title="Ride Map"
-                        ></iframe>
+                        {isLoaded ? (
+                            <GoogleMap
+                                mapContainerStyle={{ width: '100%', height: '100%' }}
+                                center={{
+                                    lat: parseFloat(bookingData?.pickup_lat) || 31.5204,
+                                    lng: parseFloat(bookingData?.pickup_lng) || 74.3587
+                                }}
+                                zoom={12}
+                                options={{ disableDefaultUI: true, zoomControl: true }}
+                            >
+                                {bookingData?.pickup_lat && bookingData?.dropoff_lat && !directions && (
+                                    <DirectionsService
+                                        options={{
+                                            origin: { lat: parseFloat(bookingData.pickup_lat), lng: parseFloat(bookingData.pickup_lng) },
+                                            destination: { lat: parseFloat(bookingData.dropoff_lat), lng: parseFloat(bookingData.dropoff_lng) },
+                                            travelMode: 'DRIVING'
+                                        }}
+                                        callback={(result, status) => {
+                                            if (status === 'OK' && result) setDirections(result);
+                                        }}
+                                    />
+                                )}
+                                {directions && (
+                                    <DirectionsRenderer
+                                        directions={directions}
+                                        options={{ suppressMarkers: false }}
+                                    />
+                                )}
+                            </GoogleMap>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-2 text-gray-400">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D10000]"></div>
+                                <span className="text-xs font-semibold">Loading Map…</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Ratings & Reviews — only for completed */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip, Loader } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getDrivers } from '../../api/driverApi';
@@ -307,9 +307,9 @@ export default function DriverManagement() {
             {/* Table */}
             <Table headers={['ID', 'Name', 'Phone Number', 'Joined Date', 'Status']}>
                 {loading ? (
-                    <tr><td colSpan="4" className="text-center py-10"><div className="animate-spin inline-block w-6 h-6 border-2 border-red-600 rounded-full border-t-transparent"></div></td></tr>
+                    <tr><td colSpan="5" className="text-center py-20"><Loader fullScreen={false} /></td></tr>
                 ) : drivers.length === 0 ? (
-                    <tr><td colSpan="4" className="text-center py-10 text-gray-500 font-medium">No drivers found</td></tr>
+                    <tr><td colSpan="5" className="text-center py-10 text-gray-500 font-medium">No drivers found</td></tr>
                 ) : (
                     drivers.map((d) => (
                         <tr

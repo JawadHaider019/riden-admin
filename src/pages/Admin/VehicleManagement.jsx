@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Pagination, useToast, DateRangePicker, DatePickerStyles, Tooltip } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Pagination, useToast, DateRangePicker, DatePickerStyles, Tooltip, Loader } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { getVehicles } from '@/api/vehicleApi';
 import { getDrivers } from '@/api/driverApi';
@@ -252,8 +252,8 @@ export default function VehicleManagement() {
             <Table headers={['Car Image', 'Driver Name', 'Car Name', 'Model Year', 'License Plate', 'Category', 'No of Seats']}>
                 {loading ? (
                     <tr>
-                        <td colSpan="7" className="text-center py-10">
-                            <div className="animate-spin w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full mx-auto"></div>
+                        <td colSpan="7" className="text-center py-20">
+                            <Loader fullScreen={false} />
                         </td>
                     </tr>
                 ) : vehicles.length === 0 ? (

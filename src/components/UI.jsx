@@ -143,7 +143,7 @@ export const MiniChart = ({ variant = 'green', data = [30, 50, 40, 75, 100, 60, 
 };
 
 export const Tabs = ({ options, activeTab, onTabChange, className = '' }) => (
-    <div className={`bg-[#D10000] rounded-full p-1.5 flex flex-wrap gap-2 w-fit mb-4 ${className}`}>
+    <div className={`bg-[#D10000] rounded-full p-1.5 flex items-center gap-2 w-fit mb-4 overflow-x-auto overflow-y-hidden no-scrollbar ${className}`}>
         {options.map((opt) => (
             <button
                 key={opt.id}
@@ -579,6 +579,21 @@ export const Tooltip = ({ children, content, position = 'top' }) => {
                 </div>,
                 document.body
             )}
+        </div>
+    );
+};
+export const Loader = ({ fullScreen = true }) => {
+    return (
+        <div className={fullScreen ? "fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in" : "flex flex-col items-center justify-center p-8 animate-fade-in"}>
+
+            <div className="mt-6 flex flex-col items-center gap-1">
+                <p className="text-[16px] font-[700] text-[#111] uppercase tracking-[2px]">Loading</p>
+                <div className="flex gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-[#D10000] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-1.5 h-1.5 bg-[#D10000] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-1.5 h-1.5 bg-[#D10000] rounded-full animate-bounce"></div>
+                </div>
+            </div>
         </div>
     );
 };
