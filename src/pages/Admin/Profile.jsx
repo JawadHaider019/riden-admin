@@ -9,12 +9,10 @@ export default function AdminProfile() {
     const [loading, setLoading] = useState(true);
 
     const allModules = [
-        'Dashboard', 'Analytics/Stats', 'User Management', 'Driver Management',
-        'Vehicles Management', 'Booking Management', 'Reviews & Ratings',
+        'Dashboard & Analytics', 'Driver Management', 'Passenger Management',
+        'Booking Management', 'Vehicles Management', 'Reviews & Ratings',
         'Promo code Management', 'Fare Management', 'Commission Management',
-        'Payment Management', 'Report Management', 'Passenger Management',
-        'Advertising Management', 'Support Ticket', 'Notifications',
-        'CMS management', 'Settings'
+        'Payment Management', 'Report Management', 'Support Ticket'
     ];
 
     useEffect(() => {
@@ -58,7 +56,6 @@ export default function AdminProfile() {
 
                         <div>
                             <h2 className="text-3xl font-[600] text-gray-900 tracking-tighter uppercase italic">{admin?.name || 'Admin User'}</h2>
-                            <span className="text-[14px] font-[600] text-[#D10000] uppercase tracking-widest">{admin?.role || 'Administrator'}</span>
                         </div>
                     </div>
 
@@ -123,16 +120,6 @@ export default function AdminProfile() {
                             );
                         })}
                     </div>
-
-                    {admin?.is_super && (
-                        <div className="mt-8 px-4 py-4 bg-red-50 rounded-2xl border border-red-100">
-                            <p className="text-xs font-[600] text-[#D10000] uppercase tracking-widest flex items-center gap-2">
-                                <i className="bi bi-shield-lock-fill text-lg"></i>
-                                Super Admin Privilege Active
-                            </p>
-                            <p className="text-[11px] text-gray-500 mt-1">You have full administrative access to all system modules and configuration settings.</p>
-                        </div>
-                    )}
                 </div>
             </div>
         </AdminLayout>
