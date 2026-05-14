@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Badge, useToast } from '@/components/UI';
+import { Badge, useToast, Loader } from '@/components/UI';
 import { getVehicleDetail, deleteVehicle } from '@/api/vehicleApi';
 import { STORAGE_URL, getImageUrl } from '@/api/api';
 
@@ -21,7 +21,7 @@ export default function VehicleDetail() {
                 const res = await getVehicleDetail(id);
                 setVehicle(res.data || res);
             } catch (error) {
-                showToast(error.response?.data?.message || 'Failed to fetch vehicle details', 'error');
+                console.error('Failed to fetch vehicle details', error);
             } finally {
                 setLoading(false);
             }
@@ -30,13 +30,7 @@ export default function VehicleDetail() {
     }, [id]);
 
     if (loading) {
-        return (
-            <AdminLayout title="Vehicle Management">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     if (!vehicle) return null;

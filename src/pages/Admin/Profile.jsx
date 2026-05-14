@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Label, InputWrapper, Input } from '@/components/UI';
+import { Label, InputWrapper, Input, Loader } from '@/components/UI';
 import { getAdminProfile } from '../../api/auth';
 import { Link } from 'react-router-dom';
 
@@ -34,13 +34,7 @@ export default function AdminProfile() {
     }, []);
 
     if (loading) {
-        return (
-            <AdminLayout title="My Profile">
-                <div className="flex justify-center items-center h-[400px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D10000]"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     return (

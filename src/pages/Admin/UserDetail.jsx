@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams } from 'react-router-dom';
-import { Label, InputWrapper, useToast } from '@/components/UI';
+import { Label, InputWrapper, useToast, Loader } from '@/components/UI';
 import { getAdminById } from '../../api/adminApi';
 
 export default function AdminDetail() {
@@ -11,12 +11,10 @@ export default function AdminDetail() {
     const [admin, setAdmin] = useState(null);
 
     const modulesList = [
-        'Dashboard & Analytics', 'User Management', 'Driver Management',
-        'Vehicles Management', 'Booking Management', 'Reviews & Ratings',
+        'Dashboard & Analytics', 'Driver Management', 'Passenger Management',
+        'Booking Management', 'Vehicles Management', 'Reviews & Ratings',
         'Promo code Management', 'Fare Management', 'Commission Management',
-        'Payment Management', 'Report Management', 'Passenger Management',
-        'Advertising Management', 'Support Ticket', 'Notifications',
-        'CMS management', 'Settings'
+        'Payment Management', 'Report Management', 'Support Ticket'
     ];
 
     useEffect(() => {
@@ -33,7 +31,6 @@ export default function AdminDetail() {
                 }
             } catch (error) {
                 console.error('Error fetching admin:', error);
-                showToast("Failed to load admin details", "error");
             } finally {
                 setLoading(false);
             }
@@ -43,13 +40,7 @@ export default function AdminDetail() {
     }, [id]);
 
     if (loading) {
-        return (
-            <AdminLayout title="User Management">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D10000]"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     if (!admin) {
@@ -114,18 +105,7 @@ export default function AdminDetail() {
                             </InputWrapper>
                         </div>
 
-                        <div className="mt-4">
-                            <Label className="text-gray-500 font-[600] mb-2">Role Status</Label>
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${admin.is_super ? 'bg-[#D10000] border-[#D10000]' : 'bg-white border-gray-300'}`}>
-                                    {admin.is_super && <i className="bi bi-check text-white text-xs"></i>}
-                                </div>
-                                <div>
-                                    <span className="text-[14px] font-[600] text-gray-900">Super Admin</span>
-                                    <p className="text-xs text-gray-500">{admin.is_super ? 'Has full system access' : 'Restricted access based on modules'}</p>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
 
                     {/* Access Module Section */}

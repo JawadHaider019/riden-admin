@@ -129,7 +129,6 @@ export default function PassengerManagement() {
         }
         catch (error) {
             console.error("Error fetching passengers:", error);
-            showToast(error.response?.data?.message || error.message, 'error');
         }
         finally {
             setLoading(false);

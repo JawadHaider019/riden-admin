@@ -141,7 +141,6 @@ export default function DriverManagement() {
             setStatusCounts(prev => ({ ...prev, [activeTab]: currentTabCount }));
         } catch (error) {
             console.error("Error fetching drivers:", error);
-            showToast("Failed to load drivers", "error");
         } finally {
             setLoading(false);
         }

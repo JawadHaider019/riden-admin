@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Label, InputWrapper, Input, Button, useToast } from '@/components/UI';
+import { Label, InputWrapper, Input, Button, useToast, Loader } from '@/components/UI';
 import { getAdminById, updateAdmin } from '../../api/adminApi';
 
 export default function AdminEdit() {
@@ -15,12 +15,10 @@ export default function AdminEdit() {
     const [errors, setErrors] = useState({});
 
     const modules = [
-        'Dashboard & Analytics', 'User Management', 'Driver Management',
-        'Vehicles Management', 'Booking Management', 'Reviews & Ratings',
+        'Dashboard & Analytics', 'Driver Management', 'Passenger Management',
+        'Booking Management', 'Vehicles Management', 'Reviews & Ratings',
         'Promo code Management', 'Fare Management', 'Commission Management',
-        'Payment Management', 'Report Management', 'Passenger Management',
-        'Advertising Management', 'Support Ticket', 'Notifications',
-        'CMS management', 'Settings'
+        'Payment Management', 'Report Management', 'Support Ticket'
     ];
 
     const [formData, setFormData] = useState({
@@ -45,26 +43,31 @@ export default function AdminEdit() {
                 const adminData = response.status === 'success' ? response.data : (response.data || response);
 
                 if (adminData && (adminData.id || adminData.email)) {
+                    const fetchedModules = Array.isArray(adminData.modules) ? adminData.modules :
+                        (typeof adminData.modules === 'string' ? JSON.parse(adminData.modules) : []);
+
+                    // Ensure Dashboard & Analytics is always present
+                    if (!fetchedModules.includes('Dashboard & Analytics')) {
+                        fetchedModules.push('Dashboard & Analytics');
+                    }
+
                     setFormData({
                         name: adminData.name || '',
                         email: adminData.email || '',
                         phone: adminData.phone ? adminData.phone.replace(/^\+1/, '') : '',
                         country_code: '+1',
-                        modules: Array.isArray(adminData.modules) ? adminData.modules :
-                            (typeof adminData.modules === 'string' ? JSON.parse(adminData.modules) : []),
+                        modules: fetchedModules,
                         is_super: !!adminData.is_super,
                         password: '',
                         password_confirmation: ''
                     });
                 } else {
                     console.error("Invalid admin data received:", adminData);
-                    showToast("Admin data not found", "error");
                 }
             } catch (error) {
                 console.error('Detailed Error fetching admin:', error);
                 console.log('Error configuration:', error.config);
                 console.log('Error response:', error.response);
-                showToast("Failed to load admin details", "error");
             } finally {
                 setLoading(false);
             }
@@ -90,6 +93,8 @@ export default function AdminEdit() {
     };
 
     const handleModuleToggle = (module) => {
+        if (module === 'Dashboard & Analytics') return; // Cannot be unchecked
+
         setFormData(prev => ({
             ...prev,
             modules: prev.modules.includes(module)
@@ -170,13 +175,7 @@ export default function AdminEdit() {
     };
 
     if (loading) {
-        return (
-            <AdminLayout title="User Management">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D10000]"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     return (
@@ -240,24 +239,7 @@ export default function AdminEdit() {
                                 </InputWrapper>
                             </div>
 
-                            <div className="px-4 mt-4">
-                                <label className="flex items-center gap-3 cursor-pointer group p-3 bg-gray-50 rounded-lg">
-                                    <div className="relative flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            name="is_super"
-                                            checked={formData.is_super}
-                                            onChange={handleInputChange}
-                                            className="peer w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#D10000] checked:border-[#D10000] appearance-none transition-all cursor-pointer"
-                                        />
-                                        <i className="bi bi-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
-                                    </div>
-                                    <div>
-                                        <span className="text-[14px] font-semibold text-gray-700">Super Admin</span>
-                                        <p className="text-xs text-gray-500 mt-0.5">Has access to all modules and permissions</p>
-                                    </div>
-                                </label>
-                            </div>
+
                         </div>
 
                         {!formData.is_super && (
@@ -266,18 +248,21 @@ export default function AdminEdit() {
                                     Access Module Permissions
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-6 px-4">
-                                    {modules.map((m, i) => (
+                                    {modules.map((module, i) => (
                                         <label key={i} className="flex items-center gap-3 cursor-pointer group">
                                             <div className="relative flex items-center">
                                                 <input
                                                     type="checkbox"
-                                                    checked={formData.modules.includes(m)}
-                                                    onChange={() => handleModuleToggle(m)}
-                                                    className="peer w-6 h-6 border-2 border-gray-200 rounded-lg checked:bg-[#D10000] checked:border-[#D10000] appearance-none transition-all cursor-pointer shadow-sm"
+                                                    checked={formData.modules.includes(module)}
+                                                    onChange={() => handleModuleToggle(module)}
+                                                    disabled={module === 'Dashboard & Analytics'}
+                                                    className={`peer w-5 h-5 border-2 border-gray-200 rounded-md checked:bg-[#D10000] checked:border-[#D10000] appearance-none transition-all ${module === 'Dashboard & Analytics' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                                                 />
-                                                <i className="bi bi-check-lg absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
+                                                <i className="bi bi-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
                                             </div>
-                                            <span className="text-[13px] font-[600] text-gray-700 group-hover:text-black transition-colors uppercase tracking-tighter italic">{m}</span>
+                                            <span className={`text-[14px] font-semibold transition-colors uppercase tracking-tight ${module === 'Dashboard & Analytics' ? 'text-gray-400' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                                                {module}
+                                            </span>
                                         </label>
                                     ))}
                                 </div>

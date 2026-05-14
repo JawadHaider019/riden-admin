@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { InputWrapper, Input, useToast } from '@/components/UI';
+import { InputWrapper, Input, useToast, Loader } from '@/components/UI';
 import { getPassengerById, updatePassenger, togglePassengerStatus, deletePassenger } from '@/api/passengerApi';
 import { getImageUrl } from '@/api/api';
 import { formatDate } from '@/utils/formatters';
@@ -57,7 +57,6 @@ export default function PassengerDetail() {
             setPassengerStatus(normalizedStatus);
         } catch (error) {
             console.error("Error fetching passenger:", error);
-            showToast("Failed to load passenger details", "error");
         } finally {
             setLoading(false);
         }
@@ -151,13 +150,7 @@ export default function PassengerDetail() {
     ];
 
     if (loading) {
-        return (
-            <AdminLayout title="Passenger Profile">
-                <div className="flex justify-center items-center h-[600px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D10000]"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     if (!passenger) {

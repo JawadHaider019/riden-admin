@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams } from 'react-router-dom';
-import { Badge, useToast } from '@/components/UI';
+import { Badge, useToast, Loader } from '@/components/UI';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import { getBookingDetail } from '@/api/bookingApi';
 import api, { getImageUrl } from '@/api/api';
@@ -72,25 +72,20 @@ export default function BookingDetail() {
                 // Fallback loop if show method throws 500
                 if (error.response?.status === 500) {
                     try {
-                        let found = false;
                         for (let page = 1; page <= 10; page++) {
                             const loopRes = await api.get('/admin/bookings', { params: { page } });
                             const list = loopRes.data?.data?.data || loopRes.data?.data || [];
                             const match = list.find(b => b.id == id);
                             if (match) {
                                 setBookingData(match);
-                                found = true;
                                 break;
                             }
                             const meta = loopRes.data?.data || {};
                             if (meta.current_page >= meta.last_page || !meta.next_page_url) break;
                         }
-                        if (!found) showToast("Booking not found", "error");
                     } catch (e) {
-                        showToast(error.response?.data?.message || "Failed to load booking details", "error");
+                        console.error("Fallback fetch error:", e);
                     }
-                } else {
-                    showToast(error.response?.data?.message || "Failed to load booking details", "error");
                 }
             } finally {
                 setLoading(false);
@@ -101,13 +96,7 @@ export default function BookingDetail() {
     }, [id]);
 
     if (loading) {
-        return (
-            <AdminLayout title="Booking Management">
-                <div className="flex justify-center items-center h-[600px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D10000]"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     if (!bookingData) {

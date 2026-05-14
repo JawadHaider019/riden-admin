@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Label, InputWrapper, Input, Select, Button, useToast } from '@/components/UI';
+import { Label, InputWrapper, Input, Select, Button, useToast, Loader } from '@/components/UI';
 import { getVehicleDetail, updateVehicle } from '@/api/vehicleApi';
 import { getDrivers } from '@/api/driverApi';
 import { getImageUrl } from '@/api/api';
@@ -64,7 +64,6 @@ export default function VehicleEdit() {
                 setDrivers(driversList);
             } catch (error) {
                 console.error("Failed to fetch data", error);
-                showToast("Failed to load vehicle details", "error");
             } finally {
                 setLoading(false);
             }
@@ -128,13 +127,7 @@ export default function VehicleEdit() {
     };
 
     if (loading) {
-        return (
-            <AdminLayout title="Vehicle Management">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     return (

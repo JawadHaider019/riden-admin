@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Select, InputWrapper, useToast } from '@/components/UI';
+import { Table, Select, InputWrapper, useToast, Loader } from '@/components/UI';
 import { getFares, updateFare } from '@/api/fareApi';
 
 export default function FareManagement() {
@@ -26,7 +26,7 @@ export default function FareManagement() {
                 setSelectedCarType(data.current_vehicle_type);
             }
         } catch (error) {
-            showToast(error.response?.data?.message || 'Failed to fetch fares', 'error');
+            console.error("Error fetching fares:", error);
         } finally {
             setLoading(false);
         }
@@ -119,10 +119,7 @@ export default function FareManagement() {
                 {loading ? (
                     <tr>
                         <td colSpan="8" className="py-20 text-center">
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="animate-spin w-8 h-8 border-4 border-[#D10000] border-t-transparent rounded-full"></div>
-                                <span className="text-gray-500 font-medium">Loading fares...</span>
-                            </div>
+                            <Loader />
                         </td>
                     </tr>
                 ) : fares.map((fare) => {

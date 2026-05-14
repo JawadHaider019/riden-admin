@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { InputWrapper, Input, useToast } from '@/components/UI';
+import { InputWrapper, Input, useToast, Loader } from '@/components/UI';
 import { getDriverById, updateDriver, toggleDriverStatus, deleteDriver, updateDocumentStatus } from '../../api/driverApi';
 import { getBookings } from '../../api/bookingApi';
 import { getImageUrl } from '@/api/api';
@@ -178,7 +178,6 @@ export default function DriverDetail() {
             setDriverStatus(normalizedStatus);
         } catch (error) {
             console.error("Error fetching driver:", error);
-            showToast("Failed to load driver details", "error");
         } finally {
             setLoading(false);
         }
@@ -342,13 +341,7 @@ export default function DriverDetail() {
     });
 
     if (loading) {
-        return (
-            <AdminLayout title="Driver Details">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin inline-block w-8 h-8 border-4 border-red-600 rounded-full border-t-transparent"></div>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     if (!driver) {

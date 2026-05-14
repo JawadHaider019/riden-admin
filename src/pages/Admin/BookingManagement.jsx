@@ -227,7 +227,6 @@ export default function BookingManagement() {
             setTotalItems(total);
         } catch (error) {
             console.error("DEBUG: Error fetching bookings:", error);
-            showToast(error.response?.data?.message || error.message, 'error');
         } finally {
             setLoading(false);
         }

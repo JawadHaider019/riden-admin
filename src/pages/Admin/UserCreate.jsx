@@ -13,12 +13,10 @@ export default function AdminCreate() {
     const [errors, setErrors] = useState({});
 
     const modules = [
-        'Dashboard & Analytics', 'User Management', 'Driver Management',
-        'Vehicles Management', 'Booking Management', 'Reviews & Ratings',
+        'Dashboard & Analytics', 'Driver Management', 'Passenger Management',
+        'Booking Management', 'Vehicles Management', 'Reviews & Ratings',
         'Promo code Management', 'Fare Management', 'Commission Management',
-        'Payment Management', 'Report Management', 'Passenger Management',
-        'Advertising Management', 'Support Ticket', 'Notifications',
-        'CMS management', 'Settings'
+        'Payment Management', 'Report Management', 'Support Ticket'
     ];
 
     const [formData, setFormData] = useState({
@@ -26,7 +24,7 @@ export default function AdminCreate() {
         email: '',
         phone: '',
         country_code: '+1',
-        modules: [],
+        modules: ['Dashboard & Analytics'],
         is_super: false,
         password: '',
         password_confirmation: ''
@@ -45,6 +43,7 @@ export default function AdminCreate() {
     };
 
     const handleModuleToggle = (module) => {
+        if (module === 'Dashboard & Analytics') return; // Cannot be unchecked
         setFormData(prev => ({
             ...prev,
             modules: prev.modules.includes(module)
@@ -218,24 +217,7 @@ export default function AdminCreate() {
                                 </InputWrapper>
                             </div>
 
-                            <div className="px-4 mt-4">
-                                <label className="flex items-center gap-3 cursor-pointer group p-3 bg-gray-50 rounded-lg">
-                                    <div className="relative flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            name="is_super"
-                                            checked={formData.is_super}
-                                            onChange={handleInputChange}
-                                            className="peer w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#D10000] checked:border-[#D10000] appearance-none transition-all cursor-pointer"
-                                        />
-                                        <i className="bi bi-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
-                                    </div>
-                                    <div>
-                                        <span className="text-[14px] font-semibold text-gray-700">Super Admin</span>
-                                        <p className="text-xs text-gray-500 mt-0.5">Has access to all modules and permissions</p>
-                                    </div>
-                                </label>
-                            </div>
+
                         </div>
 
                         {/* Access Module Section - Only show if NOT super admin */}
@@ -252,11 +234,12 @@ export default function AdminCreate() {
                                                     type="checkbox"
                                                     checked={formData.modules.includes(module)}
                                                     onChange={() => handleModuleToggle(module)}
-                                                    className="peer w-5 h-5 border-2 border-gray-200 rounded-md checked:bg-[#D10000] checked:border-[#D10000] appearance-none transition-all cursor-pointer"
+                                                    disabled={module === 'Dashboard & Analytics'}
+                                                    className={`peer w-5 h-5 border-2 border-gray-200 rounded-md checked:bg-[#D10000] checked:border-[#D10000] appearance-none transition-all ${module === 'Dashboard & Analytics' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                                                 />
                                                 <i className="bi bi-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
                                             </div>
-                                            <span className="text-[14px] font-semibold text-gray-600 group-hover:text-gray-900 transition-colors uppercase tracking-tight">
+                                            <span className={`text-[14px] font-semibold transition-colors uppercase tracking-tight ${module === 'Dashboard & Analytics' ? 'text-gray-400' : 'text-gray-600 group-hover:text-gray-900'}`}>
                                                 {module}
                                             </span>
                                         </label>

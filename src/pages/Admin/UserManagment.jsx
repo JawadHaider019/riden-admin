@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Button, SearchBar, DeleteModal, Pagination, DatePickerStyles, useToast } from '@/components/UI';
+import { Table, Button, SearchBar, DeleteModal, Pagination, DatePickerStyles, useToast, Loader } from '@/components/UI';
 import { Link, useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getAdmins, deleteAdmin } from '../../api/adminApi';
@@ -28,8 +28,7 @@ export default function UserManagement() {
             setAdminRoles(list);
             setFilteredAdmins(list);
         } catch (error) {
-            console.log(error);
-            showToast("Failed to load admins", "error");
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -191,10 +190,7 @@ export default function UserManagement() {
 
             {/* Loading State */}
             {loading ? (
-                <div className="bg-white rounded-xl p-8 text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D10000] mx-auto"></div>
-                    <p className="mt-4 text-gray-500">Loading admins...</p>
-                </div>
+                <Loader />
             ) : (
                 <>
                     {/* TABLE */}
@@ -230,11 +226,6 @@ export default function UserManagement() {
                                             {currentAdmin.id === admin.id && (
                                                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                                                     You
-                                                </span>
-                                            )}
-                                            {admin.is_super && (
-                                                <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">
-                                                    Super Admin
                                                 </span>
                                             )}
                                         </div>

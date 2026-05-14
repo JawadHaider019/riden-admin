@@ -18,7 +18,6 @@ export default function Analytics() {
     const [globalPeriod, setGlobalPeriod] = useState('This Week');
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [stats, setStats] = useState(null);
 
     const tabs = [
@@ -47,10 +46,8 @@ export default function Analytics() {
                 setAnalytics(analyticsRes.data);
             }
 
-            setError(null);
         } catch (error) {
             console.error("Error loading dashboard data", error);
-            setError(error.message || 'An error occurred while fetching analytics');
         } finally {
             setLoading(false);
         }
@@ -98,30 +95,7 @@ export default function Analytics() {
     }, []);
 
     if (loading) {
-        return (
-            <AdminLayout title="Dashboard & Analytics">
-                <div className="flex justify-center items-center min-h-[500px]">
-                    <Loader fullScreen={false} />
-                </div>
-            </AdminLayout>
-        );
-    }
-
-    if (error) {
-        return (
-            <AdminLayout title="Dashboard & Analytics">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                    <i className="bi bi-exclamation-triangle text-red-500 text-2xl"></i>
-                    <p className="text-red-600 mt-2">{error}</p>
-                    <button
-                        onClick={loadData}
-                        className="mt-4 px-4 py-2 bg-[#D10000] text-white rounded-full hover:bg-red-700"
-                    >
-                        Retry
-                    </button>
-                </div>
-            </AdminLayout>
-        );
+        return <Loader />;
     }
 
     // Get chart data from analytics

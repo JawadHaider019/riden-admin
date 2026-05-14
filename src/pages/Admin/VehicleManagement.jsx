@@ -107,7 +107,6 @@ export default function VehicleManagement() {
             }
         } catch (error) {
             console.error("Error fetching vehicles:", error);
-            showToast(error.response?.data?.message || error.message, 'error');
         } finally {
             setLoading(false);
         }
