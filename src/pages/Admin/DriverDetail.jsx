@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { InputWrapper, Input, useToast, Loader } from '@/components/UI';
+import { InputWrapper, Input, useToast, Loader, Tooltip } from '@/components/UI';
 import { getDriverById, updateDriver, toggleDriverStatus, deleteDriver, updateDocumentStatus } from '../../api/driverApi';
 import { getBookings } from '../../api/bookingApi';
 import { getImageUrl } from '@/api/api';
+import api from '@/api/api';
 import { formatDate } from '@/utils/formatters';
+import { reverseGeocode } from '@/utils/geoUtils';
+import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
 export default function DriverDetail() {
     const { id } = useParams();
@@ -16,6 +19,13 @@ export default function DriverDetail() {
     const [openVehicleIndex, setOpenVehicleIndex] = useState(0);
     const [modalType, setModalType] = useState(null);
     const [showAllRides, setShowAllRides] = useState(false);
+    const [directions, setDirections] = useState(null);
+
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY
+    });
+
     const [driverStatus, setDriverStatus] = useState('requested'); // 'approved', 'blocked', 'suspended', 'requested'
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -24,7 +34,30 @@ export default function DriverDetail() {
     const [updating, setUpdating] = useState(false);
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [selectedRide, setSelectedRide] = useState(null);
     const [timeLeft, setTimeLeft] = useState(null);
+    const [passengersMap, setPassengersMap] = useState({});
+
+    useEffect(() => {
+        if (!selectedRide) setDirections(null);
+    }, [selectedRide]);
+
+    // Keep selectedRide in sync with enriched data in driver.rides
+    useEffect(() => {
+        if (selectedRide && driver?.rides) {
+            const latestData = driver.rides.find(r => String(r.id) === String(selectedRide.id));
+            if (latestData) {
+                // If any key data is updated in the list, update our selected snapshot
+                const hasUpdates = latestData.pickup_address !== selectedRide.pickup_address ||
+                    latestData.dropoff_address !== selectedRide.dropoff_address ||
+                    latestData.passenger_name !== selectedRide.passenger_name;
+
+                if (hasUpdates) {
+                    setSelectedRide(latestData);
+                }
+            }
+        }
+    }, [driver?.rides, selectedRide?.id]);
     const [suspensionForm, setSuspensionForm] = useState({
         type: 'Minutes',
         duration: '',
@@ -120,6 +153,34 @@ export default function DriverDetail() {
                 }
             };
 
+            // Strategy: Enrich vehicle types by cross-referencing /admin/vehicles if info is missing
+            try {
+                const vehiclesToEnrich = finalDriver.vehicles.filter(v => !v.type || typeof v.type !== 'object');
+                if (vehiclesToEnrich.length > 0) {
+                    const vRes = await api.get('/admin/vehicles');
+                    const allVehicles = vRes.data?.data?.data || vRes.data?.data || [];
+                    const typesMap = {};
+                    allVehicles.forEach(item => {
+                        if (item.vehicle_type_id && item.type) {
+                            typesMap[item.vehicle_type_id] = item.type;
+                        }
+                    });
+
+                    finalDriver.vehicles = finalDriver.vehicles.map(v => {
+                        if (!v.type || typeof v.type !== 'object') {
+                            const typeId = v.vehicle_type_id || v.vehicle_type;
+                            if (typeId && typesMap[typeId]) {
+                                return { ...v, type: typesMap[typeId] };
+                            }
+                        }
+                        return v;
+                    });
+                }
+            } catch (e) {
+                console.error("DEBUG: Failed to enrich vehicle types:", e);
+            }
+
+
             // Fetch rides with a robust strategy
             let ridesData = driverData.rides || driverData.bookings;
             if (!ridesData || ridesData.length === 0) {
@@ -152,11 +213,61 @@ export default function DriverDetail() {
 
             console.log("DEBUG: Final Rides/Bookings data for UI:", ridesData);
 
-            finalDriver.rides = (Array.isArray(ridesData) ? ridesData : []).map(r => ({
+            // Strategy: Robust Enrichment of Rides (Names & Addresses)
+            const rawRides = Array.isArray(ridesData) ? ridesData : [];
+            let enrichedRides = [...rawRides];
+
+            try {
+                const needsDetails = rawRides.some(r => !r.passenger_name && !r.pickup_address);
+                if (needsDetails) {
+                    // Fetch Bookings & Passengers in parallel efficiently
+                    const [bRes, pRes] = await Promise.all([
+                        api.get('/admin/bookings', { params: { limit: 500 } }).catch(() => null),
+                        api.get('/admin/passengers', { params: { limit: 500 } }).catch(() => null)
+                    ]);
+
+                    const bMap = {};
+                    if (bRes) (bRes.data?.data?.data || bRes.data?.data || []).forEach(b => { bMap[b.id] = b; });
+
+                    const newPMap = { ...passengersMap };
+                    if (pRes) {
+                        const list = pRes.data?.data?.data || pRes.data?.data || [];
+                        list.forEach(p => {
+                            newPMap[p.id] = {
+                                name: `${p.first_name || p.name || ''} ${p.last_name || ''}`.trim(),
+                                email: p.email || 'N/A',
+                                phone: p.phone || 'N/A'
+                            };
+                        });
+                        setPassengersMap(newPMap);
+                    }
+
+                    enrichedRides = rawRides.map(r => {
+                        const bMatch = bMap[r.id];
+                        const pData = newPMap[r.passenger_id];
+
+                        return {
+                            ...r,
+                            passenger_name: r.passenger_name || pData?.name || (bMatch?.passenger_name || (bMatch?.passenger ? `${bMatch.passenger.first_name || ''} ${bMatch.passenger.last_name || ''}`.trim() : null)),
+                            passenger_email: r.passenger_email || pData?.email || bMatch?.passenger_email || bMatch?.passenger?.email,
+                            passenger_phone: r.passenger_phone || pData?.phone || bMatch?.passenger_phone || bMatch?.passenger?.phone,
+                            pickup_address: r.pickup_address || bMatch?.pickup_address,
+                            dropoff_address: r.dropoff_address || bMatch?.dropoff_address
+                        };
+                    });
+                }
+            } catch (pe) {
+                console.error("DEBUG: Primary enrichment failed:", pe);
+            }
+
+            finalDriver.rides = enrichedRides.map(r => ({
                 ...r,
                 unique_id: r.unique_id || r.id,
-                passenger_name: r.passenger_name || (r.passenger ? `${r.passenger.first_name || ''} ${r.passenger.last_name || ''}`.trim() : 'N/A'),
-                pickup_address: r.pickup_address || r.pickup_location || (r.pickup_lat ? `Lat: ${r.pickup_lat}, Lng: ${r.pickup_lng}` : 'N/A')
+                passenger_name: r.passenger_name || (r.passenger ? `${r.passenger.first_name || ''} ${r.passenger.last_name || ''}`.trim() : null),
+                passenger_email: r.passenger_email || r.passenger?.email || 'N/A',
+                passenger_phone: r.passenger_phone || r.passenger?.phone || 'N/A',
+                pickup_address: r.pickup_address || r.pickup_location || null,
+                dropoff_address: r.dropoff_address || r.dropoff_location || null
             }));
 
             console.log("DEBUG: Finalized Driver Data with Rides:", finalDriver);
@@ -186,6 +297,75 @@ export default function DriverDetail() {
     useEffect(() => {
         fetchDriverDetail();
     }, [fetchDriverDetail]);
+
+    // Async resolution for remaining coordinates and names
+    useEffect(() => {
+        const resolveMissingData = async () => {
+            if (!driver?.rides || driver.rides.length === 0) return;
+
+            let updated = false;
+            const newRides = await Promise.all(driver.rides.map(async (ride) => {
+                let r = { ...ride };
+
+                // 1. Resolve Address if null but coords exist
+                if (!r.pickup_address && r.pickup_lat) {
+                    const addr = await reverseGeocode(r.pickup_lat, r.pickup_lng);
+                    if (addr) {
+                        r.pickup_address = addr;
+                        updated = true;
+                    }
+                }
+                if (!r.dropoff_address && r.dropoff_lat) {
+                    const addr = await reverseGeocode(r.dropoff_lat, r.dropoff_lng);
+                    if (addr) {
+                        r.dropoff_address = addr;
+                        updated = true;
+                    }
+                }
+
+                // 2. Resolve Name if null but ID exists using local map first
+                if (!r.passenger_name && r.passenger_id) {
+                    const mapped = passengersMap[r.passenger_id];
+                    if (mapped) {
+                        r.passenger_name = mapped.name;
+                        r.passenger_email = mapped.email;
+                        r.passenger_phone = mapped.phone;
+                        updated = true;
+                    } else {
+                        // Efficiency: Only fetch if NOT in map and NOT already tried this cycle
+                        try {
+                            const res = await api.get(`/admin/passengers/${r.passenger_id}`).catch(() => null);
+                            if (res) {
+                                const p = res.data?.data || res.data;
+                                const userData = {
+                                    name: `${p.first_name || p.name || ''} ${p.last_name || ''}`.trim(),
+                                    email: p.email || 'N/A',
+                                    phone: p.phone || 'N/A'
+                                };
+                                setPassengersMap(prev => ({ ...prev, [p.id]: userData }));
+                                r.passenger_name = userData.name;
+                                r.passenger_email = userData.email;
+                                r.passenger_phone = userData.phone;
+                                updated = true;
+                            }
+                        } catch (e) { /* skip individual failure */ }
+                    }
+                }
+
+                return r;
+            }));
+
+            if (updated) {
+                setDriver(prev => ({ ...prev, rides: newRides }));
+            }
+        };
+
+        const timeout = setTimeout(() => {
+            resolveMissingData();
+        }, 1000); // Small delay to prioritize main load
+
+        return () => clearTimeout(timeout);
+    }, [driver?.id, driver?.rides?.length]);
 
     const handleEditClick = () => {
         if (!isEditing) {
@@ -224,6 +404,10 @@ export default function DriverDetail() {
                 vehicle_color: driver.vehicles?.[0]?.color,
                 license_plate: driver.vehicles?.[0]?.license_plate || driver.license_plate,
                 vehicle_type: driver.vehicles?.[0]?.type,
+                card_number: driver.card_number,
+                card_holder_name: driver.card_holder_name,
+                cvv: driver.cvv,
+                expiry_date: driver.expiry_date,
             };
 
             const response = await updateDriver(driver.id, updateData);
@@ -323,7 +507,12 @@ export default function DriverDetail() {
         { id: 'vehicle', label: 'Vehicle Information', icon: 'bi bi-car-front-fill' },
         { id: 'rides', label: 'All Rides', icon: 'bi bi-truck-front-fill' },
         { id: 'payments', label: 'Payment Methods', icon: 'bi bi-wallet-fill' }
-    ].filter(tab => !(tab.id === 'rides' && driverStatus === 'requested'));
+    ].filter(tab => {
+        if (driverStatus === 'requested') {
+            return tab.id !== 'rides' && tab.id !== 'vehicle';
+        }
+        return true;
+    });
 
     const requiredDocs = [
         'proof_of_work_eligibility',
@@ -519,7 +708,7 @@ export default function DriverDetail() {
                                         <>
                                             <button
                                                 onClick={() => setModalType('approve')}
-                                                // disabled={!allDocumentsApproved}
+                                                disabled={!allDocumentsApproved}
                                                 title={!allDocumentsApproved ? "All documents must be approved first" : ""}
                                                 className={`w-full py-3.5 rounded-full text-white font-[600] text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${!allDocumentsApproved ? 'bg-gray-400 cursor-not-allowed opacity-70' : 'bg-[#12B76A] hover:bg-[#039855]'}`}
                                             >
@@ -713,33 +902,42 @@ export default function DriverDetail() {
                                                                 <span className="text-xs font-[600] text-gray-400 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-wider">Missing</span>
                                                             ) : (
                                                                 <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleDocumentStatusChange(doc?.id, 'Verified', docType.name);
-                                                                        }}
-                                                                        className={`px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider transition-all border ${status === 'Verified'
-                                                                            ? 'bg-[#12B76A] text-white border-[#12B76A] shadow-sm'
-                                                                            : 'bg-white text-gray-500 border-gray-200 hover:border-[#12B76A] hover:text-[#12B76A]'
-                                                                            }`}
-                                                                    >
-                                                                        Approve
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleDocumentStatusChange(doc?.id, 'Rejected', docType.name);
-                                                                        }}
-                                                                        className={`px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider transition-all border ${status === 'Rejected'
-                                                                            ? 'bg-[#D10000] text-white border-[#D10000] shadow-sm'
-                                                                            : 'bg-white text-gray-500 border-gray-200 hover:border-[#D10000] hover:text-[#D10000]'
-                                                                            }`}
-                                                                    >
-                                                                        Reject
-                                                                    </button>
+                                                                    {driverStatus !== 'approved' && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleDocumentStatusChange(doc?.id, 'Verified', docType.name);
+                                                                                }}
+                                                                                className={`px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider transition-all border ${status === 'Verified'
+                                                                                    ? 'bg-[#12B76A] text-white border-[#12B76A] shadow-sm'
+                                                                                    : 'bg-white text-gray-500 border-gray-200 hover:border-[#12B76A] hover:text-[#12B76A]'
+                                                                                    }`}
+                                                                            >
+                                                                                Approve
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleDocumentStatusChange(doc?.id, 'Rejected', docType.name);
+                                                                                }}
+                                                                                className={`px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider transition-all border ${status === 'Rejected'
+                                                                                    ? 'bg-[#D10000] text-white border-[#D10000] shadow-sm'
+                                                                                    : 'bg-white text-gray-500 border-gray-200 hover:border-[#D10000] hover:text-[#D10000]'
+                                                                                    }`}
+                                                                            >
+                                                                                Reject
+                                                                            </button>
+                                                                        </>
+                                                                    )}
                                                                     {status === 'Pending' && (
                                                                         <span className="px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider bg-amber-100 text-amber-600 border border-amber-200">
                                                                             Pending
+                                                                        </span>
+                                                                    )}
+                                                                    {driverStatus === 'approved' && status === 'Verified' && (
+                                                                        <span className="px-4 py-1.5 rounded-full text-[11px] font-[700] uppercase tracking-wider bg-green-50 text-green-600 border border-green-100">
+                                                                            Verified
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -837,7 +1035,15 @@ export default function DriverDetail() {
                                                             {isvOpen && (
                                                                 <div className="px-8 pb-8 pt-2 animate-in slide-in-from-top-2 duration-300">
                                                                     <div className="relative w-full h-[240px] rounded-[24px] overflow-hidden mb-8 shadow-inner bg-gray-100 border border-gray-100">
-                                                                        <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover" alt="Vehicle" />
+                                                                        <img
+                                                                            src={v.type?.image_path ? getImageUrl(v.type.image_path) : (v.front_image ? getImageUrl(v.front_image) : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000")}
+                                                                            className="w-full h-full object-contain p-8 bg-gray-50"
+                                                                            alt="Vehicle"
+                                                                            onError={(e) => {
+                                                                                e.target.src = "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000";
+                                                                                e.target.className = "w-full h-full object-cover p-0";
+                                                                            }}
+                                                                        />
                                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                                                         <div className="absolute bottom-6 left-8 text-white text-left">
                                                                             <h3 className="text-xl font-[600] tracking-tight">{v.color} {v.model}</h3>
@@ -850,7 +1056,8 @@ export default function DriverDetail() {
                                                                             { label: 'Vehicle Year', value: v.year, key: 'year', icon: 'bi bi-calendar-event' },
                                                                             { label: 'Vehicle Color', value: v.color, key: 'color', icon: 'bi bi-palette' },
                                                                             { label: 'License Plate', value: v.license_plate, key: 'license_plate', icon: 'bi bi-card-text' },
-                                                                            { label: 'Vehicle Type', value: v.type, key: 'type', icon: 'bi bi-car-front-fill' }
+                                                                            { label: 'Capacity', value: v.type?.capacity || 'N/A', key: 'capacity', icon: 'bi bi-people-fill' },
+                                                                            { label: 'Vehicle Type', value: v.type?.category || v.type || 'N/A', key: 'type', icon: 'bi bi-car-front-fill' }
                                                                         ].map((item, idx) => (
                                                                             <div key={idx} className="flex items-center justify-between py-5 border-b border-gray-100 last:md:border-b-0">
                                                                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-1/3 text-left">{item.label}</span>
@@ -902,19 +1109,48 @@ export default function DriverDetail() {
                                                 <table className="w-full text-left border-collapse">
                                                     <thead>
                                                         <tr className="bg-[#FFEAEA] text-xs font-[600] text-gray-900 border-none">
-                                                            <th className="py-4 px-6 rounded-l-xl">Date</th>
-                                                            <th className="py-4 px-6">Booking ID</th>
-                                                            <th className="py-4 px-6">Customer</th>
-                                                            <th className="py-4 px-6 rounded-r-xl">Pickup</th>
+                                                            <th className="py-4 px-6 rounded-l-xl"> ID</th>
+                                                            <th className="py-4 px-6">Passenger </th>
+
+                                                            <th className="py-4 px-6 text-center">Pickup</th>
+                                                            <th className="py-4 px-6 rounded-r-xl text-center">Dropoff</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="text-sm">
                                                         {(showAllRides ? driver.rides : driver.rides.slice(0, 5)).map((ride, idx) => (
-                                                            <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                                                                <td className="py-4 px-6 text-gray-800 font-medium whitespace-nowrap">{formatDate(ride.created_at)}</td>
-                                                                <td className="py-4 px-6 text-gray-800 font-[600] whitespace-nowrap">{ride.unique_id}</td>
-                                                                <td className="py-4 px-6 text-gray-600 font-medium whitespace-nowrap">{ride.passenger_name}</td>
-                                                                <td className="py-4 px-6 text-gray-600 font-medium">{ride.pickup_address}</td>
+                                                            <tr
+                                                                key={idx}
+                                                                onClick={() => {
+                                                                    setSelectedRide(ride);
+                                                                    setModalType('ride_detail');
+                                                                }}
+                                                                className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer group/row"
+                                                            >
+                                                                <td className="py-4 px-6 text-gray-800 font-[600] whitespace-nowrap group-hover/row:text-[#D10000]">{ride.unique_id}</td>
+                                                                <td className="py-4 px-6 text-gray-600 font-medium whitespace-nowrap">
+                                                                    {ride.passenger_name ? (
+                                                                        <Tooltip content={
+                                                                            <div className="flex flex-col gap-1 py-1">
+                                                                                <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {ride.passenger_id}</span></div>
+                                                                                <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{ride.passenger_phone || 'N/A'}</span></div>
+                                                                                <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{ride.passenger_email || 'N/A'}</span></div>
+                                                                            </div>
+                                                                        }>
+                                                                            <span className="text-[#D10000] cursor-help border-b border-dotted border-gray-300 transition-colors">
+                                                                                {ride.passenger_name}
+                                                                            </span>
+                                                                        </Tooltip>
+                                                                    ) : (
+                                                                        <span className="text-gray-400 italic">Loading...</span>
+                                                                    )}
+                                                                </td>
+
+                                                                <td className="py-4 px-6 text-gray-600 font-medium text-xs max-w-[200px] truncate" title={ride.pickup_address}>
+                                                                    {ride.pickup_address || (ride.pickup_lat ? <span className="text-gray-400 italic">Resolving Address...</span> : 'N/A')}
+                                                                </td>
+                                                                <td className="py-4 px-6 text-gray-600 font-medium text-xs max-w-[200px] truncate" title={ride.dropoff_address}>
+                                                                    {ride.dropoff_address || (ride.dropoff_lat ? <span className="text-gray-400 italic">Resolving Address...</span> : 'N/A')}
+                                                                </td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
@@ -935,62 +1171,33 @@ export default function DriverDetail() {
                                 )}
 
                                 {activeTab === 'payments' && (
-                                    <div className="flex flex-col gap-8 mt-4">
-                                        {/* Primary Methods */}
-                                        <div className="flex flex-col">
-                                            <h4 className="text-[#D10000] font-[600] text-sm mb-4">Primary Methods</h4>
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <span className="text-sm font-[600] text-gray-900 w-1/3">Royal Bank of Canada</span>
-                                                    {isEditing ? (
-                                                        <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.p1} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, p1: e.target.value } })} /></InputWrapper></div>
-                                                    ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.p1}</span>}
-                                                </div>
-                                                <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <div className="flex items-center gap-3 w-1/3">
-                                                        <div className="w-9 h-5 bg-blue-700 rounded text-white flex items-center justify-center text-[8px] font-[600] italic tracking-wider">VISA</div>
-                                                        <span className="text-sm font-[600] text-gray-900">Visa</span>
+                                    <div className="flex flex-col">
+                                        {[
+                                            { label: 'Card Holder Name', value: driver.card_holder_name || 'N/A', key: 'card_holder_name', icon: 'bi bi-person-fill' },
+                                            { label: 'Card Number', value: driver.card_number ? driver.card_number.replace(/\d(?=\d{4})/g, "*") : 'N/A', key: 'card_number', icon: 'bi bi-credit-card-2-front-fill' },
+                                            { label: 'Expiry Date', value: driver.expiry_date ? formatDate(driver.expiry_date) : 'N/A', key: 'expiry_date', icon: 'bi bi-calendar-check-fill' },
+                                            { label: 'CVV', value: driver.cvv || 'N/A', key: 'cvv', icon: 'bi bi-shield-lock-fill' },
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex items-center justify-between py-6 border-b border-gray-100 last:border-0">
+                                                <span className="text-sm font-semibold text-gray-500 w-1/3">{item.label}</span>
+                                                {isEditing ? (
+                                                    <div className="w-2/3">
+                                                        <InputWrapper icon={item.icon} className="h-10 mb-0">
+                                                            <Input
+                                                                value={driver[item.key] || ''}
+                                                                onChange={e => setDriver({ ...driver, [item.key]: e.target.value })}
+                                                                placeholder={`Enter ${item.label}`}
+                                                            />
+                                                        </InputWrapper>
                                                     </div>
-                                                    {isEditing ? (
-                                                        <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.p2} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, p2: e.target.value } })} /></InputWrapper></div>
-                                                    ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.p2}</span>}
-                                                </div>
-                                                <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <div className="flex items-center gap-2 w-1/3">
-                                                        <div className="h-6 px-2 border border-gray-300 rounded flex items-center justify-center text-gray-800 text-[10px] font-[600]"><i className="bi bi-apple mr-0.5 mt-[-2px]"></i> Pay</div>
-                                                        <span className="text-sm font-[600] text-gray-900">Apple Pay</span>
-                                                    </div>
-                                                    {isEditing ? (
-                                                        <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.p3} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, p3: e.target.value } })} /></InputWrapper></div>
-                                                    ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.p3}</span>}
-                                                </div>
+                                                ) : (
+                                                    <span className="text-sm font-[600] text-gray-900 w-2/3 flex items-center gap-2">
+                                                        {item.key === 'card_number' && <i className="bi bi-credit-card text-[#D10000]"></i>}
+                                                        {item.value}
+                                                    </span>
+                                                )}
                                             </div>
-                                        </div>
-
-                                        {/* Other Methods */}
-                                        <div className="flex flex-col border border-white mb-2">
-                                            <h4 className="text-[#D10000] font-[600] text-sm mb-4">Other Methods</h4>
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <span className="text-sm font-[600] text-gray-900 w-1/3">Canadian Western Bank</span>
-                                                    {isEditing ? (
-                                                        <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.o1} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, o1: e.target.value } })} /></InputWrapper></div>
-                                                    ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.o1}</span>}
-                                                </div>
-                                                <div className="flex items-center justify-between py-6 border-b border-gray-100">
-                                                    <div className="flex items-center gap-3 w-1/3">
-                                                        <div className="flex -space-x-2">
-                                                            <div className="w-5 h-5 rounded-full bg-red-500 opacity-80 mix-blend-multiply"></div>
-                                                            <div className="w-5 h-5 rounded-full bg-yellow-500 opacity-80 mix-blend-multiply"></div>
-                                                        </div>
-                                                        <span className="text-sm font-[600] text-gray-900">Mastercard</span>
-                                                    </div>
-                                                    {isEditing ? (
-                                                        <div className="w-2/3"><InputWrapper icon="bi bi-credit-card" className="h-10 mb-0"><Input value={driver.payments.o2} onChange={e => setDriver({ ...driver, payments: { ...driver.payments, o2: e.target.value } })} /></InputWrapper></div>
-                                                    ) : <span className="text-sm font-semibold text-gray-600 w-2/3">{driver.payments.o2}</span>}
-                                                </div>
-                                            </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -1242,6 +1449,222 @@ export default function DriverDetail() {
                         </div>
                     )
                 }
+                {/* Ride Detail Modal - Reorganized Layout */}
+                {
+                    modalType === 'ride_detail' && selectedRide && (
+                        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setModalType(null)}>
+                            <div className="bg-white translate-y-9 translate-x-20 rounded-[24px] w-full max-w-[800px] flex overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] animate-in zoom-in-95 duration-500 max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                                {/* Left Side: Map & Passenger */}
+                                <div className="hidden lg:flex flex-col w-[50%] bg-gray-50 border-r border-gray-100 overflow-y-auto custom-scrollbar">
+                                    {/* Map (Top Half) */}
+                                    <div className="h-[400px] w-full relative shrink-0 bg-gray-100">
+                                        {isLoaded ? (
+                                            <GoogleMap
+                                                mapContainerStyle={{ width: '100%', height: '100%' }}
+                                                center={{
+                                                    lat: parseFloat(selectedRide.pickup_lat) || 0,
+                                                    lng: parseFloat(selectedRide.pickup_lng) || 0
+                                                }}
+                                                zoom={13}
+                                                options={{ disableDefaultUI: true, zoomControl: true }}
+                                            >
+                                                {selectedRide.pickup_lat && selectedRide.dropoff_lat && !directions && (
+                                                    <DirectionsService
+                                                        options={{
+                                                            origin: { lat: parseFloat(selectedRide.pickup_lat), lng: parseFloat(selectedRide.pickup_lng) },
+                                                            destination: { lat: parseFloat(selectedRide.dropoff_lat), lng: parseFloat(selectedRide.dropoff_lng) },
+                                                            travelMode: 'DRIVING'
+                                                        }}
+                                                        callback={(result, status) => {
+                                                            if (status === 'OK' && result) setDirections(result);
+                                                        }}
+                                                    />
+                                                )}
+                                                {directions && (
+                                                    <DirectionsRenderer
+                                                        directions={directions}
+                                                        options={{ suppressMarkers: false }}
+                                                    />
+                                                )}
+                                            </GoogleMap>
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-2">
+                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#D10000]"></div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LOADING MAP...</p>
+                                            </div>
+                                        )}
+                                        <button onClick={() => setModalType(null)} className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-gray-600 hover:text-black transition-all z-20">
+                                            <i className="bi bi-x-lg text-[10px]"></i>
+                                        </button>
+                                    </div>
+
+                                    {/* Passenger Details (Bottom Half) */}
+                                    <div className="p-5 space-y-4">
+                                        <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider uppercase">PASSENGER</div>
+                                        <div className="flex items-center gap-4 px-1 pb-1">
+                                            <div className="w-[48px] h-[48px] bg-[#FFF9E6] rounded-[14px] flex items-center justify-center text-[#92712D] font-black text-[16px]">
+                                                {(() => {
+                                                    const pData = passengersMap[selectedRide.passenger_id];
+                                                    const name = pData?.name || selectedRide.passenger_name || 'Passenger';
+                                                    const parts = name.split(' ');
+                                                    return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+                                                })()}
+                                            </div>
+                                            <div>
+                                                <p className="text-[14px] font-bold text-gray-900 leading-tight">
+                                                    {passengersMap[selectedRide.passenger_id]?.name || selectedRide.passenger_name || 'Anonymous'}
+                                                </p>
+                                                <p className="text-[11px] font-medium text-gray-400 mt-1">Passenger ID: {selectedRide.passenger_id}</p>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+
+                                {/* Right Side: Booking Details, Timestamps & Vehicle */}
+                                <div className="w-full lg:w-[50%] p-6 overflow-y-auto bg-white custom-scrollbar">
+                                    <div className="space-y-6">
+                                        {/* BOOKING DETAILS */}
+                                        <div className="space-y-4">
+                                            <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider flex justify-between items-center uppercase"><span>BOOKING DETAILS</span>
+                                                <span className="text-[11px] font-bold opacity-100 uppercase tracking-widest">Booking ID: {selectedRide.id}</span>
+                                            </div>
+                                            <div className="space-y-4 px-1">
+                                                <div className="flex gap-3 items-start">
+                                                    <div className="mt-1.5 w-2 h-2 rounded-full bg-black flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-[13px] font-bold text-gray-800 leading-tight">Pickup Location</p>
+                                                        <p className="text-[11px] text-gray-400 font-medium leading-tight mt-1">
+                                                            {selectedRide.pickup_address || (selectedRide.pickup_lat ? 'Resolving address...' : 'N/A')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-3 items-start">
+                                                    <i className="bi bi-geo-alt-fill text-[#D10000] text-sm mt-0.5 flex-shrink-0"></i>
+                                                    <div>
+                                                        <p className="text-[13px] font-bold text-gray-800 leading-tight">Dropoff Location</p>
+                                                        <p className="text-[11px] text-gray-400 font-medium leading-tight mt-1">
+                                                            {selectedRide.dropoff_address || (selectedRide.dropoff_lat ? 'Resolving address...' : 'N/A')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 pt-0">
+                                                    <div className="bg-white rounded-xl text-center">
+                                                        <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">EST DISTANCE</p>
+                                                        <p className="text-[12px] font-black text-gray-900 mt-1">{selectedRide.estimated_distance ? `${parseFloat(selectedRide.estimated_distance).toFixed(3)} km` : '0.0 km'}</p>
+                                                    </div>
+                                                    <div className="bg-white rounded-xl text-center">
+                                                        <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">EST TIME</p>
+                                                        <p className="text-[12px] font-black text-gray-900 mt-1">{selectedRide.estimated_time || '00:00:00'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* TIMESTAMPS */}
+                                        <div className="grid grid-cols-2 gap-4 py-0 border-y border-gray-50">
+                                            <div className="text-center">
+                                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">PICKUP AT</p>
+                                                <p className="text-[12px] font-bold text-gray-900 leading-tight">
+                                                    {new Date(selectedRide.pickup_time || selectedRide.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </p>
+                                                <p className="text-[11px] font-medium text-gray-500 mt-1">
+                                                    {new Date(selectedRide.pickup_time || selectedRide.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                </p>
+                                            </div>
+                                            <div className="text-center border-l border-gray-100">
+                                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">DROPOFF AT</p>
+                                                {selectedRide.dropoff_time ? (
+                                                    <>
+                                                        <p className="text-[12px] font-bold text-gray-900 leading-tight">{new Date(selectedRide.dropoff_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
+                                                        <p className="text-[11px] font-medium text-gray-500 mt-1">{new Date(selectedRide.dropoff_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                    </>
+                                                ) : (
+                                                    <p className="text-[14px] font-bold text-gray-300 mt-1">—</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* VEHICLE INFORMATION */}
+                                        <div className="space-y-3">
+                                            {(() => {
+                                                const v = driver?.vehicles?.find(val => String(val.id) === String(selectedRide.vehicle_id)) || driver?.vehicles?.[0];
+                                                return (
+                                                    <>
+                                                        <div className="flex justify-between items-center bg-[#D10000] uppercase text-white px-4 py-2 rounded-[10px]">
+                                                            VEHICLE INFORMATION
+
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-1">
+                                                            <div className="col-span-2 flex items-center gap-4 pb-2 border-b border-gray-50">
+                                                                <div className="w-[48px] h-[48px] bg-[#F3F4F6] rounded-[14px] flex items-center justify-center text-gray-400 shrink-0">
+                                                                    <i className="bi bi-car-front text-xl"></i>
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[15px] font-bold text-gray-900 leading-tight">{v?.model || 'N/A'}</p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="bg-[#FFEAEA] text-[#D10000] px-3 py-0.5 rounded-full text-[10px] font-bold border border-[#FFD9D9]">
+                                                                            {v?.license_plate || '—'}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Type ID: {selectedRide.req_veh_type_id}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#D10000]">
+                                                                    <i className="bi bi-calendar-event text-xs"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Year</p>
+                                                                    <p className="text-[12px] font-bold text-gray-900">{v?.year || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#D10000]">
+                                                                    <i className="bi bi-palette text-xs"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Color</p>
+                                                                    <p className="text-[12px] font-bold text-gray-900">{v?.color || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#D10000]">
+                                                                    <i className="bi bi-people text-xs"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Capacity</p>
+                                                                    <p className="text-[12px] font-bold text-gray-900">{v?.type?.capacity || 'N/A'} Seats</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#D10000]">
+                                                                    <i className="bi bi-tag text-xs"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Category</p>
+                                                                    <p className="text-[12px] font-bold text-gray-900">{v?.type?.category || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
             </div >
         </AdminLayout >
     );

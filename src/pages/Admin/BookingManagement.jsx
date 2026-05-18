@@ -553,11 +553,11 @@ export default function BookingManagement() {
                                 C$ {booking.fare || '0.00'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.pickup_location}>
                                 {booking.pickup_location || (booking.pickup_lat ? `${parseFloat(booking.pickup_lat).toFixed(4)}, ${parseFloat(booking.pickup_lng).toFixed(4)}` : 'N/A')}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.dropoff_location}>
                                 {booking.dropoff_location || (booking.dropoff_lat ? `${parseFloat(booking.dropoff_lat).toFixed(4)}, ${parseFloat(booking.dropoff_lng).toFixed(4)}` : 'N/A')}
                             </td>
 

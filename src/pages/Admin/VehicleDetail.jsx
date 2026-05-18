@@ -3,6 +3,7 @@ import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge, useToast, Loader } from '@/components/UI';
 import { getVehicleDetail, deleteVehicle } from '@/api/vehicleApi';
+import { getDriverById } from '@/api/driverApi';
 import { STORAGE_URL, getImageUrl } from '@/api/api';
 
 export default function VehicleDetail() {
@@ -19,7 +20,17 @@ export default function VehicleDetail() {
             try {
                 setLoading(true);
                 const res = await getVehicleDetail(id);
-                setVehicle(res.data || res);
+                const vData = res.data || res;
+                setVehicle(vData);
+
+                // Fallback: If driver object is missing but driver_id exists, fetch it
+                if (!vData.driver && vData.driver_id) {
+                    try {
+                        const dRes = await getDriverById(vData.driver_id);
+                        const dData = dRes.data || dRes;
+                        setVehicle(prev => ({ ...prev, driver: dData }));
+                    } catch (e) { console.error("Could not fetch driver fallback:", e); }
+                }
             } catch (error) {
                 console.error('Failed to fetch vehicle details', error);
             } finally {
@@ -38,6 +49,7 @@ export default function VehicleDetail() {
     const images = [];
     if (vehicle.front_image) images.push(getImageUrl(vehicle.front_image));
     if (vehicle.back_image) images.push(getImageUrl(vehicle.back_image));
+    if (images.length === 0 && vehicle.type?.image_path) images.push(getImageUrl(vehicle.type.image_path));
     if (images.length === 0) images.push(null); // Placeholder fallback
 
     const handleDelete = async () => {
@@ -92,7 +104,7 @@ export default function VehicleDetail() {
                         {images[currentImageIndex] ? (
                             <img
                                 src={images[currentImageIndex]}
-                                className="w-full h-full object-cover transition-transform duration-500"
+                                className="w-full h-full object-contain transition-transform duration-500"
                                 alt="Vehicle View"
                             />
                         ) : (
@@ -180,10 +192,16 @@ export default function VehicleDetail() {
                                     </div>
                                     <div className="flex items-center justify-between px-1">
                                         <div className="flex items-center gap-3">
-                                            <img src={vehicle.driver.avatar || `https://i.pravatar.cc/100?u=${vehicle.driver_id}`} className="w-12 h-12 rounded-[14px] object-cover" alt="Driver" />
+                                            <img
+                                                src={getImageUrl(vehicle.driver.avatar) || `https://ui-avatars.com/api/?name=${encodeURIComponent(vehicle.driver.first_name || 'Driver')}&background=random&color=fff`}
+                                                className="w-12 h-12 rounded-[14px] object-cover"
+                                                alt="Driver"
+                                            />
                                             <div>
-                                                <p className="text-sm font-[600] text-gray-900">{vehicle.driver.name || 'Unknown Driver'}</p>
-                                                <p className="text-xs text-gray-400 font-medium">{vehicle.driver.total_rides || 0} Completed Rides</p>
+                                                <p className="text-sm font-[600] text-gray-900">
+                                                    {vehicle.driver.first_name || ''} {vehicle.driver.last_name || ''}
+                                                </p>
+
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -228,8 +246,8 @@ export default function VehicleDetail() {
                                     <div className="relative mb-5 min-h-[44px]">
                                         <div className="absolute -left-[27px] top-[5px] w-[10px] h-[10px] bg-black rounded-full"></div>
                                         <div className="flex flex-col">
-                                            <p className="text-sm font-[600] text-gray-900">{vehicle.vehicle_type} Category</p>
-                                            <p className="text-[11px] text-gray-400 font-medium">Standard fleet classification.</p>
+                                            <p className="text-sm font-[600] text-gray-900">{vehicle.type?.category || vehicle.vehicle_type} Category</p>
+                                            <p className="text-[11px] text-gray-400 font-medium leading-relaxed italic">{vehicle.type?.car_details || 'Standard fleet classification.'}</p>
                                         </div>
                                     </div>
                                     <div className="relative min-h-[44px]">
@@ -237,7 +255,7 @@ export default function VehicleDetail() {
                                             <i className="bi bi-people-fill text-base"></i>
                                         </div>
                                         <div className="flex flex-col">
-                                            <p className="text-sm font-[600] text-gray-900">{vehicle.no_of_seats || 'N/A'} Seats Capacity</p>
+                                            <p className="text-sm font-[600] text-gray-900">{vehicle.type?.capacity || vehicle.no_of_seats || 'N/A'}</p>
                                             <p className="text-[11px] text-gray-400 font-medium">Optimized for group mobility.</p>
                                         </div>
                                     </div>
@@ -257,7 +275,7 @@ export default function VehicleDetail() {
                                     <div className="w-px bg-gray-100 h-8 mt-1"></div>
                                     <div className="text-center">
                                         <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">Type</p>
-                                        <p className="text-sm font-[600] text-[#D10000]">{vehicle.vehicle_type}</p>
+                                        <p className="text-sm font-[600] text-[#D10000]">{vehicle.type?.category || vehicle.vehicle_type}</p>
                                     </div>
                                 </div>
                             </div>

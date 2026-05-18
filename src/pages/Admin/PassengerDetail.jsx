@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { InputWrapper, Input, useToast, Loader } from '@/components/UI';
+import { InputWrapper, Input, useToast, Loader, Tooltip } from '@/components/UI';
 import { getPassengerById, updatePassenger, togglePassengerStatus, deletePassenger } from '@/api/passengerApi';
+import { getBookings } from '@/api/bookingApi';
 import { getImageUrl } from '@/api/api';
+import api from '@/api/api';
 import { formatDate } from '@/utils/formatters';
+import { reverseGeocode } from '@/utils/geoUtils';
+import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
 export default function PassengerDetail() {
     const { id } = useParams();
@@ -20,6 +24,31 @@ export default function PassengerDetail() {
     const [originalPassenger, setOriginalPassenger] = useState(null);
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [selectedRide, setSelectedRide] = useState(null);
+    const [directions, setDirections] = useState(null);
+    const [driversMap, setDriversMap] = useState({});
+
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY
+    });
+
+    useEffect(() => {
+        if (!selectedRide) setDirections(null);
+    }, [selectedRide]);
+
+    // Keep selectedRide in sync with enriched data
+    useEffect(() => {
+        if (selectedRide && passenger?.rides) {
+            const latestData = passenger.rides.find(r => String(r.id) === String(selectedRide.id));
+            if (latestData) {
+                const hasUpdates = latestData.pickup_address !== selectedRide.pickup_address ||
+                    latestData.dropoff_address !== selectedRide.dropoff_address ||
+                    latestData.driver_name !== selectedRide.driver_name;
+                if (hasUpdates) setSelectedRide(latestData);
+            }
+        }
+    }, [passenger?.rides, selectedRide?.id]);
 
     const fetchPassengerDetail = useCallback(async () => {
         try {
@@ -32,35 +61,111 @@ export default function PassengerDetail() {
                 return;
             }
 
+            // Fetch rides robustly
+            let rawRides = data.rides || data.bookings || [];
+            let ridesData = Array.isArray(rawRides) ? rawRides : [];
+
+            if (ridesData.length === 0) {
+                try {
+                    const bookingsRes = await getBookings({ passenger_id: id, limit: 100 });
+                    const fetchedRides = bookingsRes.data?.data || bookingsRes.data || [];
+                    ridesData = Array.isArray(fetchedRides) ? fetchedRides : [];
+                } catch (e) { ridesData = []; }
+            }
+
             const formatted = {
                 ...data,
                 name: data.name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'N/A',
                 since: data.created_at ? `Since ${formatDate(data.created_at)}` : (data.since || 'N/A'),
                 rating: data.rating || 5.0,
                 id: data.id || id,
+                rides: ridesData,
                 stats: {
-                    total_rides: data.total_rides || data.stats?.total_rides || 0,
+                    total_rides: data.total_rides || data.stats?.total_rides || ridesData.length || 0,
                     completed_rides: data.completed_rides || data.stats?.completed_rides || 0,
                     cancelled_rides: data.cancelled_rides || data.stats?.cancelled_rides || 0
                 },
-                payments: data.payments || {
-                    p1: 'N/A', p2: 'N/A', p3: 'N/A',
-                    o1: 'N/A', o2: 'N/A'
-                }
+                payments: data.payments || { p1: 'N/A', p2: 'N/A', p3: 'N/A', o1: 'N/A', o2: 'N/A' }
             };
 
             setPassenger(formatted);
             setOriginalPassenger(JSON.parse(JSON.stringify(formatted)));
 
             const rawStatus = data.status?.toLowerCase() || 'active';
-            const normalizedStatus = (rawStatus === 'inactive' || rawStatus === 'block' || rawStatus === 'blocked') ? 'blocked' : 'active';
-            setPassengerStatus(normalizedStatus);
+            setPassengerStatus((rawStatus === 'inactive' || rawStatus === 'block' || rawStatus === 'blocked') ? 'blocked' : 'active');
+
+            // Quick enrichment for names
+            try {
+                const missingDrivers = ridesData.filter(r => !r.driver_name && r.driver_id);
+                if (missingDrivers.length > 0) {
+                    const dRes = await api.get('/admin/drivers', { params: { limit: 500 } }).catch(() => null);
+                    if (dRes) {
+                        const dMap = {};
+                        const driversList = dRes.data?.data?.data || dRes.data?.data || [];
+                        if (Array.isArray(driversList)) {
+                            driversList.forEach(d => {
+                                dMap[d.id] = {
+                                    name: `${d.first_name || d.name || ''} ${d.last_name || ''}`.trim(),
+                                    email: d.email || 'N/A',
+                                    phone: d.phone || 'N/A'
+                                };
+                            });
+                            setDriversMap(dMap);
+                            setPassenger(prev => ({
+                                ...prev,
+                                rides: Array.isArray(prev?.rides) ? prev.rides.map(r => ({
+                                    ...r,
+                                    driver_name: r.driver_name || dMap[r.driver_id]?.name
+                                })) : []
+                            }));
+                        }
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
         } catch (error) {
             console.error("Error fetching passenger:", error);
         } finally {
             setLoading(false);
         }
-    }, [id, showToast]);
+    }, [id]);
+
+    useEffect(() => {
+        const resolveMissingData = async () => {
+            if (!Array.isArray(passenger?.rides) || passenger.rides.length === 0) return;
+            let updated = false;
+            const newRides = await Promise.all(passenger.rides.map(async (ride) => {
+                let r = { ...ride };
+                if (!r.pickup_address && r.pickup_lat) {
+                    const addr = await reverseGeocode(r.pickup_lat, r.pickup_lng);
+                    if (addr) { r.pickup_address = addr; updated = true; }
+                }
+                if (!r.dropoff_address && r.dropoff_lat) {
+                    const addr = await reverseGeocode(r.dropoff_lat, r.dropoff_lng);
+                    if (addr) { r.dropoff_address = addr; updated = true; }
+                }
+                if (!r.driver_name && r.driver_id) {
+                    const mapped = driversMap[r.driver_id];
+                    if (mapped) {
+                        r.driver_name = mapped.name; r.driver_email = mapped.email; r.driver_phone = mapped.phone;
+                        updated = true;
+                    } else {
+                        const res = await api.get(`/admin/drivers/${r.driver_id}`).catch(() => null);
+                        if (res) {
+                            const d = res.data?.data || res.data;
+                            const dData = { name: `${d.first_name || d.name || ''} ${d.last_name || ''}`.trim(), email: d.email || 'N/A', phone: d.phone || 'N/A' };
+                            setDriversMap(prev => ({ ...prev, [d.id]: dData }));
+                            r.driver_name = dData.name; updated = true;
+                        }
+                    }
+                }
+                return r;
+            }));
+            if (updated) setPassenger(prev => ({ ...prev, rides: newRides }));
+        };
+        const timeout = setTimeout(resolveMissingData, 1000);
+        return () => clearTimeout(timeout);
+    }, [passenger?.id, passenger?.rides?.length]);
 
     const [loading, setLoading] = useState(true);
 
@@ -155,7 +260,7 @@ export default function PassengerDetail() {
 
     if (!passenger) {
         return (
-            <AdminLayout title="Passenger Profile">
+            <AdminLayout title="Passenger Detail">
                 <div className="flex flex-col items-center justify-center h-[600px] text-center px-4">
                     <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
                         <i className="bi bi-person-x-fill text-4xl text-[#D10000]"></i>
@@ -433,32 +538,72 @@ export default function PassengerDetail() {
                                 {activeTab === 'rides' && (
                                     <div className="flex flex-col">
                                         <div className="overflow-x-auto">
-                                            {!passenger.rides || passenger.rides.length === 0 ? (
+                                            {!Array.isArray(passenger?.rides) || passenger.rides.length === 0 ? (
                                                 <div className="text-center py-20 bg-gray-50 rounded-2xl">
                                                     <i className="bi bi-car-front text-4xl text-gray-300 mb-3 block"></i>
                                                     <p className="text-gray-500 font-medium">No rides found for this passenger</p>
                                                 </div>
                                             ) : (
-                                                <table className="w-full text-left border-collapse">
-                                                    <thead>
-                                                        <tr className="bg-[#FFEAEA] text-xs font-[600] text-gray-900 border-none">
-                                                            <th className="py-4 px-6 rounded-l-xl">Date</th>
-                                                            <th className="py-4 px-6 text-center">Booking ID</th>
-                                                            <th className="py-4 px-6 text-right rounded-r-xl">Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="text-sm">
-                                                        {(showAllRides ? passenger.rides : passenger.rides.slice(0, 5)).map((ride, idx) => (
-                                                            <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                                                                <td className="py-4 px-6 text-gray-800 font-medium">{formatDate(ride.created_at)}</td>
-                                                                <td className="py-4 px-6 text-gray-800 font-[600] text-center">#{ride.unique_id}</td>
-                                                                <td className="py-4 px-6 text-right">
-                                                                    <Badge variant={ride.status}>{ride.status}</Badge>
-                                                                </td>
+                                                <>
+                                                    <table className="w-full text-left border-collapse">
+                                                        <thead>
+                                                            <tr className="bg-[#FFEAEA] text-xs font-[600] text-gray-900 border-none">
+                                                                <th className="py-4 px-6 rounded-l-xl">ID</th>
+                                                                <th className="py-4 px-6">Driver</th>
+                                                                <th className="py-4 px-6 text-center">Pickup</th>
+                                                                <th className="py-4 px-6 text-center">Dropoff</th>
+
                                                             </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                        </thead>
+                                                        <tbody className="text-sm">
+                                                            {(showAllRides ? passenger.rides : passenger.rides.slice(0, 5)).map((ride, idx) => (
+                                                                <tr
+                                                                    key={idx}
+                                                                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-all cursor-pointer group"
+                                                                    onClick={() => {
+                                                                        setSelectedRide(ride);
+                                                                        setModalType('ride_detail');
+                                                                    }}
+                                                                >
+                                                                    <td className="py-4 px-6 text-gray-400 font-bold">#{ride.id}</td>
+                                                                    <td className="py-4 px-6 text-gray-600 font-medium whitespace-nowrap">
+                                                                        {ride.driver_name ? (
+                                                                            <Tooltip content={
+                                                                                <div className="p-2 space-y-1">
+                                                                                    <div className="flex items-center gap-2"><i className="bi bi-person-badge text-[#D10000]"></i> <span className="font-bold">{ride.driver_name}</span></div>
+                                                                                    <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{ride.driver_phone || 'N/A'}</span></div>
+                                                                                </div>
+                                                                            }>
+                                                                                <span className="hover:text-[#D10000] cursor-help border-b border-dotted border-gray-300 transition-colors">
+                                                                                    {ride.driver_name}
+                                                                                </span>
+                                                                            </Tooltip>
+                                                                        ) : (
+                                                                            <span className="text-gray-400 italic">Loading...</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="py-4 px-6 text-gray-600 font-medium text-xs max-w-[150px] truncate" title={ride.pickup_address}>
+                                                                        {ride.pickup_address || (ride.pickup_lat ? <span className="text-gray-400 italic">Resolving Address...</span> : 'N/A')}
+                                                                    </td>
+                                                                    <td className="py-4 px-6 text-gray-600 font-medium text-xs max-w-[150px] truncate" title={ride.dropoff_address}>
+                                                                        {ride.dropoff_address || (ride.dropoff_lat ? <span className="text-gray-400 italic">Resolving Address...</span> : 'N/A')}
+                                                                    </td>
+
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                    {passenger.rides.length > 5 && (
+                                                        <div className="mt-4 text-center">
+                                                            <button
+                                                                onClick={() => setShowAllRides(!showAllRides)}
+                                                                className="text-[#D10000] text-sm font-bold hover:underline"
+                                                            >
+                                                                {showAllRides ? 'Show Less' : `View All ${passenger.rides.length} Rides`}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -528,7 +673,121 @@ export default function PassengerDetail() {
                     </div>
                 </div>
 
-                {/* Modals Overlay - EXACT SAME AS DRIVER */}
+                {/* Ride Detail Modal */}
+                {modalType === 'ride_detail' && selectedRide && (
+                    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setModalType(null)}>
+                        <div className="bg-white translate-y-9 translate-x-10 rounded-[24px] w-full max-w-[800px] flex overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] animate-in zoom-in-95 duration-500 max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                            {/* Left Side: Map & Passenger */}
+                            <div className="hidden lg:flex flex-col w-[50%] bg-gray-50 border-r border-gray-100 overflow-y-auto custom-scrollbar">
+                                <div className="h-[400px] w-full relative shrink-0 bg-gray-100">
+                                    {isLoaded ? (
+                                        <GoogleMap
+                                            mapContainerStyle={{ width: '100%', height: '100%' }}
+                                            center={{ lat: parseFloat(selectedRide.pickup_lat) || 0, lng: parseFloat(selectedRide.pickup_lng) || 0 }}
+                                            zoom={13}
+                                            options={{ disableDefaultUI: true, zoomControl: true }}
+                                        >
+                                            {selectedRide.pickup_lat && selectedRide.dropoff_lat && !directions && (
+                                                <DirectionsService
+                                                    options={{
+                                                        origin: { lat: parseFloat(selectedRide.pickup_lat), lng: parseFloat(selectedRide.pickup_lng) },
+                                                        destination: { lat: parseFloat(selectedRide.dropoff_lat), lng: parseFloat(selectedRide.dropoff_lng) },
+                                                        travelMode: 'DRIVING'
+                                                    }}
+                                                    callback={(result, status) => { if (status === 'OK' && result) setDirections(result); }}
+                                                />
+                                            )}
+                                            {directions && <DirectionsRenderer directions={directions} options={{ suppressMarkers: false }} />}
+                                        </GoogleMap>
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-2">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#D10000]"></div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">LOADING MAP...</p>
+                                        </div>
+                                    )}
+                                    <button onClick={() => setModalType(null)} className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-gray-600 hover:text-black transition-all z-20"><i className="bi bi-x-lg text-[10px]"></i></button>
+                                </div>
+                                <div className="p-5 space-y-4">
+                                    <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider uppercase">PASSENGER</div>
+                                    <div className="flex items-center gap-4 px-1 pb-1">
+                                        <div className="w-[48px] h-[48px] bg-[#FFF9E6] rounded-[14px] flex items-center justify-center text-[#92712D] font-black text-[16px]">
+                                            {passenger.name.split(' ').length > 1 ? (passenger.name.split(' ')[0][0] + passenger.name.split(' ')[1][0]).toUpperCase() : passenger.name.substring(0, 2).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="text-[14px] font-bold text-gray-900 leading-tight">{passenger.name}</p>
+                                            <p className="text-[11px] font-medium text-gray-400 mt-1">Passenger ID: {passenger.id}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Right Side: Details */}
+                            <div className="w-full lg:w-[50%] p-6 overflow-y-auto bg-white custom-scrollbar">
+                                <div className="space-y-6">
+                                    <div className="space-y-4">
+                                        <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider flex justify-between items-center uppercase">
+                                            <span>BOOKING DETAILS</span>
+                                            <span className="text-[11px] font-bold opacity-100 uppercase tracking-widest">Booking ID: {selectedRide.id}</span>
+                                        </div>
+                                        <div className="space-y-4 px-1">
+                                            <div className="flex gap-3 items-start">
+                                                <div className="mt-1.5 w-2 h-2 rounded-full bg-black flex-shrink-0"></div>
+                                                <div>
+                                                    <p className="text-[13px] font-bold text-gray-800 leading-tight">Pickup Location</p>
+                                                    <p className="text-[11px] text-gray-400 font-medium leading-tight mt-1">{selectedRide.pickup_address || 'Resolving...'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 items-start">
+                                                <i className="bi bi-geo-alt-fill text-[#D10000] text-sm mt-0.5 flex-shrink-0"></i>
+                                                <div>
+                                                    <p className="text-[13px] font-bold text-gray-800 leading-tight">Dropoff Location</p>
+                                                    <p className="text-[11px] text-gray-400 font-medium leading-tight mt-1">{selectedRide.dropoff_address || 'Resolving...'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 pt-0">
+                                                <div className="bg-white rounded-xl text-center">
+                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">EST DISTANCE</p>
+                                                    <p className="text-[12px] font-black text-gray-900 mt-1">{selectedRide.estimated_distance ? `${parseFloat(selectedRide.estimated_distance).toFixed(3)} km` : '0.0 km'}</p>
+                                                </div>
+                                                <div className="bg-white rounded-xl text-center">
+                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">EST TIME</p>
+                                                    <p className="text-[12px] font-black text-gray-900 mt-1">{selectedRide.estimated_time || '00:00:00'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 py-0 border-y border-gray-50">
+                                        <div className="text-center py-4">
+                                            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mb-1.5 text-center">PICKUP AT</p>
+                                            <p className="text-[12px] font-bold text-gray-900 leading-tight">{new Date(selectedRide.pickup_time || selectedRide.created_at).toLocaleDateString()}</p>
+                                            <p className="text-[11px] font-medium text-gray-500 mt-1">{new Date(selectedRide.pickup_time || selectedRide.created_at).toLocaleTimeString()}</p>
+                                        </div>
+                                        <div className="text-center border-l border-gray-100 py-4 text-center">
+                                            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mb-1.5 text-center ">DROPOFF AT</p>
+                                            {selectedRide.dropoff_time ? (
+                                                <>
+                                                    <p className="text-[12px] font-bold text-gray-900 leading-tight">{new Date(selectedRide.dropoff_time).toLocaleDateString()}</p>
+                                                    <p className="text-[11px] font-medium text-gray-500 mt-1">{new Date(selectedRide.dropoff_time).toLocaleTimeString()}</p>
+                                                </>
+                                            ) : <p className="text-[14px] font-bold text-gray-300 mt-1 text-center">—</p>}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="bg-[#D10000] uppercase text-white px-4 py-2 rounded-[10px]">DRIVER INFORMATION</div>
+                                        <div className="flex items-center gap-4 px-1 pb-1">
+                                            <div className="w-[48px] h-[48px] bg-[#F3F4F6] rounded-[14px] flex items-center justify-center text-gray-400 shrink-0"><i className="bi bi-person-badge text-xl"></i></div>
+                                            <div className="space-y-1">
+                                                <p className="text-[15px] font-bold text-gray-900 leading-tight">{selectedRide.driver_name || 'N/A'}</p>
+                                                <p className="text-[11px] font-medium text-gray-400 mt-1">Driver ID: {selectedRide.driver_id || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modals Overlay */}
                 {['block', 'unblock', 'delete'].includes(modalType) && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
                         <div className="bg-white rounded-[32px] p-8 w-[90%] max-w-sm flex flex-col items-center text-center shadow-2xl">

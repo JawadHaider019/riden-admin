@@ -5,6 +5,7 @@ import { Table, Badge, Button, SearchBar, Pagination, useToast, DateRangePicker,
 import { useNavigate } from 'react-router-dom';
 import { getVehicles } from '@/api/vehicleApi';
 import { getDrivers } from '@/api/driverApi';
+import { getFares } from '@/api/fareApi';
 import { STORAGE_URL, getImageUrl } from '@/api/api';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 
@@ -19,6 +20,7 @@ export default function VehicleManagement() {
     const [totalItems, setTotalItems] = useState(0);
     const { showToast } = useToast();
     const [driverMap, setDriverMap] = useState({});
+    const [typeMap, setTypeMap] = useState({});
     const navigate = useNavigate();
     const exportRef = useRef(null);
 
@@ -81,14 +83,24 @@ export default function VehicleManagement() {
             setVehicles(vehicleList);
             setTotalItems(paginationDetails?.total || vehicleList.length);
 
+            // Fetch vehicle types for mapping
+            try {
+                const fareData = await getFares();
+                const categories = fareData.available_categories || [];
+                const tMap = {};
+                categories.forEach(c => {
+                    tMap[c.id || c.name] = c.label || c.name;
+                });
+                setTypeMap(tMap);
+            } catch (err) {
+                console.error("Error fetching vehicle types:", err);
+            }
+
             // Fetch driver names for the IDs present in this page
             const uniqueDriverIds = [...new Set(vehicleList.map(v => v.driver_id).filter(id => id))];
             if (uniqueDriverIds.length > 0) {
                 try {
-                    // Fetch drivers list to get names. 
-                    // Note: If pagination is an issue, we might need a specifically tailored endpoint or fetch all.
-                    // For now, we fetch one page of drivers which should cover most cases if drivers are fewer.
-                    const driversRes = await getDrivers({ limit: 100 });
+                    const driversRes = await getDrivers({ limit: 500 });
                     const allDrivers = driversRes.data?.data || driversRes.data || [];
 
                     const newMap = { ...driverMap };
@@ -248,7 +260,7 @@ export default function VehicleManagement() {
                 </div>
             </div>
 
-            <Table headers={['Car Image', 'Driver Name', 'Car Name', 'Model Year', 'License Plate', 'Category', 'No of Seats']}>
+            <Table headers={['ID', 'Vehicle Image', 'Driver Name', 'Vehicle Name', 'Model | Color', 'License Plate', 'Category', 'No of Seats']}>
                 {loading ? (
                     <tr>
                         <td colSpan="7" className="text-center py-20">
@@ -268,10 +280,17 @@ export default function VehicleManagement() {
                             onClick={() => navigate(`/vehicles/detail/${v.id}`)}
                             className="cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
                         >
+                            <td className="py-[18px] px-[30px] text-[14px] font-[600] text-gray-400">
+                                {v.id}
+                            </td>
                             <td className="py-[18px] px-[30px]">
-                                <div className="w-16 h-12 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                                    {(v.front_image || v.back_image) ? (
-                                        <img src={getImageUrl(v.front_image || v.back_image)} className="w-full h-full object-cover" alt={v.model} />
+                                <div className="w-20 h-12  flex items-center justify-center ">
+                                    {(v.front_image || v.back_image || v.type?.image_path) ? (
+                                        <img
+                                            src={getImageUrl(v.front_image || v.back_image || v.type?.image_path)}
+                                            className="w-full h-full object-contain"
+                                            alt={v.model || "Vehicle"}
+                                        />
                                     ) : (
                                         <span className="text-[10px] font-[600] text-gray-300 uppercase text-center">No Image</span>
                                     )}
@@ -280,36 +299,36 @@ export default function VehicleManagement() {
                             <td className="py-[18px] px-[30px]" onClick={(e) => e.stopPropagation()}>
                                 <Tooltip content={
                                     <div className="flex flex-col gap-1 py-1">
-                                        <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {driverMap[v.driver_id]?.id || v.driver_id}</span></div>
-                                        <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{driverMap[v.driver_id]?.phone || 'N/A'}</span></div>
-                                        <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{driverMap[v.driver_id]?.email || 'N/A'}</span></div>
+                                        <div className="flex items-center gap-2"><i className="bi bi-person text-[#D10000]"></i> <span>ID: {v.driver?.id || v.driver_id}</span></div>
+                                        <div className="flex items-center gap-2"><i className="bi bi-telephone text-[#D10000]"></i> <span>{v.driver?.phone || 'N/A'}</span></div>
+                                        <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{v.driver?.email || 'N/A'}</span></div>
                                     </div>
                                 }>
                                     <span className="text-[14px] font-[600] text-[#111] pb-0.5 cursor-help transition-colors hover:text-[#D10000]">
-                                        {driverMap[v.driver_id]?.name || v.driver_id}
+                                        {v.driver ? `${v.driver.first_name} ${v.driver.last_name || ''}` : (driverMap[v.driver_id]?.name || v.driver_id)}
                                     </span>
                                 </Tooltip>
                             </td>
                             <td className="py-[18px] px-[30px] text-[15px] font-[600] text-[#111] lowercase">
-                                {v.vehicle_name || v.model}
+                                {v.model || v.vehicle_name}
                             </td>
-                            <td className="py-[18px] px-[30px] text-[14px] font-[600] text-gray-400">
-                                {v.vehicle_model || v.year} | {v.vehicle_color || v.color}
+                            <td className="py-[18px] px-[25px] text-[14px] font-[600] text-gray-400">
+                                {v.year || v.vehicle_model} | {v.color || v.vehicle_color}
                             </td>
                             <td className="py-[18px] px-[30px] whitespace-nowrap">
                                 <span className=" px-4 py-1.5  text-[13px] font-[600] ">
-                                    {v.vehicle_number || v.license_plate}
+                                    {v.license_plate || v.vehicle_number}
                                 </span>
                             </td>
                             <td className="py-[18px] px-[30px]">
-                                <div className="px-5 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-[600] text-gray-600 inline-block">
-                                    {v.vehicle_type}
+                                <div className="px-5 py-2 text-[13px] font-[600] inline-block">
+                                    {v.type?.category || v.vehicle_type || typeMap[v.vehicle_type_id] || "N/A"}
                                 </div>
                             </td>
                             <td className="py-[18px] px-[30px]">
                                 <div className="flex items-center gap-2 text-[14px] font-[600] text-[#111]/80">
                                     <i className="bi bi-people-fill text-gray-400"></i>
-                                    {v.no_of_seats || "N/A"}
+                                    {v.type?.capacity || v.no_of_seats || "N/A"}
                                 </div>
                             </td>
                         </tr>
