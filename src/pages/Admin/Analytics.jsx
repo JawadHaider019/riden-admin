@@ -1,15 +1,21 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { getDashboardAnalytics, getDashboardStats } from '../../api/dashboard';
-import { MiniChart, Loader } from '@/components/UI';
+import { MiniChart, Loader, SearchBar } from '@/components/UI';
+import { getFares } from '../../api/fareApi';
+import { getDashboardStats, getDashboardAnalytics, getOnlineDrivers } from '../../api/dashboard';
+import { getVehicleDetail } from '../../api/vehicleApi';
+import { useJsApiLoader, GoogleMap, MarkerF } from '@react-google-maps/api';
+import { reverseGeocode } from '../../utils/geoUtils';
 
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
 import { format, startOfWeek, startOfMonth, startOfYear, parseISO, startOfDay, endOfDay } from 'date-fns';
+
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
 export default function Analytics() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,6 +25,182 @@ export default function Analytics() {
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
+    const [selectedCarType, setSelectedCarType] = useState('All Vehicles');
+    const [carTypes, setCarTypes] = useState([]);
+    const [isSelectOpen, setIsSelectOpen] = useState(false);
+    const [locationSearch, setLocationSearch] = useState('');
+    const [searchCoords, setSearchCoords] = useState(null);
+    const [addressSuggestions, setAddressSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [mapCenter, setMapCenter] = useState({ lat: 31.46982435, lng: 74.27143511 });
+    const [onlineDrivers, setOnlineDrivers] = useState({ with_rides: [], without_rides: [] });
+    const [selectedDriver, setSelectedDriver] = useState(null);
+    const [addresses, setAddresses] = useState({ pickup: 'Loading...', dropoff: 'Loading...', current: 'Loading...' });
+
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: GOOGLE_MAPS_KEY,
+        libraries: ['places']
+    });
+
+    useEffect(() => {
+        const fetchDetails = async () => {
+            if (!selectedDriver) return;
+
+            console.log('--- Debugging Selected Driver Location ---');
+            console.log('Driver ID:', selectedDriver.id);
+            console.log('Current Tracking:', selectedDriver.tracking);
+            if (selectedDriver.bookings?.[0]) {
+                const b = selectedDriver.bookings[0];
+                console.log('Booking #:', b.id);
+                console.log('Pickup Coords:', { lat: b.pickup_lat, lng: b.pickup_lng });
+                console.log('Dropoff Coords:', { lat: b.dropoff_lat, lng: b.dropoff_lng });
+            }
+
+            setAddresses({ pickup: 'Loading...', dropoff: 'Loading...', current: 'Loading...' });
+
+            const results = { current: 'N/A', pickup: 'N/A', dropoff: 'N/A' };
+
+            // 1. Fetch Addresses
+            if (selectedDriver.tracking) {
+                reverseGeocode(selectedDriver.tracking.curr_lat, selectedDriver.tracking.curr_lon)
+                    .then(addr => {
+                        console.log('Geocoded Current Location:', addr);
+                        setAddresses(prev => ({ ...prev, current: addr }));
+                    });
+            }
+
+            if (selectedDriver.type === 'Busy' && selectedDriver.bookings?.[0]) {
+                const booking = selectedDriver.bookings[0];
+                reverseGeocode(booking.pickup_lat, booking.pickup_lng)
+                    .then(addr => {
+                        console.log('Geocoded Pickup Address:', addr);
+                        setAddresses(prev => ({ ...prev, pickup: addr }));
+                    });
+                reverseGeocode(booking.dropoff_lat, booking.dropoff_lng)
+                    .then(addr => {
+                        console.log('Geocoded Dropoff Address:', addr);
+                        setAddresses(prev => ({ ...prev, dropoff: addr }));
+                    });
+            }
+
+            // 2. Fetch Full Vehicle Details if available
+            if (selectedDriver.vehicle?.id) {
+                try {
+                    const vRes = await getVehicleDetail(selectedDriver.vehicle.id);
+                    const vData = vRes.data || vRes;
+                    setSelectedDriver(prev => {
+                        if (!prev || prev.id !== selectedDriver.id) return prev;
+                        return { ...prev, vehicle: vData };
+                    });
+                } catch (e) {
+                    console.error("Failed to fetch detailed vehicle info", e);
+                }
+            }
+        };
+
+        fetchDetails();
+    }, [selectedDriver?.id]);
+
+    // Distance calculation helper (Haversine formula)
+    const getDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371; // Radius of the earth in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
+    // Debounced Location Search & Geocoding
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!locationSearch || !isLoaded || locationSearch.length < 2) {
+                setSearchCoords(null);
+                setAddressSuggestions([]);
+                return;
+            }
+
+            // Fetch Place Suggestions
+            const service = new window.google.maps.places.AutocompleteService();
+            service.getPlacePredictions({ input: locationSearch }, (predictions, status) => {
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                    setAddressSuggestions(predictions);
+                } else {
+                    setAddressSuggestions([]);
+                }
+            });
+
+            // Geocode for Map Navigation
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ address: locationSearch }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const loc = results[0].geometry.location;
+                    const coords = { lat: loc.lat(), lng: loc.lng() };
+                    setSearchCoords(coords);
+                    setMapCenter(coords);
+                    if (mapRef.current) {
+                        mapRef.current.panTo(coords);
+                        mapRef.current.setZoom(12);
+                    }
+                } else {
+                    setSearchCoords(null);
+                }
+            });
+        }, 600); // reduced debounce for snappier feel
+
+        return () => clearTimeout(timer);
+    }, [locationSearch, isLoaded]);
+
+    const handleSelectSuggestion = (suggestion) => {
+        setLocationSearch(suggestion.description);
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+
+        // Geocode the selected suggestion
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: suggestion.description }, (results, status) => {
+            if (status === 'OK' && results[0] && mapRef.current) {
+                const loc = results[0].geometry.location;
+                const coords = { lat: loc.lat(), lng: loc.lng() };
+                setMapCenter(coords);
+                setSearchCoords(coords);
+                mapRef.current.panTo(loc);
+                mapRef.current.setZoom(14);
+            }
+        });
+    };
+
+    const mapRef = useRef(null);
+
+    const onLoad = useCallback(function callback(mapInstance) {
+        mapRef.current = mapInstance;
+    }, []);
+
+    useEffect(() => {
+        if (!mapRef.current || !selectedDriver) return;
+
+        const bounds = new window.google.maps.LatLngBounds();
+
+        // Add current driver location
+        if (selectedDriver.tracking) {
+            bounds.extend({
+                lat: parseFloat(selectedDriver.tracking.curr_lat),
+                lng: parseFloat(selectedDriver.tracking.curr_lon)
+            });
+        }
+
+        // Add booking locations if busy
+        if (selectedDriver.type === 'Busy' && selectedDriver.bookings?.[0]) {
+            const b = selectedDriver.bookings[0];
+            bounds.extend({ lat: parseFloat(b.pickup_lat), lng: parseFloat(b.pickup_lng) });
+            bounds.extend({ lat: parseFloat(b.dropoff_lat), lng: parseFloat(b.dropoff_lng) });
+        }
+
+        mapRef.current.fitBounds(bounds, { top: 100, right: 100, bottom: 100, left: 100 });
+    }, [selectedDriver]);
 
     const tabs = [
         { id: 'dashboard', label: 'Live Dashboard' },
@@ -32,10 +214,12 @@ export default function Analytics() {
         try {
             setLoading(true);
 
-            // Fetch real data from backend
-            const [statsRes, analyticsRes] = await Promise.all([
+            // Fetch statistics, analytics, available car types, and online drivers in parallel
+            const [statsRes, analyticsRes, faresRes, driversRes] = await Promise.all([
                 getDashboardStats(),
-                getDashboardAnalytics()
+                getDashboardAnalytics(),
+                getFares(),
+                getOnlineDrivers()
             ]);
 
             if (statsRes.status === 'success') {
@@ -44,6 +228,16 @@ export default function Analytics() {
 
             if (analyticsRes.status === 'success') {
                 setAnalytics(analyticsRes.data);
+            }
+
+            // Update online drivers
+            if (driversRes && driversRes.status === 'success') {
+                setOnlineDrivers(driversRes.data);
+            }
+
+            // Update car types if available
+            if (faresRes && faresRes.available_categories) {
+                setCarTypes([{ name: '', label: 'All Vehicles' }, ...faresRes.available_categories]);
             }
 
         } catch (error) {
@@ -86,6 +280,46 @@ export default function Analytics() {
             setEndDate(endOfDay(now));
         }
     }, [setGlobalPeriod, setStartDate, setEndDate]);
+
+    // Memoized filtered drivers for the map
+    const filteredDrivers = useMemo(() => {
+        const selectedCat = carTypes.find(c => c.label.trim().toLowerCase() === selectedCarType.trim().toLowerCase());
+
+        const filter = (drivers) => {
+            if (!drivers) return [];
+            return drivers.filter(driver => {
+                const driverTypeId = driver.vehicle?.vehicle_type_id;
+
+                // Always show if All Vehicles, otherwise compare IDs
+                const matchesType = selectedCarType === 'All Vehicles' ||
+                    (selectedCat?.id !== undefined && Number(driverTypeId) === Number(selectedCat?.id));
+
+                // Filter by search string (name, phone, or proximity)
+                const searchLower = locationSearch.toLowerCase().trim();
+                const matchesText = !locationSearch ||
+                    `${driver.first_name} ${driver.last_name}`.toLowerCase().includes(searchLower) ||
+                    driver.phone.includes(locationSearch) ||
+                    driver.vehicle?.license_plate?.toLowerCase().includes(searchLower);
+
+                // Proximity Filter: If we found a location for the search string, show drivers within 20km
+                let matchesLocation = true;
+                if (searchCoords && driver.tracking) {
+                    const dist = getDistance(
+                        searchCoords.lat, searchCoords.lng,
+                        parseFloat(driver.tracking.curr_lat), parseFloat(driver.tracking.curr_lon)
+                    );
+                    matchesLocation = dist < 20; // 20km radius
+                }
+
+                return matchesType && (matchesText || matchesLocation);
+            });
+        };
+
+        return {
+            with_rides: filter(onlineDrivers.with_rides),
+            without_rides: filter(onlineDrivers.without_rides)
+        };
+    }, [onlineDrivers, selectedCarType, locationSearch, carTypes, searchCoords]);
 
     // Initial date setup
     useEffect(() => {
@@ -224,78 +458,332 @@ export default function Analytics() {
                             </div>
                         </div>
 
-                        {/* Live Map & Ongoing Ride Section (from Dashboard) */}
-                        <div className="bg-white rounded-[30px] overflow-hidden relative h-[600px] border border-[#E5E7EB] mb-6">
-                            <iframe
-                                className="w-full h-full border-none contrast-[1.05]"
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1469550.0538914043!2d-80.443189!3d43.834789!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4cd44b1c1d1a8d05%3A0xe10ad5de81c4e7ab!2sToronto%2C%20ON%2C%20Canada!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
-                                allowFullScreen=""
-                                loading="lazy"
-                                title="Live Map"
-                            ></iframe>
+                        {/* Vehicle Filter & Location Search Grid */}
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                            {/* Vehicle Dropdown */}
+                            <div className="relative h-[56px] col-span-1">
+                                <div
+                                    onClick={() => setIsSelectOpen(!isSelectOpen)}
+                                    className={`group h-full relative flex items-center bg-white border-[1.5px] rounded-[30px] px-[22px] cursor-pointer transition-all duration-200 shadow-sm ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
+                                >
+                                    <i className={`bi bi-truck mr-3 text-[20px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`}></i>
+                                    <span className="flex-1 text-[15px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
+                                        {selectedCarType}
+                                    </span>
+                                    <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : 'rotate-0'}`}></i>
+                                </div>
 
-                            {/* Ongoing Ride Card Overlay */}
-                            <div className="absolute top-[8%] right-[5%] bg-white rounded-[40px] p-6 w-[360px] shadow-[0_15px_50px_rgba(0,0,0,0.1)] z-10 transition-all hover:scale-[1.02]">
-                                <h4 className="text-[17px] font-[600] text-[#D10000] mb-6">Ongoing Ride Preview</h4>
+                                {isSelectOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setIsSelectOpen(false)}></div>
+                                        <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-[#E5E7EB] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] z-50 overflow-hidden py-3 animate-scale-up-dropdown origin-top">
+                                            {carTypes.map((category) => (
+                                                <div
+                                                    key={category.name}
+                                                    onClick={() => {
+                                                        setSelectedCarType(category.label);
+                                                        setIsSelectOpen(false);
 
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-4">
-                                        <img src="https://i.pravatar.cc/150?img=11" alt="Driver" className="w-[54px] h-[54px] rounded-[14px] object-cover" />
-                                        <div>
-                                            <h5 className="text-[15px] font-[600] text-[#111]">Sergio Morsis</h5>
-                                            <p className="text-[11px] text-[#6B7280] font-[500] uppercase tracking-wider">
-                                                Driver • {stats?.completed_bookings || 0} Rides
-                                            </p>
+                                                    }}
+                                                    className={`px-6 py-2.5 text-sm font-[600] cursor-pointer transition-all duration-200 ${selectedCarType === category.label
+                                                        ? 'bg-[#D10000] text-white mx-2 rounded-full shadow-md'
+                                                        : 'text-[#111] hover:bg-gray-50'
+                                                        }`}
+                                                >
+                                                    {category.label}
+                                                </div>
+                                            ))}
                                         </div>
-                                    </div>
-                                    <button className="w-11 h-11 rounded-full border border-[#E5E7EB] flex items-center justify-center text-[#D10000] hover:bg-[#D10000] hover:text-white transition-all shadow-sm">
-                                        <i className="bi bi-telephone-fill"></i>
-                                    </button>
-                                </div>
-
-                                <div className="relative pl-6 mb-4">
-                                    <div className="absolute left-[3px] top-[14px] bottom-[14px] w-[2px] border-l-2 border-dashed border-[#CBD5E1]"></div>
-                                    <div className="relative mb-4">
-                                        <div className="absolute -left-[27px] top-[6px] w-[11px] h-[11px] bg-black rounded-full"></div>
-                                        <h6 className="text-[14px] font-[600] text-[#111]">Office</h6>
-                                        <p className="text-[12px] text-[#6B7280]">2972 Westheimer Rd. Santa Ana, IL 85486</p>
-                                    </div>
-                                    <div className="relative">
-                                        <div className="absolute -left-[30px] top-[5px] text-[#D10000]">
-                                            <i className="bi bi-geo-alt-fill text-[16px]"></i>
-                                        </div>
-                                        <h6 className="text-[14px] font-[600] text-[#111]">Coffee shop</h6>
-                                        <p className="text-[12px] text-[#6B7280]">1901 Thornridge Cir. Shiloh, HI 81063</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-between border-t border-[#F1F5F9] pt-6 mb-4">
-                                    <div className="text-center">
-                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">EST Distance</p>
-                                        <p className="text-[13px] font-[600] text-[#111]">0.2 km</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">EST Time</p>
-                                        <p className="text-[13px] font-[600] text-[#111]">2 min</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Fare Est.</p>
-                                        <p className="text-[13px] font-[600] text-[#D10000]">
-                                            ${stats?.revenue > 0 ? (stats.revenue / (stats.total_bookings || 1)).toFixed(2) : '25.00'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4 border-t border-[#F1F5F9] pt-4">
-                                    <div className="w-12 h-10 rounded-[10px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100">
-                                        <img src="/assets/images/vehicle-alto.png" alt="Car" className="w-[80%] h-auto object-contain" />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-black rounded-full"></div>
-                                        <span className="text-[12px] font-[600] text-[#111]">Black Suzuki Alto (BKG-220)</span>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </div>
+
+                            <div className="h-[56px] col-span-2 relative">
+                                <SearchBar
+                                    placeholder="Search location ..."
+                                    value={locationSearch}
+                                    onChange={(e) => {
+                                        setLocationSearch(e.target.value);
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                    className="w-full h-full"
+                                    style={{ height: '100%', paddingTop: 0, paddingBottom: 0 }}
+                                />
+
+                                {/* Autocomplete Suggestions Dropdown */}
+                                {showSuggestions && addressSuggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[24px] shadow-2xl border border-gray-100 z-[100] py-3 overflow-hidden animate-fade-in">
+                                        {addressSuggestions.map((suggestion) => (
+                                            <div
+                                                key={suggestion.place_id}
+                                                onClick={() => handleSelectSuggestion(suggestion)}
+                                                className="px-6 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer transition-colors border-b border-gray-50 last:border-none"
+                                            >
+                                                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                                                    <i className="bi bi-geo-alt text-[#D10000]"></i>
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-[600] text-[#111] line-clamp-1">{suggestion.structured_formatting.main_text}</span>
+                                                    <span className="text-[11px] text-[#6B7280] font-[500] line-clamp-1">{suggestion.structured_formatting.secondary_text}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Live Map & Ongoing Ride Section */}
+                        <div className="bg-white rounded-[30px] overflow-hidden relative h-[600px] border border-[#E5E7EB] mb-6">
+                            {isLoaded ? (
+                                <GoogleMap
+                                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                                    onLoad={onLoad}
+                                    center={mapCenter}
+                                    zoom={selectedDriver ? 14 : 12}
+                                    options={{
+                                        disableDefaultUI: true,
+                                        zoomControl: true,
+                                        styles: [
+                                            {
+                                                "featureType": "all",
+                                                "elementType": "labels.text.fill",
+                                                "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
+                                            }
+                                        ]
+                                    }}
+                                >
+                                    {/* Pickup & Dropoff Markers for Selected Resident Driver */}
+                                    {selectedDriver?.type === 'Busy' && selectedDriver.bookings?.[0] && (
+                                        <>
+                                            <MarkerF
+                                                position={{
+                                                    lat: parseFloat(selectedDriver.bookings[0].pickup_lat),
+                                                    lng: parseFloat(selectedDriver.bookings[0].pickup_lng)
+                                                }}
+                                                icon={{
+                                                    url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                                                    labelOrigin: { x: 12, y: -10 }
+                                                }}
+                                                label={{ text: "Pickup", fontSize: "12px", fontWeight: "bold", color: "#000" }}
+                                            />
+                                            <MarkerF
+                                                position={{
+                                                    lat: parseFloat(selectedDriver.bookings[0].dropoff_lat),
+                                                    lng: parseFloat(selectedDriver.bookings[0].dropoff_lng)
+                                                }}
+                                                icon={{
+                                                    url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                                    labelOrigin: { x: 12, y: -10 }
+                                                }}
+                                                label={{ text: "Dropoff", fontSize: "12px", fontWeight: "bold", color: "#D10000" }}
+                                            />
+                                        </>
+                                    )}
+                                    {/* Drivers WITH Rides (Busy - Red) */}
+                                    {filteredDrivers.with_rides?.map(driver => (
+                                        driver.tracking && (
+                                            <MarkerF
+                                                key={`busy-${driver.id}`}
+                                                position={{
+                                                    lat: parseFloat(driver.tracking.curr_lat),
+                                                    lng: parseFloat(driver.tracking.curr_lon)
+                                                }}
+                                                icon={{
+                                                    path: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z",
+                                                    fillColor: "#D10000",
+                                                    fillOpacity: 1,
+                                                    strokeWeight: 1,
+                                                    strokeColor: "#FFFFFF",
+                                                    scale: 1.5,
+                                                    anchor: { x: 12, y: 12 }
+                                                }}
+                                                onClick={() => setSelectedDriver({ ...driver, type: 'Busy' })}
+                                            />
+                                        )
+                                    ))}
+
+                                    {/* Drivers WITHOUT Rides (Available - Green) */}
+                                    {filteredDrivers.without_rides?.map(driver => (
+                                        driver.tracking && (
+                                            <MarkerF
+                                                key={`avail-${driver.id}`}
+                                                position={{
+                                                    lat: parseFloat(driver.tracking.curr_lat),
+                                                    lng: parseFloat(driver.tracking.curr_lon)
+                                                }}
+                                                icon={{
+                                                    path: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z",
+                                                    fillColor: "#10B981",
+                                                    fillOpacity: 1,
+                                                    strokeWeight: 1,
+                                                    strokeColor: "#FFFFFF",
+                                                    scale: 1.5,
+                                                    anchor: { x: 12, y: 12 }
+                                                }}
+                                                onClick={() => setSelectedDriver({ ...driver, type: 'Available' })}
+                                            />
+                                        )
+                                    ))}
+                                    {/* No Data Overlay */}
+                                    {filteredDrivers.with_rides.length === 0 && filteredDrivers.without_rides.length === 0 && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="relative bg-white/95 backdrop-blur-md px-10 py-6 rounded-[30px] shadow-2xl border border-gray-100 flex flex-col items-center gap-2 animate-fade-in pointer-events-auto group">
+                                                <button
+                                                    onClick={() => {
+                                                        setLocationSearch('');
+                                                        setSearchCoords(null);
+                                                        setMapCenter({ lat: 31.46982435, lng: 74.27143511 });
+                                                        setSelectedCarType('All Vehicles');
+                                                    }}
+                                                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#D10000] hover:bg-red-50 transition-all"
+                                                >
+                                                    <i className="bi bi-x-lg text-xs"></i>
+                                                </button>
+                                                <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-1">
+                                                    <i className="bi bi-geo-alt-fill text-[#D10000] text-2xl"></i>
+                                                </div>
+                                                <span className="text-[17px] font-[700] text-[#111]">No Matching Results</span>
+                                                <p className="text-[13px] text-[#6B7280] font-[500]">We couldn't find any drivers based on your criteria.</p>
+
+                                            </div>
+                                        </div>
+                                    )}
+                                </GoogleMap>
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4">
+                                    <Loader />
+                                    <p className="text-[14px] font-[600] text-[#D10000] animate-pulse">Initializing Map System...</p>
+                                </div>
+                            )}
+
+                            {/* Selected Driver Detail Overlay */}
+                            {selectedDriver && (
+                                <div className="absolute top-[8%] right-[5%] bg-white rounded-[40px] pb-5 px-5 w-[380px] shadow-[0_15px_50px_rgba(0,0,0,0.12)] z-10 transition-all animate-fade-in max-h-[85%] overflow-y-none">
+                                    <div className="flex justify-between  items-start sticky top-0 bg-white py-3 z-10">
+                                        <h4 className="text-[16px] font-[600] text-[#D10000] ">
+                                            {selectedDriver.type === 'Busy' ? 'Ongoing Ride Preview' : 'Driver Status'}
+                                        </h4>
+                                        <button
+                                            onClick={() => setSelectedDriver(null)}
+                                            className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#D10000] transition-colors"
+                                        >
+                                            <i className="bi bi-x-lg text-sm"></i>
+                                        </button>
+                                    </div>
+
+                                    {/* Driver Info Section */}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-4">
+
+                                            <div className="relative">
+
+                                                <img
+                                                    src={selectedDriver.avatar_url || `https://ui-avatars.com/api/?name=${selectedDriver.first_name}`}
+                                                    alt="Driver"
+                                                    className="w-[54px] h-[54px] rounded-[14px] object-cover border-2 border-red-50"
+                                                />
+                                                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${selectedDriver.type === 'Busy' ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                                            </div>
+                                            <div>
+                                                <h5 className="text-[15px] font-[600] text-[#111]">{selectedDriver.first_name} {selectedDriver.last_name} (Driver)</h5>
+                                                <p className="text-[11px] text-[#6B7280] font-[500] uppercase tracking-wider">
+                                                    {selectedDriver.phone}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button className="w-10 h-10 rounded-full border border-[#E5E7EB] flex items-center justify-center text-[#D10000] hover:bg-[#D10000] hover:text-white transition-all">
+                                                <i className="bi bi-telephone-fill"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Passenger Info Section (Only for Busy Drivers) */}
+                                    {selectedDriver.type === 'Busy' && selectedDriver.bookings?.[0]?.passenger && (
+                                        <div className=" mb-4">
+
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={selectedDriver.bookings[0].passenger.avatar_url || `https://ui-avatars.com/api/?name=${selectedDriver.bookings[0].passenger.first_name}`}
+                                                    alt="Passenger"
+                                                    className="w-[54px] h-[54px] rounded-[14px] object-cover border-2 border-red-50"
+                                                />
+                                                <div>
+                                                    <h6 className="text-[14px] font-[600] text-[#111]">
+                                                        {selectedDriver.bookings[0].passenger.first_name} {selectedDriver.bookings[0].passenger.last_name} (Passenger)
+                                                    </h6>
+                                                    <p className="text-[11px] text-[#6B7280]">     {selectedDriver.bookings[0].passenger.phone}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Location Timeline */}
+                                    <div className="relative pl-6 mb-4">
+                                        <div className="absolute left-[3px] top-[14px] bottom-[14px] w-[2px] border-l-2 border-dashed border-[#CBD5E1]"></div>
+
+                                        {selectedDriver.type === 'Busy' ? (
+                                            <>
+                                                <div className="relative mb-4">
+                                                    <div className="absolute -left-[27px] top-[6px] w-[11px] h-[11px] bg-black rounded-full ring-4 ring-gray-100"></div>
+                                                    <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Pickup Location</h6>
+                                                    <p className="text-[13px] font-[500] text-[#111]">{addresses.pickup}</p>
+                                                </div>
+                                                <div className="relative">
+                                                    <div className="absolute -left-[30px] top-[2px] text-[#D10000]">
+                                                        <i className="bi bi-geo-alt-fill text-[18px]"></i>
+                                                    </div>
+                                                    <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Dropoff Point</h6>
+                                                    <p className="text-[13px] font-[500] text-[#111]">{addresses.dropoff}</p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="relative">
+                                                <div className="absolute -left-[27px] top-[6px] w-[11px] h-[11px] bg-green-500 rounded-full ring-4 ring-green-50"></div>
+                                                <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Current Standing</h6>
+                                                <p className="text-[13px] font-[500] text-[#111]">{addresses.current}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Stats Grid */}
+                                    {selectedDriver.type === 'Busy' && selectedDriver.bookings?.[0] && (
+                                        <div className="grid grid-cols-3 gap-2 border-t border-[#F1F5F9] pt-4 mb-4">
+                                            <div className="bg-gray-50 rounded-xl p-3 text-center">
+                                                <p className="text-[9px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Distance</p>
+                                                <p className="text-[12px] font-[700] text-[#111]">
+                                                    {parseFloat(selectedDriver.bookings[0].estimated_distance).toFixed(1)} km
+                                                </p>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-xl p-3 text-center">
+                                                <p className="text-[9px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Est. Time</p>
+                                                <p className="text-[12px] font-[700] text-[#111]">{selectedDriver.bookings[0].estimated_time}</p>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-xl p-3 text-center">
+                                                <p className="text-[9px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Status</p>
+                                                <p className="text-[12px] font-[700] text-[#D10000] capitalize truncate">{selectedDriver.bookings[0].status}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Vehicle Info Section */}
+                                    <div className="flex items-center gap-4 border-t border-[#F1F5F9] pt-4">
+                                        <div className="w-14 h-12 rounded-[14px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 p-1">
+                                            <i className="bi bi-car-front-fill text-2xl text-gray-300"></i>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <div className="w-2 h-2 bg-black rounded-full"></div>
+                                                <span className="text-[13px] font-[700] text-[#111]">{selectedDriver.vehicle?.model}</span>
+                                            </div>
+                                            <p className="text-[11px] font-[500] text-[#6B7280]">{selectedDriver.vehicle?.license_plate} • {selectedDriver.vehicle?.color} • <span className="text-[#D10000] uppercase font-[600] text-[11px]">{selectedDriver.vehicle?.type?.category}</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -377,6 +865,11 @@ export default function Analytics() {
                 .react-datepicker__navigation-icon::before {
                     border-color: white !important;
                 }
+                @keyframes scale-up-dropdown {
+                    from { opacity: 0; transform: scaleY(0.95) translateY(-5px); }
+                    to { opacity: 1; transform: scaleY(1) translateY(0); }
+                }
+                .animate-scale-up-dropdown { animation: scale-up-dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
             ` }} />
         </AdminLayout >
     );

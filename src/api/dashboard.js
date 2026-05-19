@@ -9,3 +9,8 @@ export const getDashboardAnalytics = async () => {
     const res = await api.get('admin/analytics');
     return res.data;
 }
+
+export const getOnlineDrivers = async () => {
+    const res = await api.get('admin/drivers/online');
+    return res.data;
+}

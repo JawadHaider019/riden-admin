@@ -7,7 +7,7 @@ export default function FareManagement() {
     const { showToast } = useToast();
     const [fares, setFares] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [updating, setUpdating] = useState(null); // id of the row being updated
+    const [updating, setUpdating] = useState(null);
 
     const [editingId, setEditingId] = useState(null);
     const [editValues, setEditValues] = useState({});
