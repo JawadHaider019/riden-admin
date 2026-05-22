@@ -285,10 +285,22 @@ export default function Analytics() {
     const filteredDrivers = useMemo(() => {
         const selectedCat = carTypes.find(c => c.label.trim().toLowerCase() === selectedCarType.trim().toLowerCase());
 
+        // ---- Diagnostic Logs ----
+        if (selectedCarType !== 'All Vehicles') {
+            console.log('=== FILTER DEBUG ===');
+            console.log('All carTypes from API:', JSON.stringify(carTypes, null, 2));
+            console.log('Active filter label:', selectedCarType);
+            console.log('Resolved category:', selectedCat);
+        }
+
         const filter = (drivers) => {
             if (!drivers) return [];
             return drivers.filter(driver => {
                 const driverTypeId = driver.vehicle?.vehicle_type_id;
+
+                if (selectedCarType !== 'All Vehicles') {
+                    console.log(`Driver ${driver.id} | vehicle_type_id: ${driverTypeId} (${typeof driverTypeId}) | selectedCat.id: ${selectedCat?.id} (${typeof selectedCat?.id}) | match: ${Number(driverTypeId) === Number(selectedCat?.id)}`);
+                }
 
                 // Always show if All Vehicles, otherwise compare IDs
                 const matchesType = selectedCarType === 'All Vehicles' ||

@@ -448,7 +448,7 @@ export default function BookingManagement() {
                         <tr
                             key={booking.id}
                             onClick={() => navigate(`/bookings/detail/${booking.id}`)}
-                            className="cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
+                            className="group cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
                         >
                             <td className="py-[18px] px-[10px] text-center">
                                 <span className="text-[13px] font-[600] text-[#111] tracking-tight">
@@ -571,7 +571,7 @@ export default function BookingManagement() {
                                 })()}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap relative">
                                 {(() => {
                                     const duration = booking.estimated_time || booking.duration;
                                     if (!duration) return 'N/A';
@@ -598,8 +598,12 @@ export default function BookingManagement() {
                                     }
                                     return `${Math.round(numValue)} mins`;
                                 })()}
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:scale-110 shadow-sm border border-green-100">
+                                        <i className="bi bi-eye-fill text-[15px]"></i>
+                                    </span>
+                                </div>
                             </td>
-
                         </tr>
                     ))
                 )}

@@ -278,7 +278,7 @@ export default function VehicleManagement() {
                         <tr
                             key={v.id}
                             onClick={() => navigate(`/vehicles/detail/${v.id}`)}
-                            className="cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
+                            className="group cursor-pointer hover:bg-black/[0.02] transition-colors border-b border-[#F3F4F6]"
                         >
                             <td className="py-[18px] px-[30px] text-[14px] font-[600] text-gray-400">
                                 {v.id}
@@ -325,10 +325,15 @@ export default function VehicleManagement() {
                                     {v.type?.category || v.vehicle_type || typeMap[v.vehicle_type_id] || "N/A"}
                                 </div>
                             </td>
-                            <td className="py-[18px] px-[30px]">
+                            <td className="py-[18px] px-[30px] relative">
                                 <div className="flex items-center gap-2 text-[14px] font-[600] text-[#111]/80">
                                     <i className="bi bi-people-fill text-gray-400"></i>
                                     {v.type?.capacity || v.no_of_seats || "N/A"}
+                                </div>
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:scale-110 shadow-sm border border-green-100">
+                                        <i className="bi bi-eye-fill text-[15px]"></i>
+                                    </span>
                                 </div>
                             </td>
                         </tr>

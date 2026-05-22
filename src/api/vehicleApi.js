@@ -1,5 +1,10 @@
 import api from './api';
 
+export const getVehicleTypes = async () => {
+    const res = await api.get('/admin/vehicle-types');
+    return res.data;
+};
+
 export const getVehicles = async (params) => {
     const res = await api.get('/admin/vehicles', { params });
     return res.data;

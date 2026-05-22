@@ -319,7 +319,7 @@ export default function PassengerManagement() {
                                 <tr
                                     key={p.id}
                                     onClick={() => navigate(`/passenger/detail/${p.id}`)}
-                                    className="cursor-pointer hover:bg-gray-50/50 transition-all border-b border-gray-50 last:border-0"
+                                    className="group cursor-pointer hover:bg-gray-50/50 transition-all border-b border-gray-50 last:border-0"
                                 >
                                     <td className="py-[18px] px-[30px] font-[600] text-gray-400 italic">{p.id}</td>
                                     <td className="py-[18px] px-[30px]">
@@ -341,8 +341,13 @@ export default function PassengerManagement() {
                                     </td>
                                     <td className="py-[18px] px-[30px] text-gray-700 font-[600]">{p.phone}</td>
                                     <td className="py-[18px] px-[30px] text-gray-500 font-[600]">{formatDate(p.created_at)}</td>
-                                    <td className="py-[18px] px-[30px]">
+                                    <td className="py-[18px] px-[30px] relative">
                                         <Badge variant={badgeVariant}>{displayStatus}</Badge>
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:scale-110 shadow-sm border border-green-100">
+                                                <i className="bi bi-eye-fill text-[15px]"></i>
+                                            </span>
+                                        </div>
                                     </td>
                                 </tr>
                             );
