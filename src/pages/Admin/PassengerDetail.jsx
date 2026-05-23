@@ -685,7 +685,17 @@ export default function PassengerDetail() {
                                             mapContainerStyle={{ width: '100%', height: '100%' }}
                                             center={{ lat: parseFloat(selectedRide.pickup_lat) || 0, lng: parseFloat(selectedRide.pickup_lng) || 0 }}
                                             zoom={13}
-                                            options={{ disableDefaultUI: true, zoomControl: true }}
+                                            options={{
+                                                disableDefaultUI: true,
+                                                zoomControl: true,
+                                                styles: [
+                                                    {
+                                                        featureType: "all",
+                                                        elementType: "all",
+                                                        stylers: [{ saturation: -100 }]
+                                                    }
+                                                ]
+                                            }}
                                         >
                                             {selectedRide.pickup_lat && selectedRide.dropoff_lat && !directions && (
                                                 <DirectionsService

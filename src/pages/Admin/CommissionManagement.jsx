@@ -18,10 +18,10 @@ export default function CommissionManagement() {
     ]);
 
     const transactions = [
-        { date: '22 March 2025', id: '#34567', type: 'Standard', total: '$400.00', discount: '$0.00', percent: '20%', amount: '$80.00' },
-        { date: '22 March 2025', id: '#34568', type: 'Premium', total: '$600.00', discount: '$0.00', percent: '25%', amount: '$150.00' },
-        { date: '22 March 2025', id: '#34569', type: 'Standard', total: '$400.00', discount: '$0.00', percent: '20%', amount: '$80.00' },
-        { date: '22 March 2025', id: '#34570', type: 'Van', total: '$800.00', discount: '$0.00', percent: '30%', amount: '$240.00' },
+        { date: '22 March 2025', id: '#34567', type: 'Standard', total: 'C$400.00', discount: 'C$0.00', percent: '20%', amount: 'C$80.00' },
+        { date: '22 March 2025', id: '#34568', type: 'Premium', total: 'C$600.00', discount: 'C$0.00', percent: '25%', amount: 'C$150.00' },
+        { date: '22 March 2025', id: '#34569', type: 'Standard', total: 'C$400.00', discount: 'C$0.00', percent: '20%', amount: 'C$80.00' },
+        { date: '22 March 2025', id: '#34570', type: 'Van', total: 'C$800.00', discount: 'C$0.00', percent: '30%', amount: 'C$240.00' },
     ];
 
     const startEditing = (item) => {
@@ -88,7 +88,7 @@ export default function CommissionManagement() {
                         <div className="bg-white border border-[#E5E7EB] p-4 rounded-[30px] flex justify-between items-center group relative overflow-hidden hover:shadow-xl hover:shadow-riden-red/5 transition-all duration-500">
                             <div className="relative z-10">
                                 <span className="text-[14px] font-[600] text-[#9CA3AF] block mb-2 uppercase tracking-widest">Total Commission</span>
-                                <h1 className="text-5xl font-[600] text-[#111] leading-none tracking-tight">$45,000</h1>
+                                <h1 className="text-5xl font-[600] text-[#111] leading-none tracking-tight">C$45,000</h1>
                             </div>
                             <img
                                 src="/assets/images/totalcommission.png"
@@ -99,7 +99,7 @@ export default function CommissionManagement() {
                     </div>
 
                     {/* Table */}
-                    <Table headers={['Date & Time', 'Booking ID', 'Car Type', 'Total Amount', 'Discount', 'Commission %', ' Amount']} headerBg="bg-[#FFF1F2]" headerAlign="text-center">
+                    <Table headers={['Date & Time', 'Booking ID', 'Car Type', 'Total (C$)', 'Discount (C$)', 'Commission %', 'Comm. (C$)']} headerBg="bg-[#FFF1F2]" headerAlign="text-center">
                         {transactions.map((row, i) => (
                             <tr key={i} className="hover:bg-black/[0.03] transition-colors border-b border-[#F3F4F6]">
                                 <td className="py-[18px] px-[30px] text-[14px] font-[600] text-[#4B5563] text-center">{row.date}</td>

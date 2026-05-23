@@ -120,8 +120,8 @@ export default function BookingDetail() {
     // Map to normalized object for rendering
     const booking = {
         id: `${bookingData.id}`,
-        date: new Date(bookingData.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        statusLabel: bookingData.status?.charAt(0).toUpperCase() + bookingData.status?.slice(1),
+        date: bookingData.created_at ? new Date(bookingData.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A',
+        statusLabel: bookingData.status ? (bookingData.status.charAt(0).toUpperCase() + bookingData.status.slice(1)) : 'N/A',
         title: isOngoing ? 'Ongoing Ride' : isCompleted ? 'Completed Ride' : 'Cancelled Ride',
         driver: bookingData.driver ? {
             name: `${bookingData.driver.first_name || ''} ${bookingData.driver.last_name || ''}`.trim() || 'N/A',
@@ -163,8 +163,18 @@ export default function BookingDetail() {
         reviewText: bookingData.review || 'N/A',
         tip: bookingData.tip_amount ? `Passenger gave C$ ${bookingData.tip_amount} as tip` : 'N/A',
         cancellationReason: bookingData.cancellation_reason || 'N/A',
-        bookedAt: bookingData.created_at ? format(new Date(bookingData.created_at), 'MMM dd, yyyy HH:mm') : 'N/A',
-        completedAt: bookingData.dropoff_time ? format(new Date(bookingData.dropoff_time), 'MMM dd, yyyy HH:mm') : (bookingData.status === 'completed' ? 'N/A' : '—'),
+        bookedAt: (() => {
+            if (!bookingData.created_at) return 'N/A';
+            const d = new Date(bookingData.created_at);
+            return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMM dd, yyyy HH:mm');
+        })(),
+        completedAt: (() => {
+            if (bookingData.dropoff_time) {
+                const d = new Date(bookingData.dropoff_time);
+                return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMM dd, yyyy HH:mm');
+            }
+            return bookingData.status === 'completed' ? 'N/A' : '—';
+        })(),
         requested_vehicle_type:
             bookingData.requested_vehicle_type ||
             bookingData.vehicle_type ||
@@ -217,20 +227,31 @@ export default function BookingDetail() {
                                     lng: parseFloat(bookingData?.pickup_lng) || 74.3587
                                 }}
                                 zoom={12}
-                                options={{ disableDefaultUI: true, zoomControl: true }}
+                                options={{
+                                    disableDefaultUI: true,
+                                    zoomControl: true,
+                                    styles: [
+                                        {
+                                            featureType: "all",
+                                            elementType: "all",
+                                            stylers: [{ saturation: -100 }]
+                                        }
+                                    ]
+                                }}
                             >
-                                {bookingData?.pickup_lat && bookingData?.dropoff_lat && !directions && (
-                                    <DirectionsService
-                                        options={{
-                                            origin: { lat: parseFloat(bookingData.pickup_lat), lng: parseFloat(bookingData.pickup_lng) },
-                                            destination: { lat: parseFloat(bookingData.dropoff_lat), lng: parseFloat(bookingData.dropoff_lng) },
-                                            travelMode: 'DRIVING'
-                                        }}
-                                        callback={(result, status) => {
-                                            if (status === 'OK' && result) setDirections(result);
-                                        }}
-                                    />
-                                )}
+                                {bookingData?.pickup_lat && bookingData?.dropoff_lat && !directions &&
+                                    !isNaN(parseFloat(bookingData.pickup_lat)) && !isNaN(parseFloat(bookingData.dropoff_lat)) && (
+                                        <DirectionsService
+                                            options={{
+                                                origin: { lat: parseFloat(bookingData.pickup_lat), lng: parseFloat(bookingData.pickup_lng) },
+                                                destination: { lat: parseFloat(bookingData.dropoff_lat), lng: parseFloat(bookingData.dropoff_lng) },
+                                                travelMode: 'DRIVING'
+                                            }}
+                                            callback={(result, status) => {
+                                                if (status === 'OK' && result) setDirections(result);
+                                            }}
+                                        />
+                                    )}
                                 {directions && (
                                     <DirectionsRenderer
                                         directions={directions}
@@ -301,7 +322,7 @@ export default function BookingDetail() {
                         <div className="px-6 pt-5 pb-2">
 
                             {/* Driver Section */}
-                            {!booking.status == "requested" && <div className="mb-3">
+                            {booking.status !== "requested" && <div className="mb-3">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
                                     <span className="text-white font-[600] text-xs uppercase tracking-wider">Driver</span>
                                 </div>
@@ -420,7 +441,7 @@ export default function BookingDetail() {
                                     <div className="w-px bg-gray-100"></div>
                                     <div className="text-center">
                                         <p className="text-[10px] font-[600] text-gray-400 uppercase tracking-wider mb-1">EST Fare</p>
-                                        <p className="text-sm font-[600] text-[#D10000]"> C$ {booking.fare}</p>
+                                        <p className="text-sm font-[600] text-[#D10000]">{booking.fare}</p>
                                     </div>
                                 </div>
 

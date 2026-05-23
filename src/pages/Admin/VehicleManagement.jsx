@@ -260,16 +260,16 @@ export default function VehicleManagement() {
                 </div>
             </div>
 
-            <Table headers={['ID', 'Vehicle Image', 'Driver Name', 'Vehicle Name', 'Model | Color', 'License Plate', 'Category', 'No of Seats']}>
+            <Table headers={['ID', 'Vehicle Image', 'Driver Name', 'Vehicle Name', 'License Plate', 'Category', 'No of Seats', 'Action']}>
                 {loading ? (
                     <tr>
-                        <td colSpan="7" className="text-center py-20">
+                        <td colSpan="9" className="text-center py-20">
                             <Loader fullScreen={false} />
                         </td>
                     </tr>
                 ) : vehicles.length === 0 ? (
                     <tr>
-                        <td colSpan="7" className="text-center py-10 text-gray-500">
+                        <td colSpan="9" className="text-center py-10 text-gray-500">
                             No vehicles found
                         </td>
                     </tr>
@@ -304,7 +304,7 @@ export default function VehicleManagement() {
                                         <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{v.driver?.email || 'N/A'}</span></div>
                                     </div>
                                 }>
-                                    <span className="text-[14px] font-[600] text-[#111] pb-0.5 cursor-help transition-colors hover:text-[#D10000]">
+                                    <span className="text-[14px] font-[600] text-[#D10000] pb-0.5 cursor-help transition-colors]">
                                         {v.driver ? `${v.driver.first_name} ${v.driver.last_name || ''}` : (driverMap[v.driver_id]?.name || v.driver_id)}
                                     </span>
                                 </Tooltip>
@@ -312,9 +312,7 @@ export default function VehicleManagement() {
                             <td className="py-[18px] px-[30px] text-[15px] font-[600] text-[#111] lowercase">
                                 {v.model || v.vehicle_name}
                             </td>
-                            <td className="py-[18px] px-[25px] text-[14px] font-[600] text-gray-400">
-                                {v.year || v.vehicle_model} | {v.color || v.vehicle_color}
-                            </td>
+
                             <td className="py-[18px] px-[30px] whitespace-nowrap">
                                 <span className=" px-4 py-1.5  text-[13px] font-[600] ">
                                     {v.license_plate || v.vehicle_number}
@@ -325,16 +323,16 @@ export default function VehicleManagement() {
                                     {v.type?.category || v.vehicle_type || typeMap[v.vehicle_type_id] || "N/A"}
                                 </div>
                             </td>
-                            <td className="py-[18px] px-[30px] relative">
+                            <td className="py-[18px] px-[30px]">
                                 <div className="flex items-center gap-2 text-[14px] font-[600] text-[#111]/80">
                                     <i className="bi bi-people-fill text-gray-400"></i>
                                     {v.type?.capacity || v.no_of_seats || "N/A"}
                                 </div>
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:scale-110 shadow-sm border border-green-100">
-                                        <i className="bi bi-eye-fill text-[15px]"></i>
-                                    </span>
-                                </div>
+                            </td>
+                            <td className="py-[18px] px-[30px]">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] hover:bg-green-100 transition-all duration-200 shadow-sm border border-green-100">
+                                    <i className="bi bi-eye-fill text-[15px]"></i>
+                                </span>
                             </td>
                         </tr>
                     ))

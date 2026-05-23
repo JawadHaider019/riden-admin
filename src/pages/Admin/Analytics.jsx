@@ -3,11 +3,11 @@ import AdminLayout from '@/layouts/AdminLayout';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { MiniChart, Loader, SearchBar } from '@/components/UI';
-import { getFares } from '../../api/fareApi';
 import { getDashboardStats, getDashboardAnalytics, getOnlineDrivers } from '../../api/dashboard';
-import { getVehicleDetail } from '../../api/vehicleApi';
-import { useJsApiLoader, GoogleMap, MarkerF } from '@react-google-maps/api';
+import { getVehicleDetail, getVehicleTypes } from '../../api/vehicleApi';
+import { useJsApiLoader, GoogleMap, MarkerF, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import { reverseGeocode } from '../../utils/geoUtils';
+import { getImageUrl } from '../../api/api';
 
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -16,6 +16,32 @@ import {
 import { format, startOfWeek, startOfMonth, startOfYear, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+
+// Helper component for images with fallback to initials
+const SafeImage = ({ src, alt, initials, className, fallbackClassName }) => {
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        setError(false);
+    }, [src]);
+
+    if (!src || error) {
+        return (
+            <div className={`${className} ${fallbackClassName} flex items-center justify-center text-white  text-2xl shadow-sm shrink-0`}>
+                {initials}
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className={`${className} shrink-0`}
+            onError={() => setError(true)}
+        />
+    );
+};
 
 export default function Analytics() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -26,12 +52,14 @@ export default function Analytics() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [selectedCarType, setSelectedCarType] = useState('All Vehicles');
-    const [carTypes, setCarTypes] = useState([]);
+    const [carTypes, setCarTypes] = useState([{ name: '', label: 'All Vehicles' }]);
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const [locationSearch, setLocationSearch] = useState('');
     const [searchCoords, setSearchCoords] = useState(null);
     const [addressSuggestions, setAddressSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
+    const [directions, setDirections] = useState(null);
     const [mapCenter, setMapCenter] = useState({ lat: 31.46982435, lng: 74.27143511 });
     const [onlineDrivers, setOnlineDrivers] = useState({ with_rides: [], without_rides: [] });
     const [selectedDriver, setSelectedDriver] = useState(null);
@@ -101,6 +129,33 @@ export default function Analytics() {
 
         fetchDetails();
     }, [selectedDriver?.id]);
+
+    // Fetch directions for Busy Drivers
+    useEffect(() => {
+        if (!isLoaded || !selectedDriver || selectedDriver.type !== 'Busy') {
+            setDirections(null);
+            return;
+        }
+
+        const booking = selectedDriver.bookings?.[0];
+        if (!booking || !booking.pickup_lat || !booking.dropoff_lat) return;
+
+        const directionsService = new window.google.maps.DirectionsService();
+        directionsService.route(
+            {
+                origin: { lat: parseFloat(booking.pickup_lat), lng: parseFloat(booking.pickup_lng) },
+                destination: { lat: parseFloat(booking.dropoff_lat), lng: parseFloat(booking.dropoff_lng) },
+                travelMode: window.google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+                if (status === window.google.maps.DirectionsStatus.OK) {
+                    setDirections(result);
+                } else {
+                    console.error(`error fetching directions ${result}`);
+                }
+            }
+        );
+    }, [selectedDriver, isLoaded]);
 
     // Distance calculation helper (Haversine formula)
     const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -214,12 +269,12 @@ export default function Analytics() {
         try {
             setLoading(true);
 
-            // Fetch statistics, analytics, available car types, and online drivers in parallel
-            const [statsRes, analyticsRes, faresRes, driversRes] = await Promise.all([
+            // Fetch statistics, analytics, and online drivers in parallel
+            const [statsRes, analyticsRes, driversRes, vehicleTypesRes] = await Promise.all([
                 getDashboardStats(),
                 getDashboardAnalytics(),
-                getFares(),
-                getOnlineDrivers()
+                getOnlineDrivers(),
+                getVehicleTypes()
             ]);
 
             if (statsRes.status === 'success') {
@@ -236,8 +291,15 @@ export default function Analytics() {
             }
 
             // Update car types if available
-            if (faresRes && faresRes.available_categories) {
-                setCarTypes([{ name: '', label: 'All Vehicles' }, ...faresRes.available_categories]);
+            console.log("Analytics Vehicle Types Response:", vehicleTypesRes);
+            const fetchedTypes = vehicleTypesRes.vehicleTypes || vehicleTypesRes.data?.vehicleTypes || [];
+            if (Array.isArray(fetchedTypes)) {
+                const mappedTypes = fetchedTypes.map(t => ({
+                    id: t.id,
+                    name: t.category,
+                    label: t.category
+                }));
+                setCarTypes([{ name: '', label: 'All Vehicles' }, ...mappedTypes]);
             }
 
         } catch (error) {
@@ -453,8 +515,8 @@ export default function Analytics() {
                                     },
                                     {
                                         label: 'Platform Revenue',
-                                        value: `$${stats?.revenue || 0}`,
-                                        icon: 'bi-currency-dollar'
+                                        value: `C$ ${stats?.revenue || 0}`,
+                                        icon: 'bi-currency-exchange'
                                     },
                                 ].map((kpi, i) => (
                                     <div key={i} className={`flex items-center gap-4 px-2 ${i < 3 ? 'border-r-2 border-[#D10000]' : ''}`}>
@@ -548,7 +610,7 @@ export default function Analytics() {
                         </div>
 
                         {/* Live Map & Ongoing Ride Section */}
-                        <div className="bg-white rounded-[30px] overflow-hidden relative h-[600px] border border-[#E5E7EB] mb-6">
+                        <div className={`bg-white rounded-[30px] overflow-hidden relative h-[600px] border border-[#E5E7EB] mb-6 transition-all duration-700 ease-in-out ${isResetting ? 'blur-sm scale-[0.99] opacity-90' : 'blur-0 scale-100 opacity-100'}`}>
                             {isLoaded ? (
                                 <GoogleMap
                                     mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -560,9 +622,9 @@ export default function Analytics() {
                                         zoomControl: true,
                                         styles: [
                                             {
-                                                "featureType": "all",
-                                                "elementType": "labels.text.fill",
-                                                "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
+                                                featureType: "all",
+                                                elementType: "all",
+                                                stylers: [{ saturation: -100 }]
                                             }
                                         ]
                                     }}
@@ -594,6 +656,20 @@ export default function Analytics() {
                                             />
                                         </>
                                     )}
+                                    {directions && (
+                                        <DirectionsRenderer
+                                            directions={directions}
+                                            options={{
+                                                polylineOptions: {
+                                                    strokeColor: "#D10000",
+                                                    strokeWeight: 5,
+                                                    strokeOpacity: 0.8
+                                                },
+                                                suppressMarkers: false // Keep pickup/dropoff markers from API
+                                            }}
+                                        />
+                                    )}
+
                                     {/* Drivers WITH Rides (Busy - Red) */}
                                     {filteredDrivers.with_rides?.map(driver => (
                                         driver.tracking && (
@@ -679,7 +755,26 @@ export default function Analytics() {
                                             {selectedDriver.type === 'Busy' ? 'Ongoing Ride Preview' : 'Driver Status'}
                                         </h4>
                                         <button
-                                            onClick={() => setSelectedDriver(null)}
+                                            onClick={() => {
+                                                const defaultCenter = { lat: 31.46982435, lng: 74.27143511 };
+                                                setIsResetting(true);
+                                                setSelectedDriver(null);
+                                                setDirections(null);
+                                                setSelectedCarType('All Vehicles');
+                                                setLocationSearch('');
+                                                setSearchCoords(null);
+
+                                                // Smoothly reset map view
+                                                if (mapRef.current) {
+                                                    mapRef.current.panTo(defaultCenter);
+                                                    mapRef.current.setZoom(12);
+                                                }
+                                                // Also update state for persistence
+                                                setMapCenter(defaultCenter);
+
+                                                // Reset effect after animation
+                                                setTimeout(() => setIsResetting(false), 700);
+                                            }}
                                             className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#D10000] transition-colors"
                                         >
                                             <i className="bi bi-x-lg text-sm"></i>
@@ -691,16 +786,24 @@ export default function Analytics() {
                                         <div className="flex items-center gap-4">
 
                                             <div className="relative">
+                                                {(() => {
+                                                    const avatarPath = selectedDriver.avatar || selectedDriver.avatar_url;
+                                                    const isValidAvatarPath = avatarPath && avatarPath !== 'null' && avatarPath !== 'undefined' && avatarPath !== '';
+                                                    const initials = `${(selectedDriver.first_name?.[0] || 'D').toUpperCase()}${(selectedDriver.last_name?.[0] || '').toUpperCase()}`;
 
-                                                <img
-                                                    src={selectedDriver.avatar_url || `https://ui-avatars.com/api/?name=${selectedDriver.first_name}`}
-                                                    alt="Driver"
-                                                    className="w-[54px] h-[54px] rounded-[14px] object-cover border-2 border-red-50"
-                                                />
-                                                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${selectedDriver.type === 'Busy' ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                                                    return (
+                                                        <SafeImage
+                                                            src={isValidAvatarPath ? getImageUrl(avatarPath) : null}
+                                                            alt="Driver"
+                                                            initials={initials}
+                                                            className="w-[54px] h-[54px] rounded-[14px] object-cover border-2 border-red-50"
+                                                            fallbackClassName="bg-[#D10000] border-red-100"
+                                                        />
+                                                    );
+                                                })()}
                                             </div>
                                             <div>
-                                                <h5 className="text-[15px] font-[600] text-[#111]">{selectedDriver.first_name} {selectedDriver.last_name} (Driver)</h5>
+                                                <h5 className="text-[15px] font-[500] text-[#111]">{selectedDriver.first_name} {selectedDriver.last_name} (Driver)</h5>
                                                 <p className="text-[11px] text-[#6B7280] font-[500] uppercase tracking-wider">
                                                     {selectedDriver.phone}
                                                 </p>
@@ -716,15 +819,25 @@ export default function Analytics() {
                                     {/* Passenger Info Section (Only for Busy Drivers) */}
                                     {selectedDriver.type === 'Busy' && selectedDriver.bookings?.[0]?.passenger && (
                                         <div className=" mb-4">
-
                                             <div className="flex items-center gap-3">
-                                                <img
-                                                    src={selectedDriver.bookings[0].passenger.avatar_url || `https://ui-avatars.com/api/?name=${selectedDriver.bookings[0].passenger.first_name}`}
-                                                    alt="Passenger"
-                                                    className="w-[54px] h-[54px] rounded-[14px] object-cover border-2 border-red-50"
-                                                />
+                                                {(() => {
+                                                    const passenger = selectedDriver.bookings[0].passenger;
+                                                    const avatarPath = passenger.avatar || passenger.avatar_url;
+                                                    const isValidAvatarPath = avatarPath && avatarPath !== 'null' && avatarPath !== 'undefined' && avatarPath !== '';
+                                                    const initials = `${(passenger.first_name?.[0] || 'P').toUpperCase()}${(passenger.last_name?.[0] || '').toUpperCase()}`;
+
+                                                    return (
+                                                        <SafeImage
+                                                            src={isValidAvatarPath ? getImageUrl(avatarPath) : null}
+                                                            alt="Passenger"
+                                                            initials={initials}
+                                                            className="w-[54px] h-[54px] rounded-[14px] object-cover border-2 border-red-50"
+                                                            fallbackClassName="bg-[#111] border-gray-200"
+                                                        />
+                                                    );
+                                                })()}
                                                 <div>
-                                                    <h6 className="text-[14px] font-[600] text-[#111]">
+                                                    <h6 className="text-[14px] font-[500] text-[#111]">
                                                         {selectedDriver.bookings[0].passenger.first_name} {selectedDriver.bookings[0].passenger.last_name} (Passenger)
                                                     </h6>
                                                     <p className="text-[11px] text-[#6B7280]">     {selectedDriver.bookings[0].passenger.phone}</p>
@@ -740,12 +853,12 @@ export default function Analytics() {
                                         {selectedDriver.type === 'Busy' ? (
                                             <>
                                                 <div className="relative mb-4">
-                                                    <div className="absolute -left-[27px] top-[6px] w-[11px] h-[11px] bg-black rounded-full ring-4 ring-gray-100"></div>
+                                                    <div className="absolute -left-[27px] top-[5px] w-[11px] h-[11px] bg-black rounded-full ring-4 ring-gray-100"></div>
                                                     <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Pickup Location</h6>
                                                     <p className="text-[13px] font-[500] text-[#111]">{addresses.pickup}</p>
                                                 </div>
                                                 <div className="relative">
-                                                    <div className="absolute -left-[30px] top-[2px] text-[#D10000]">
+                                                    <div className="absolute -left-[30px] top-[0px] text-[#D10000]">
                                                         <i className="bi bi-geo-alt-fill text-[18px]"></i>
                                                     </div>
                                                     <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Dropoff Point</h6>
@@ -783,15 +896,36 @@ export default function Analytics() {
 
                                     {/* Vehicle Info Section */}
                                     <div className="flex items-center gap-4 border-t border-[#F1F5F9] pt-4">
-                                        <div className="w-14 h-12 rounded-[14px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 p-1">
-                                            <i className="bi bi-car-front-fill text-2xl text-gray-300"></i>
+                                        <div className="w-16 h-12 rounded-[14px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 p-1">
+                                            {selectedDriver.vehicle?.type?.image_path ? (
+                                                <img
+                                                    src={getImageUrl(selectedDriver.vehicle.type.image_path)}
+                                                    alt="Vehicle"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <i className="bi bi-car-front-fill text-2xl text-gray-300"></i>
+                                            )}
                                         </div>
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <div className="w-2 h-2 bg-black rounded-full"></div>
-                                                <span className="text-[13px] font-[700] text-[#111]">{selectedDriver.vehicle?.model}</span>
+                                        <div className="flex-1 flex flex-col min-w-0">
+                                            <div className="flex items-center justify-between mb-0.5">
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
+                                                    <span className="text-[13px] font-[700] text-[#111] truncate">{selectedDriver.vehicle?.model || 'Unknown Model'}</span>
+                                                </div>
+                                                <span className="text-[10px] font-[700] bg-gray-100 px-2 py-0.5 rounded-full text-gray-500 whitespace-nowrap">
+                                                    {selectedDriver.vehicle?.type?.capacity ? `${selectedDriver.vehicle.type.capacity} Seats` : 'N/A'}
+                                                </span>
                                             </div>
-                                            <p className="text-[11px] font-[500] text-[#6B7280]">{selectedDriver.vehicle?.license_plate} • {selectedDriver.vehicle?.color} • <span className="text-[#D10000] uppercase font-[600] text-[11px]">{selectedDriver.vehicle?.type?.category}</span></p>
+                                            <div className="flex gap-1.5 mt-1">
+                                                <p className="text-[11px] font-[500] text-[#6B7280] truncate">
+                                                    {selectedDriver.vehicle?.license_plate}
+                                                </p>
+                                                <span className="text-[#D10000] uppercase font-[700] text-[9px] bg-red-50 px-2 py-0.5 rounded-md border border-red-100/50">
+                                                    {selectedDriver.vehicle?.type?.category}
+                                                </span>
+
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1233,12 +1367,12 @@ function FinancialAnalytics({ bookingTrends, period, onPeriodChange }) {
                     {[
                         {
                             label: 'Total Revenue',
-                            value: `$${totalRevenue.toLocaleString()}`,
-                            icon: 'bi-currency-dollar'
+                            value: `C$ ${totalRevenue.toLocaleString()}`,
+                            icon: 'bi-currency-exchange'
                         },
                         {
                             label: 'Avg Per Day',
-                            value: `$${bookingTrends?.length > 0 ? Math.round(totalRevenue / bookingTrends.length).toLocaleString() : 0}`,
+                            value: `C$ ${bookingTrends?.length > 0 ? Math.round(totalRevenue / bookingTrends.length).toLocaleString() : 0}`,
                             icon: 'bi-graph-up-arrow'
                         }
                     ].map((kpi, i) => (
@@ -1266,7 +1400,7 @@ function FinancialAnalytics({ bookingTrends, period, onPeriodChange }) {
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                                    formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
+                                    formatter={(value) => [`C$ ${value.toLocaleString()}`, 'Revenue']}
                                 />
                                 <Line type="monotone" dataKey="amount" stroke="#D10000" strokeWidth={5} dot={{ r: 6, fill: '#D10000', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
                             </LineChart>
@@ -1281,7 +1415,7 @@ function FinancialAnalytics({ bookingTrends, period, onPeriodChange }) {
                             <div className="flex items-center gap-3">
                                 <div className="w-3 h-3 rounded-full bg-[#D10000]"></div>
                                 <span className="text-[13px] font-[600] text-[#6B7280]">
-                                    Total Revenue <span className="text-[#111]">${totalRevenue.toLocaleString()}</span>
+                                    Total Revenue <span className="text-[#111]">C$ {totalRevenue.toLocaleString()}</span>
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">

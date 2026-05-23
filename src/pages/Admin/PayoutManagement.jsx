@@ -10,21 +10,21 @@ export default function PayoutManagement() {
     const [endDate, setEndDate] = useState(null);
 
     const drivers = [
-        { name: 'Wade Warren', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=11', instant: true },
-        { name: 'Jacob Jones', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=12' },
-        { name: 'Bessie Cooper', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=13' },
-        { name: 'Theresa Webb', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=14' },
-        { name: 'Jerome Bell', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=15' },
-        { name: 'Robert Fox', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=16', instant: true },
-        { name: 'Kathryn Murphy', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=17' },
-        { name: 'Savannah Nguyen', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=18' },
-        { name: 'Floyd Miles', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=19' },
-        { name: 'Devon Lane', id: '#34567', rides: '45', amount: '$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=20' },
+        { name: 'Wade Warren', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=11', instant: true },
+        { name: 'Jacob Jones', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=12' },
+        { name: 'Bessie Cooper', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=13' },
+        { name: 'Theresa Webb', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=14' },
+        { name: 'Jerome Bell', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=15' },
+        { name: 'Robert Fox', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=16', instant: true },
+        { name: 'Kathryn Murphy', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=17' },
+        { name: 'Savannah Nguyen', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=18' },
+        { name: 'Floyd Miles', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=19' },
+        { name: 'Devon Lane', id: '#34567', rides: '45', amount: 'C$50.00', date: '22 March 2025', img: 'https://i.pravatar.cc/100?img=20' },
     ];
 
-    const upcomingHeaders = ['Name', 'Unique ID', 'Total Rides', 'Total Amount'];
-    const previousHeaders = ['Name', 'Unique ID', 'Total Rides', 'Total Amount', 'Payout Date', 'Receipt'];
-    const instantHeaders = ['Name', 'Unique ID', 'Total Rides', 'Total Amount', 'Action'];
+    const upcomingHeaders = ['Name', 'Unique ID', 'Total Rides', 'Total (C$)'];
+    const previousHeaders = ['Name', 'Unique ID', 'Total Rides', 'Total (C$)', 'Payout Date', 'Receipt'];
+    const instantHeaders = ['Name', 'Unique ID', 'Total Rides', 'Total (C$)', 'Action'];
 
     return (
         <AdminLayout title={view === 'payouts' ? "Payments" : "Instant Payout Requests"}>

@@ -424,22 +424,21 @@ export default function BookingManagement() {
                 ...(type !== 'requested' ? [{ label: 'Driver', align: 'text-center' }] : []),
                 { label: 'Passenger', align: 'text-center' },
                 { label: type === 'requested' ? 'Requested Vehicle' : 'Vehicle', align: 'text-center' },
-                { label: 'Fare', align: 'text-center' },
+                { label: '  C$ Fare', align: 'text-center' },
                 { label: 'Pickup Location', align: 'text-center' },
                 { label: 'Dropoff Location', align: 'text-center' },
-                { label: 'Distance', align: 'text-center' },
-                { label: 'Duration', align: 'text-center' }
+                { label: 'Action', align: 'text-center' },
             ].filter(Boolean)}>
 
                 {loading ? (
                     <tr>
-                        <td colSpan={type === 'requested' ? 8 : 9} className="py-20 text-center">
+                        <td colSpan={type === 'requested' ? 9 : 10} className="py-20 text-center">
                             <Loader fullScreen={false} />
                         </td>
                     </tr>
                 ) : filteredBookings.length === 0 ? (
                     <tr>
-                        <td colSpan={type === 'requested' ? 8 : 9} className="text-center py-8 text-gray-500">
+                        <td colSpan={type === 'requested' ? 9 : 10} className="text-center py-8 text-gray-500">
                             No bookings found
                         </td>
                     </tr>
@@ -491,66 +490,70 @@ export default function BookingManagement() {
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#D10000] text-center whitespace-nowrap">
-                                <Tooltip content={
-                                    <div className="flex flex-col gap-1 py-1 min-w-[200px]">
-                                        {type === 'requested' ? (
-                                            <>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-hash text-[#D10000]"></i>
-                                                    <span>Type ID: {booking.requested_vehicle_type?.id || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-people-fill text-[#D10000]"></i>
-                                                    <span>Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-info-circle text-[#D10000]"></i>
-                                                    <span className="break-words">Details: {booking.requested_vehicle_type?.car_details || 'N/A'}</span>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-hash text-[#D10000]"></i>
-                                                    <span>ID: {booking.vehicle?.id || booking.vehicle_id || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-tag-fill text-[#D10000]"></i>
-                                                    <span>Plate: {booking.vehicle?.license_plate || booking.driver?.vehicle?.license_plate || 'N/A'}</span>
-                                                </div>
+                                {type === 'requested' && (!booking.requested_vehicle_type || !booking.requested_vehicle_type.category || String(booking.requested_vehicle_type.category).toLowerCase() === 'any') ? (
+                                    <span className="font-semibold text-gray-400">Any</span>
+                                ) : (
+                                    <Tooltip content={
+                                        <div className="flex flex-col gap-1 py-1 min-w-[200px]">
+                                            {type === 'requested' ? (
+                                                <>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-hash text-[#D10000]"></i>
+                                                        <span>Type ID: {booking.requested_vehicle_type?.id || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-people-fill text-[#D10000]"></i>
+                                                        <span>Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-info-circle text-[#D10000]"></i>
+                                                        <span className="break-words">Details: {booking.requested_vehicle_type?.car_details || 'N/A'}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-hash text-[#D10000]"></i>
+                                                        <span>ID: {booking.vehicle?.id || booking.vehicle_id || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-tag-fill text-[#D10000]"></i>
+                                                        <span>Plate: {booking.vehicle?.license_plate || booking.driver?.vehicle?.license_plate || 'N/A'}</span>
+                                                    </div>
 
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-people-fill text-[#D10000]"></i>
-                                                    <span>
-                                                        Seats: {(() => {
-                                                            const val = booking.vehicle?.capacity || booking.vehicle?.seats || 'N/A';
-                                                            return typeof val === 'object' ? (val?.capacity || val?.name || 'N/A') : val;
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <i className="bi bi-gear-fill text-[#D10000]"></i>
-                                                    <span>
-                                                        Type: {(() => {
-                                                            const val = booking.vehicle?.type || booking.vehicle?.category || 'N/A';
-                                                            return typeof val === 'object' ? (val?.category || val?.name || 'N/A') : val;
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                }>
-                                    <span className="hover:text-[#D10000] cursor-help font-semibold">
-                                        {type === 'requested'
-                                            ? (booking.requested_vehicle_type?.category || 'Any')
-                                            : (booking.vehicle?.model || booking.driver?.vehicle?.model || `${booking.vehicle_id || 'N/A'}`)}
-                                    </span>
-                                </Tooltip>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-people-fill text-[#D10000]"></i>
+                                                        <span>
+                                                            Seats: {(() => {
+                                                                const val = booking.vehicle?.capacity || booking.vehicle?.seats || 'N/A';
+                                                                return typeof val === 'object' ? (val?.capacity || val?.name || 'N/A') : val;
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <i className="bi bi-gear-fill text-[#D10000]"></i>
+                                                        <span>
+                                                            Type: {(() => {
+                                                                const val = booking.vehicle?.type || booking.vehicle?.category || 'N/A';
+                                                                return typeof val === 'object' ? (val?.category || val?.name || 'N/A') : val;
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    }>
+                                        <span className="hover:text-[#D10000] cursor-help font-semibold">
+                                            {type === 'requested'
+                                                ? (booking.requested_vehicle_type?.category || 'Any')
+                                                : (booking.vehicle?.model || booking.driver?.vehicle?.model || `${booking.vehicle_id || 'N/A'}`)}
+                                        </span>
+                                    </Tooltip>
+                                )}
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#111] text-center whitespace-nowrap">
-                                C$ {booking.fare || '0.00'}
+                                {booking.fare || '0.00'}
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.pickup_location}>
@@ -561,48 +564,10 @@ export default function BookingManagement() {
                                 {booking.dropoff_location || (booking.dropoff_lat ? `${parseFloat(booking.dropoff_lat).toFixed(4)}, ${parseFloat(booking.dropoff_lng).toFixed(4)}` : 'N/A')}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap">
-                                {(() => {
-                                    const dist = booking.estimated_distance || booking.distance;
-                                    if (!dist) return 'N/A';
-                                    const numValue = parseFloat(dist);
-                                    if (isNaN(numValue)) return dist;
-                                    return `${numValue.toFixed(1)} km`;
-                                })()}
-                            </td>
-
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center whitespace-nowrap relative">
-                                {(() => {
-                                    const duration = booking.estimated_time || booking.duration;
-                                    if (!duration) return 'N/A';
-                                    const durationStr = String(duration);
-
-                                    // Handle HH:MM:SS format
-                                    if (durationStr.includes(':')) {
-                                        const parts = durationStr.split(':');
-                                        if (parts.length === 3) {
-                                            const h = parseInt(parts[0], 10);
-                                            const m = parseInt(parts[1], 10);
-                                            if (h > 0) return `${h} hr ${m} mins`;
-                                            return `${m} mins`;
-                                        }
-                                    }
-
-                                    if (durationStr.toLowerCase().includes('min') || durationStr.toLowerCase().includes('hour')) return duration;
-
-                                    const numValue = parseFloat(durationStr);
-                                    if (isNaN(numValue)) return duration;
-
-                                    if (numValue >= 60) {
-                                        return `${Math.floor(numValue / 60)} hr ${Math.round(numValue % 60)} mins`;
-                                    }
-                                    return `${Math.round(numValue)} mins`;
-                                })()}
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:scale-110 shadow-sm border border-green-100">
-                                        <i className="bi bi-eye-fill text-[15px]"></i>
-                                    </span>
-                                </div>
+                            <td className="py-[18px] px-[10px] text-center">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] hover:bg-green-100 transition-all duration-200 shadow-sm border border-green-100">
+                                    <i className="bi bi-eye-fill text-[15px]"></i>
+                                </span>
                             </td>
                         </tr>
                     ))

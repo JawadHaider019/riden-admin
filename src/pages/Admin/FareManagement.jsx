@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Table, Select, InputWrapper, useToast, Loader } from '@/components/UI';
 import { getFares, updateFare } from '@/api/fareApi';
+import { getVehicleTypes } from '@/api/vehicleApi';
 
 export default function FareManagement() {
     const { showToast } = useToast();
@@ -13,18 +14,17 @@ export default function FareManagement() {
     const [editValues, setEditValues] = useState({});
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const [selectedCarType, setSelectedCarType] = useState('');
-    const [carTypes, setCarTypes] = useState([]);
+    const [carTypes, setCarTypes] = useState([{ name: '', label: 'All Vehicles' }]);
 
     const fetchFares = async (vehicleType = '') => {
         try {
             setLoading(true);
             const data = await getFares(vehicleType);
             setFares(data.fares || []);
-            setCarTypes(data.available_categories || []);
 
-            if (!selectedCarType && data.current_vehicle_type) {
-                setSelectedCarType(data.current_vehicle_type);
-            }
+            // carTypes are now fetched separately in useEffect
+
+            // Removed current_vehicle_type override to maintain 'All Vehicles' as default
         } catch (error) {
             console.error("Error fetching fares:", error);
         } finally {
@@ -33,7 +33,30 @@ export default function FareManagement() {
     };
 
     useEffect(() => {
-        fetchFares();
+        const init = async () => {
+            try {
+                const res = await getVehicleTypes();
+                console.log("Vehicle Types API Response:", res);
+                const fetchedTypes = res.vehicleTypes || res.data?.vehicleTypes || [];
+                const mappedTypes = fetchedTypes.map(t => ({
+                    id: t.id,
+                    name: t.category,
+                    label: t.category
+                }));
+
+                const allTypes = [{ name: '', label: 'All Vehicles' }, ...mappedTypes];
+                setCarTypes(allTypes);
+
+                // If no car type is selected yet, or it's not in the new list, default to first
+                if (!selectedCarType && allTypes.length > 0) {
+                    setSelectedCarType(allTypes[0].name);
+                }
+            } catch (error) {
+                console.error("Error fetching vehicle types:", error);
+            }
+            fetchFares();
+        };
+        init();
     }, []);
 
     const startEditing = (fare) => {
@@ -115,7 +138,7 @@ export default function FareManagement() {
                 .animate-scale-up-dropdown { animation: scale-up-dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
             ` }} />
 
-            <Table headers={['Days', 'Base Fare ($)', 'Per KM ($)', 'Wait Min / $', 'Night Time', 'Night ($)', 'Peak ($)', 'Actions']} tableClassName="table-fixed" headerAlign="text-center">
+            <Table headers={['Days', 'Base Fare (C$)', 'Per KM (C$)', 'Wait Min / C$', 'Night Time', 'Night (C$)', 'Peak (C$)', 'Actions']} tableClassName="table-fixed" headerAlign="text-center">
                 {loading ? (
                     <tr>
                         <td colSpan="8" className="py-20 text-center">
@@ -138,7 +161,7 @@ export default function FareManagement() {
                                         className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#111]">${fare.base_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">C${fare.base_fare}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -151,7 +174,7 @@ export default function FareManagement() {
                                         className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#111]">${fare.per_km_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">C${fare.per_km_fare}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -173,7 +196,7 @@ export default function FareManagement() {
                                         />
                                     </div>
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min}m / ${fare.waiting_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min}m / C${fare.waiting_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -210,7 +233,7 @@ export default function FareManagement() {
                                         className="w-[70px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#D10000] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#D10000]">${fare.night_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#D10000]">C${fare.night_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -223,7 +246,7 @@ export default function FareManagement() {
                                         className="w-[70px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#D10000] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#D10000]">${fare.peak_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#D10000]">C${fare.peak_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">

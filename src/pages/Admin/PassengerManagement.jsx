@@ -295,16 +295,16 @@ export default function PassengerManagement() {
 
             {/* Table */}
             <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden mb-6">
-                <Table headers={[' ID', 'Name', 'Phone Number', 'Joined Date', 'Status']}>
+                <Table headers={[' ID', 'Name', 'Phone Number', 'Joined Date', 'Status', 'Action']}>
                     {loading ? (
                         <tr>
-                            <td colSpan="5" className="text-center py-20">
+                            <td colSpan="6" className="text-center py-20">
                                 <Loader fullScreen={false} />
                             </td>
                         </tr>
                     ) : passengers.length === 0 ? (
                         <tr>
-                            <td colSpan="5" className="text-center py-24 text-gray-400 font-[600]">
+                            <td colSpan="6" className="text-center py-24 text-gray-400 font-[600]">
                                 No passengers found in {activeTab} list
                             </td>
                         </tr>
@@ -341,13 +341,13 @@ export default function PassengerManagement() {
                                     </td>
                                     <td className="py-[18px] px-[30px] text-gray-700 font-[600]">{p.phone}</td>
                                     <td className="py-[18px] px-[30px] text-gray-500 font-[600]">{formatDate(p.created_at)}</td>
-                                    <td className="py-[18px] px-[30px] relative">
+                                    <td className="py-[18px] px-[30px]">
                                         <Badge variant={badgeVariant}>{displayStatus}</Badge>
-                                        <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:scale-110 shadow-sm border border-green-100">
-                                                <i className="bi bi-eye-fill text-[15px]"></i>
-                                            </span>
-                                        </div>
+                                    </td>
+                                    <td className="py-[18px] px-[30px]">
+                                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-50 text-[#1D7E4D] hover:bg-green-100 transition-all duration-200 shadow-sm border border-green-100">
+                                            <i className="bi bi-eye-fill text-[15px]"></i>
+                                        </span>
                                     </td>
                                 </tr>
                             );

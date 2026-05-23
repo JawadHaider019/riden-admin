@@ -24,10 +24,10 @@ export default function ReportManagement() {
 
     // --- Mock Data ---
     const financialData = [
-        { date: '23/04/2025', revenue: '$130.00', commission: '$10.00', earnings: '$50.00' },
-        { date: '23/04/2025', revenue: '$530.00', commission: '$10.00', earnings: '$50.00' },
-        { date: '23/04/2025', revenue: '$230.00', commission: '$30.00', earnings: '$50.00' },
-        { date: '23/04/2025', revenue: '$230.00', commission: '$20.00', earnings: '$50.00' },
+        { date: '23/04/2025', revenue: 'C$130.00', commission: 'C$10.00', earnings: 'C$50.00' },
+        { date: '23/04/2025', revenue: 'C$530.00', commission: 'C$10.00', earnings: 'C$50.00' },
+        { date: '23/04/2025', revenue: 'C$230.00', commission: 'C$30.00', earnings: 'C$50.00' },
+        { date: '23/04/2025', revenue: 'C$230.00', commission: 'C$20.00', earnings: 'C$50.00' },
     ];
 
     const chartData = [
@@ -128,7 +128,7 @@ export default function ReportManagement() {
                                     )}
                                 </div>
                             </div>
-                            <Table headers={['Date', 'Total Revenue', 'Platform Comm.', 'Driver Earnings']} headerBg="bg-[#FFF1F2]" headerAlign="text-center">
+                            <Table headers={['Date', 'Total Revenue (C$)', 'Platform Comm. (C$)', 'Driver Earnings (C$)']} headerBg="bg-[#FFF1F2]" headerAlign="text-center">
                                 {financialData.map((row, i) => (
                                     <tr key={i} className="border-b border-gray-100 font-[600] text-[#111] text-center">
                                         <td className="py-4">{row.date}</td>
@@ -142,7 +142,7 @@ export default function ReportManagement() {
 
                         <section>
                             <h3 className="text-xl font-[600] text-[#111] mb-4">Payout History</h3>
-                            <Table headers={['Date', 'Total Revenue', 'Platform Comm.', 'Driver Earnings']} headerBg="bg-[#FFF1F2]" headerAlign="text-center">
+                            <Table headers={['Date', 'Total Revenue (C$)', 'Platform Comm. (C$)', 'Driver Earnings (C$)']} headerBg="bg-[#FFF1F2]" headerAlign="text-center">
                                 {financialData.map((row, i) => (
                                     <tr key={i} className="border-b border-gray-100 font-[600] text-[#111] text-center">
                                         <td className="py-4">{row.date}</td>
@@ -161,12 +161,12 @@ export default function ReportManagement() {
                                 <tr className="border-b border-gray-100 font-[600] text-[#111] text-center">
                                     <td className="py-4 px-6 text-gray-500">23/04/2025</td>
                                     <td className="py-4 px-6">45</td>
-                                    <td className="py-4 px-6 text-gray-500">$120.00</td>
+                                    <td className="py-4 px-6 text-gray-500">C$120.00</td>
                                 </tr>
                                 <tr className="border-b border-gray-100 font-[600] text-[#111] text-center">
                                     <td className="py-4 px-6 text-gray-500">23/04/2025</td>
                                     <td className="py-4 px-6">45</td>
-                                    <td className="py-4 px-6 text-gray-500">$50.00</td>
+                                    <td className="py-4 px-6 text-gray-500">C$50.00</td>
                                 </tr>
                             </Table>
 
@@ -218,17 +218,17 @@ export default function ReportManagement() {
                                 <tr className="border-b border-gray-100 font-[600] text-[#111]">
                                     <td className="py-4 pl-4   text-sm">Ride Trends & Demand</td>
                                     <td className="py-4 pl-10   text-sm">45</td>
-                                    <td className="py-4 pl-8   text-sm text-gray-500">$5.00</td>
+                                    <td className="py-4 pl-8   text-sm text-gray-500">C$5.00</td>
                                 </tr>
                                 <tr className="border-b border-gray-100 font-[600] text-[#111]">
                                     <td className="py-4 pl-4   text-sm">Heatmap</td>
                                     <td className="py-4 pl-10   text-sm">45</td>
-                                    <td className="py-4 pl-8   text-sm text-gray-500">$5.00</td>
+                                    <td className="py-4 pl-8   text-sm text-gray-500">C$5.00</td>
                                 </tr>
                                 <tr className="border-b border-gray-100 font-[600] text-[#111]">
                                     <td className="py-4 pl-4   text-sm">Canceled Trends</td>
                                     <td className="py-4 pl-10   text-sm">45</td>
-                                    <td className="py-4 pl-8   text-sm text-gray-500">$5.00</td>
+                                    <td className="py-4 pl-8   text-sm text-gray-500">C$5.00</td>
                                 </tr>
                             </Table>
                         </section>

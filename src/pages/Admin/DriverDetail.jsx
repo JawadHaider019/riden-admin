@@ -128,7 +128,7 @@ export default function DriverDetail() {
                 stats: {
                     total_rides: driverData.total_rides || driverData.stats?.total_rides || 0,
                     completed_rides: driverData.completed_rides || driverData.stats?.completed_rides || 0,
-                    revenue: driverData.revenue || driverData.stats?.revenue || '$0.00'
+                    revenue: driverData.revenue || driverData.stats?.revenue || 'C$0.00'
                 },
                 vehicles: driverData.vehicles || (driverData.vehicle ? [{
                     ...driverData.vehicle,
@@ -1466,7 +1466,17 @@ export default function DriverDetail() {
                                                     lng: parseFloat(selectedRide.pickup_lng) || 0
                                                 }}
                                                 zoom={13}
-                                                options={{ disableDefaultUI: true, zoomControl: true }}
+                                                options={{
+                                                    disableDefaultUI: true,
+                                                    zoomControl: true,
+                                                    styles: [
+                                                        {
+                                                            featureType: "all",
+                                                            elementType: "all",
+                                                            stylers: [{ saturation: -100 }]
+                                                        }
+                                                    ]
+                                                }}
                                             >
                                                 {selectedRide.pickup_lat && selectedRide.dropoff_lat && !directions && (
                                                     <DirectionsService
@@ -1593,7 +1603,7 @@ export default function DriverDetail() {
                                                 const v = driver?.vehicles?.find(val => String(val.id) === String(selectedRide.vehicle_id)) || driver?.vehicles?.[0];
                                                 return (
                                                     <>
-                                                        <div className="flex justify-between items-center bg-[#D10000] uppercase text-white px-4 py-2 rounded-[10px]">
+                                                        <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider flex justify-between items-center uppercase">
                                                             VEHICLE INFORMATION
 
                                                         </div>
@@ -1609,7 +1619,6 @@ export default function DriverDetail() {
                                                                         <span className="bg-[#FFEAEA] text-[#D10000] px-3 py-0.5 rounded-full text-[10px] font-bold border border-[#FFD9D9]">
                                                                             {v?.license_plate || '—'}
                                                                         </span>
-                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Type ID: {selectedRide.req_veh_type_id}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
