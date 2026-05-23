@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Badge, useToast, Loader } from '@/components/UI';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import { getBookingDetail } from '@/api/bookingApi';
+import { getVehicleTypes } from '@/api/vehicleApi';
 import api, { getImageUrl } from '@/api/api';
 import { reverseGeocode } from '@/utils/geoUtils';
 import { format } from 'date-fns';
@@ -16,6 +17,7 @@ export default function BookingDetail() {
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
     const [directions, setDirections] = useState(null);
+    const [vehicleTypes, setVehicleTypes] = useState([]);
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -94,6 +96,19 @@ export default function BookingDetail() {
 
         if (id) fetchBooking();
     }, [id]);
+
+    useEffect(() => {
+        const fetchTypes = async () => {
+            try {
+                const res = await getVehicleTypes();
+                const types = res.vehicleTypes || res.data?.vehicleTypes || [];
+                setVehicleTypes(types);
+            } catch (err) {
+                console.error("Error fetching vehicle types:", err);
+            }
+        };
+        fetchTypes();
+    }, []);
 
     if (loading) {
         return <Loader />;
@@ -181,8 +196,32 @@ export default function BookingDetail() {
             bookingData.requestedVehicleType ||
             bookingData.requested_vehicle ||
             null,
-        status: bookingData.status
+        status: bookingData.status,
+        vehicle_type_id: bookingData.vehicle_type_id || bookingData.vehicle_type?.id || bookingData.requested_vehicle_type?.id
     };
+
+    // Find car image helper
+    const getCarImage = () => {
+        // 1. Try specific vehicle images if available
+        const vehicle = bookingData.vehicle || bookingData.driver?.vehicle;
+        if (vehicle?.front_image) return getImageUrl(vehicle.front_image);
+        if (vehicle?.back_image) return getImageUrl(vehicle.back_image);
+
+        // 2. Try type image from the booking object itself
+        const type = booking.requested_vehicle_type || vehicle?.type;
+        if (type?.image_path) return getImageUrl(type.image_path);
+
+        // 3. Fallback to matching by ID from the global vehicleTypes list
+        const typeId = booking.vehicle_type_id;
+        if (typeId && vehicleTypes.length > 0) {
+            const matchedType = vehicleTypes.find(t => String(t.id) === String(typeId));
+            if (matchedType?.image_path) return getImageUrl(matchedType.image_path);
+        }
+
+        return null;
+    };
+
+    const carImage = getCarImage();
 
 
 
@@ -361,15 +400,19 @@ export default function BookingDetail() {
 
                                 {/* Vehicle — conditional on status */}
                                 {bookingData.status === 'requested' ? (
-                                    <div className="flex items-center gap-3 mt-3 px-1 py-3 border-t border-gray-50 text-[14px]">
-                                        <div className="w-14 h-10 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
-                                            <i className="bi bi-car-front-fill text-lg text-gray-400"></i>
+                                    <div className="flex items-center gap-4 mt-3 px-1 py-4 border-t border-gray-50 text-[14px]">
+                                        <div className="w-20 h-14 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 shadow-sm">
+                                            {carImage ? (
+                                                <img src={carImage} className="w-full h-full object-contain" alt="Car" />
+                                            ) : (
+                                                <i className="bi bi-car-front-fill text-2xl text-gray-300"></i>
+                                            )}
                                         </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <div className='grid grid-cols-2'>
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <div className='grid grid-cols-2 gap-2'>
                                                 <div className="flex items-center gap-2 text-sm">
                                                     <i className="bi bi-hash text-[#D10000]"></i>
-                                                    <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.id || booking.requested_vehicle_type?.id || 'N/A'}</span>
+                                                    <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.id || 'N/A'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm">
                                                     <i className="bi bi-car-front-fill text-[#D10000]"></i>
@@ -378,29 +421,33 @@ export default function BookingDetail() {
                                             </div>
                                             <div className="flex items-center gap-2 text-sm">
                                                 <i className="bi bi-people-fill text-[#D10000]"></i>
-                                                <span className="text-gray-600">Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
+                                                <span className="text-gray-600 font-medium">Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
                                             </div>
                                             {booking.requested_vehicle_type?.car_details && (
-                                                <div className="flex items-center gap-2 text-sm">
+                                                <div className="flex items-center gap-2 text-xs mt-0.5">
                                                     <i className="bi bi-info-circle text-[#D10000]"></i>
-                                                    <span className="text-gray-600 break-words">{booking.requested_vehicle_type.car_details}</span>
+                                                    <span className="text-gray-500 italic break-words">{booking.requested_vehicle_type.car_details}</span>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 mt-3 px-1 py-3 border-t border-gray-50 text-[14px]">
-                                        <div className="w-14 h-10 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
-                                            <i className="bi bi-car-front-fill text-lg text-gray-400"></i>
+                                    <div className="flex items-center gap-4 mt-3 px-1 py-4 border-t border-gray-50 text-[14px]">
+                                        <div className="w-20 h-14 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 shadow-sm">
+                                            {carImage ? (
+                                                <img src={carImage} className="w-full h-full object-contain" alt="Car" />
+                                            ) : (
+                                                <i className="bi bi-car-front-fill text-2xl text-gray-300"></i>
+                                            )}
                                         </div>
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-col flex-1">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
-                                                <span className="font-[600] text-gray-900">{booking.vehicle.name}</span>
+                                                <span className="font-[600] text-gray-900 text-base">{booking.vehicle.name}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-xs text-gray-400 font-[600] uppercase tracking-wider">License Plate:</span>
-                                                <span className="text-xs font-[600] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">{booking.vehicle.vehNo}</span>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] text-gray-400 font-[700] uppercase tracking-wider">License Plate:</span>
+                                                <span className="text-xs font-[700] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 shadow-sm">{booking.vehicle.vehNo}</span>
                                             </div>
                                         </div>
                                     </div>

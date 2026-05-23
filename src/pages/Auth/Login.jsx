@@ -30,21 +30,28 @@ export default function Login() {
     return (
         <>
             {loading && <Loader />}
-            <div className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat relative font-sans"
-                style={{ backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/assets/images/login.jpg')" }}>
+            <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0a0a] relative font-sans overflow-hidden">
+                {/* Background Decoration: Gradient Blobs */}
+                <div className="absolute top-[-15%] left-[-10%] w-[50%] h-[50%] bg-[#D10000] opacity-[0.8] rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] bg-[#D10000] opacity-[0.5] rounded-full blur-[100px]"></div>
 
-                <div className="w-full max-w-[460px] bg-white/10 backdrop-blur-[25px] border border-white/15 rounded-[28px] p-12 shadow-2xl animate-fade-in relative z-10">
-                    <div className="text-center mb-8">
-                        <div className="font-['Audiowide'] text-[56px] text-[#D10000] tracking-[1.5px] mb-1 leading-none">RIDEN</div>
-                        <h2 className="text-2xl font-[600] text-white mb-2">Admin Login</h2>
+                <div className="w-full max-w-[460px] bg-black/40 backdrop-blur-[25px] border border-white/10 rounded-[32px] p-10 md:p-12 shadow-[0_0_80px_rgba(209,0,0,0.15)] animate-fade-in relative z-10">
+                    <div className="text-center mb-10">
+                        <div className="font-['Audiowide'] text-[56px] tracking-[2px] mb-2 leading-none 
+                            bg-gradient-to-b from-[#ff4d4d] via-[#D10000] to-[#800000] bg-clip-text text-transparent
+                            drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+                            RIDEN
+                        </div>
+                        <h2 className="text-2xl font-[600] text-white/90 tracking-tight">Admin Portal</h2>
+                        <p className="text-white/40 text-sm mt-1 uppercase tracking-widest font-[500]">Secure Access Only</p>
                     </div>
 
                     <form className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-white/80 mb-2">Email Address</label>
+                            <label className="block text-[13px] font-[600] text-white/50 mb-2 uppercase tracking-wider">Email Address</label>
                             <input
                                 type="email"
-                                className="w-full bg-red-400/10 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-4 focus:ring-red-600/20 focus:border-[#D10000] focus:bg-white/10 transition-all"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-white/20 outline-none focus:ring-4 focus:ring-[#D10000]/20 focus:border-[#D10000]/50 focus:bg-white/10 transition-all duration-300"
                                 placeholder="name@riden.com"
                                 required
                                 value={email}
@@ -53,11 +60,11 @@ export default function Login() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-white/80 mb-2">Password</label>
+                            <label className="block text-[13px] font-[600] text-white/50 mb-2 uppercase tracking-wider">Password</label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? "text" : "password"}
-                                    className="w-full bg-red-400/10 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-4 focus:ring-red-600/20 focus:border-[#D10000] focus:bg-white/10 transition-all"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-white/20 outline-none focus:ring-4 focus:ring-[#D10000]/20 focus:border-[#D10000]/50 focus:bg-white/10 transition-all duration-300"
                                     placeholder="••••••••"
                                     required
                                     value={password}
@@ -66,39 +73,30 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
                                 >
-                                    <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} text-lg`}></i>
+                                    <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} text-xl`}></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-sm">
-                            <label className="flex items-center gap-2 text-white/80 cursor-pointer">
-                                <input type="checkbox" className="w-4 h-4 rounded border-white/15 bg-transparent text-[#D10000] focus:ring-0 focus:ring-offset-0" />
-                                Keep me logged in
-                            </label>
-                            <Link to="/auth/forgot" className="text-white hover:text-white/80 font-medium transition-colors">
-                                Forgot Password?
+                        <div className="flex items-center justify-between text-sm pt-2">
+
+                            <Link to="/auth/forgot" className="text-[#D10000] hover:text-[#ff4d4d] font-[600] transition-colors">
+                                Reset Password?
                             </Link>
                         </div>
 
-                        <button onClick={handleLogin} className="w-full bg-[#D10000] hover:bg-[#D10000]/90 text-white font-[600] py-3.5 rounded-xl shadow-lg shadow-red-600/20 hover:-translate-y-0.5 transition-all text-base">
-                            Login
+                        <button onClick={handleLogin} className="w-full bg-[#D10000] hover:bg-[#A30000] text-white font-[700] py-4.5 rounded-2xl shadow-[0_8px_25px_rgba(209,0,0,0.3)] hover:shadow-[0_12px_35px_rgba(209,0,0,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all text-[15px] uppercase tracking-wider mt-4">
+                            Log In to Dashboard
                         </button>
                     </form>
 
                 </div>
 
-                <style dangerouslySetInnerHTML={{
-                    __html: `
-                @keyframes fade-in {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fade-in { animation: fade-in 0.8s ease-out; }
-            ` }} />
+
             </div>
+
         </>
     );
 }
