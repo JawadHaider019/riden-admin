@@ -524,11 +524,12 @@ export default function DriverDetail() {
     const requiredDocs = [
         'proof_of_work_eligibility',
         'profile_photo',
-        "class_5_driver's_licence",
+        'class_5_drivers_licence',
         'commercial_driving_record',
-        "owner's_certificate_of_insurance_and_vehicle_registration",
+        'owners_certificate_of_insurance_and_vehicle_registration',
         'vehicle_inspection',
-        'legal_agreements'
+        'child_abuse',
+        'police_clearence'
     ];
 
     const allDocumentsApproved = requiredDocs.every(key => {
@@ -883,11 +884,12 @@ export default function DriverDetail() {
                                         {[
                                             { key: 'proof_of_work_eligibility', name: 'Proof of work Eligibility' },
                                             { key: 'profile_photo', name: 'Profile Photo' },
-                                            { key: "class_5_driver's_licence", name: "Class 1, 2 or 4 Driver's Licence" },
+                                            { key: 'class_5_drivers_licence', name: "Class 1, 2 or 4 Driver's Licence" },
                                             { key: 'commercial_driving_record', name: 'ICBC Commercial driving record' },
-                                            { key: "owner's_certificate_of_insurance_and_vehicle_registration", name: "Owner's certificate of insurance and vehicle registration" },
+                                            { key: 'owners_certificate_of_insurance_and_vehicle_registration', name: "Owner's certificate of insurance and vehicle registration" },
                                             { key: 'vehicle_inspection', name: 'Vehicle Inspection' },
-                                            { key: 'legal_agreements', name: 'Legal Agreements' },
+                                            { key: 'child_abuse', name: 'Child Abuse Registry Check' },
+                                            { key: 'police_clearence', name: 'Police Clearance Certificate' },
                                         ].map((docType, idx) => {
                                             const doc = driver.documents?.find(d => d.document_name === docType.key);
                                             const isOpen = openDocIndex === idx;
