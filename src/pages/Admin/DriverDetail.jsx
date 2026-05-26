@@ -23,8 +23,15 @@ export default function DriverDetail() {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
+        libraries: ['places']
     });
+
+    const [mapInstance, setMapInstance] = useState(null);
+
+    const onLoad = useCallback((map) => {
+        setMapInstance(map);
+    }, []);
 
     const [driverStatus, setDriverStatus] = useState('requested'); // 'approved', 'blocked', 'suspended', 'requested'
     const [isEditing, setIsEditing] = useState(false);
@@ -1460,6 +1467,7 @@ export default function DriverDetail() {
                                     <div className="h-[400px] w-full relative shrink-0 bg-gray-100">
                                         {isLoaded ? (
                                             <GoogleMap
+                                                onLoad={onLoad}
                                                 mapContainerStyle={{ width: '100%', height: '100%' }}
                                                 center={{
                                                     lat: parseFloat(selectedRide.pickup_lat) || 0,
@@ -1483,10 +1491,21 @@ export default function DriverDetail() {
                                                         options={{
                                                             origin: { lat: parseFloat(selectedRide.pickup_lat), lng: parseFloat(selectedRide.pickup_lng) },
                                                             destination: { lat: parseFloat(selectedRide.dropoff_lat), lng: parseFloat(selectedRide.dropoff_lng) },
-                                                            travelMode: 'DRIVING'
+                                                            travelMode: 'DRIVING',
+                                                            provideRouteAlternatives: true
                                                         }}
                                                         callback={(result, status) => {
-                                                            if (status === 'OK' && result) setDirections(result);
+                                                            if (status === 'OK' && result) {
+                                                                // Sort routes by distance to ensure we pick the shortest one
+                                                                if (result.routes && result.routes.length > 1) {
+                                                                    result.routes.sort((a, b) => {
+                                                                        const distA = a.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0);
+                                                                        const distB = b.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0);
+                                                                        return distA - distB;
+                                                                    });
+                                                                }
+                                                                setDirections(result);
+                                                            }
                                                         }}
                                                     />
                                                 )}

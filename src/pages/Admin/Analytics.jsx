@@ -63,6 +63,7 @@ export default function Analytics() {
     const [mapCenter, setMapCenter] = useState({ lat: 31.46982435, lng: 74.27143511 });
     const [onlineDrivers, setOnlineDrivers] = useState({ with_rides: [], without_rides: [] });
     const [selectedDriver, setSelectedDriver] = useState(null);
+    const [isSearchingBounds, setIsSearchingBounds] = useState(true); // Always show on open
     const [addresses, setAddresses] = useState({ pickup: 'Loading...', dropoff: 'Loading...', current: 'Loading...' });
 
     const { isLoaded } = useJsApiLoader({
@@ -196,9 +197,9 @@ export default function Analytics() {
                     const coords = { lat: loc.lat(), lng: loc.lng() };
                     setSearchCoords(coords);
                     setMapCenter(coords);
-                    if (mapRef.current) {
-                        mapRef.current.panTo(coords);
-                        mapRef.current.setZoom(12);
+                    if (mapInstance) {
+                        mapInstance.panTo(coords);
+                        mapInstance.setZoom(12);
                     }
                 } else {
                     setSearchCoords(null);
@@ -217,25 +218,25 @@ export default function Analytics() {
         // Geocode the selected suggestion
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ address: suggestion.description }, (results, status) => {
-            if (status === 'OK' && results[0] && mapRef.current) {
+            if (status === 'OK' && results[0] && mapInstance) {
                 const loc = results[0].geometry.location;
                 const coords = { lat: loc.lat(), lng: loc.lng() };
                 setMapCenter(coords);
                 setSearchCoords(coords);
-                mapRef.current.panTo(loc);
-                mapRef.current.setZoom(14);
+                mapInstance.panTo(loc);
+                mapInstance.setZoom(14);
             }
         });
     };
 
-    const mapRef = useRef(null);
+    const [mapInstance, setMapInstance] = useState(null);
 
-    const onLoad = useCallback(function callback(mapInstance) {
-        mapRef.current = mapInstance;
+    const onLoad = useCallback(function callback(map) {
+        setMapInstance(map);
     }, []);
 
     useEffect(() => {
-        if (!mapRef.current || !selectedDriver) return;
+        if (!mapInstance || !selectedDriver) return;
 
         const bounds = new window.google.maps.LatLngBounds();
 
@@ -254,8 +255,8 @@ export default function Analytics() {
             bounds.extend({ lat: parseFloat(b.dropoff_lat), lng: parseFloat(b.dropoff_lng) });
         }
 
-        mapRef.current.fitBounds(bounds, { top: 100, right: 100, bottom: 100, left: 100 });
-    }, [selectedDriver]);
+        mapInstance.fitBounds(bounds, { top: 100, right: 100, bottom: 100, left: 100 });
+    }, [selectedDriver, mapInstance]);
 
     const tabs = [
         { id: 'dashboard', label: 'Live Dashboard' },
@@ -395,11 +396,71 @@ export default function Analytics() {
         };
     }, [onlineDrivers, selectedCarType, locationSearch, carTypes, searchCoords]);
 
-    // Initial date setup
+    // Auto-fit map to show all online drivers when dashboard tab is active and no driver is selected
+    useEffect(() => {
+        if (!isLoaded || !mapInstance || selectedDriver || activeTab !== 'dashboard') {
+            // Keep searching state false if we are not on the dashboard or have a driver selected
+            if (activeTab !== 'dashboard' || selectedDriver) setIsSearchingBounds(false);
+            return;
+        }
+
+        const allDrivers = [...filteredDrivers.with_rides, ...filteredDrivers.without_rides];
+
+        // If no online drivers are found after data loads, hide the searching popup eventually
+        if (allDrivers.length === 0) {
+            const timer = setTimeout(() => setIsSearchingBounds(false), 2000);
+            return () => clearTimeout(timer);
+        }
+
+        const bounds = new window.google.maps.LatLngBounds();
+        let hasValidCoords = false;
+
+        allDrivers.forEach(driver => {
+            if (driver.tracking?.curr_lat && driver.tracking?.curr_lon) {
+                bounds.extend({
+                    lat: parseFloat(driver.tracking.curr_lat),
+                    lng: parseFloat(driver.tracking.curr_lon)
+                });
+                hasValidCoords = true;
+            }
+        });
+
+        if (hasValidCoords) {
+            setIsSearchingBounds(true);
+            // Use a slight delay to ensure the map is ready
+            const timer = setTimeout(() => {
+                if (mapInstance) {
+                    mapInstance.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
+
+                    // Robustly cap zoom level after fitBounds completes
+                    const listener = window.google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
+                        if (mapInstance && mapInstance.getZoom() > 14) {
+                            mapInstance.setZoom(14);
+                        }
+                    });
+
+                    // Keep the popup visible long enough for movement to be noticeable
+                    setTimeout(() => setIsSearchingBounds(false), 1200);
+                } else {
+                    setIsSearchingBounds(false);
+                }
+            }, 300);
+            return () => {
+                clearTimeout(timer);
+                setIsSearchingBounds(false);
+            };
+        }
+    }, [filteredDrivers.with_rides.length, filteredDrivers.without_rides.length, isLoaded, selectedDriver, activeTab, mapInstance]);
+
+    // Initial date setup and initial searching clear fallback
     useEffect(() => {
         const now = new Date();
         setStartDate(startOfWeek(now));
         setEndDate(endOfDay(now));
+
+        // If the map takes way too long or fails to load any drivers, clear searching after 5s
+        const timer = setTimeout(() => setIsSearchingBounds(false), 5000);
+        return () => clearTimeout(timer);
     }, []);
 
     if (loading) {
@@ -611,6 +672,19 @@ export default function Analytics() {
 
                         {/* Live Map & Ongoing Ride Section */}
                         <div className={`bg-white rounded-[30px] overflow-hidden relative h-[600px] border border-[#E5E7EB] mb-6 transition-all duration-700 ease-in-out ${isResetting ? 'blur-sm scale-[0.99] opacity-90' : 'blur-0 scale-100 opacity-100'}`}>
+                            {/* Auto-centering Background Notification */}
+                            {isSearchingBounds && (
+                                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in pointer-events-none">
+                                    <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-red-50 flex items-center gap-3">
+                                        <div className="relative">
+                                            <div className="w-2.5 h-2.5 bg-[#D10000] rounded-full"></div>
+                                            <div className="absolute inset-0 w-2.5 h-2.5 bg-[#D10000] rounded-full animate-ping opacity-75"></div>
+                                        </div>
+                                        <span className="text-[14px] font-[700] text-[#111] tracking-tight">Searching Ongoing Bookings...</span>
+                                    </div>
+                                </div>
+                            )}
+
                             {isLoaded ? (
                                 <GoogleMap
                                     mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -723,7 +797,6 @@ export default function Analytics() {
                                                     onClick={() => {
                                                         setLocationSearch('');
                                                         setSearchCoords(null);
-                                                        setMapCenter({ lat: 31.46982435, lng: 74.27143511 });
                                                         setSelectedCarType('All Vehicles');
                                                     }}
                                                     className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#D10000] hover:bg-red-50 transition-all"
@@ -756,21 +829,12 @@ export default function Analytics() {
                                         </h4>
                                         <button
                                             onClick={() => {
-                                                const defaultCenter = { lat: 31.46982435, lng: 74.27143511 };
                                                 setIsResetting(true);
                                                 setSelectedDriver(null);
                                                 setDirections(null);
                                                 setSelectedCarType('All Vehicles');
                                                 setLocationSearch('');
                                                 setSearchCoords(null);
-
-                                                // Smoothly reset map view
-                                                if (mapRef.current) {
-                                                    mapRef.current.panTo(defaultCenter);
-                                                    mapRef.current.setZoom(12);
-                                                }
-                                                // Also update state for persistence
-                                                setMapCenter(defaultCenter);
 
                                                 // Reset effect after animation
                                                 setTimeout(() => setIsResetting(false), 700);

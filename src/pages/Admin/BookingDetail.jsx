@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams } from 'react-router-dom';
 import { Badge, useToast, Loader } from '@/components/UI';
@@ -21,8 +21,15 @@ export default function BookingDetail() {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: GOOGLE_MAPS_KEY
+        googleMapsApiKey: GOOGLE_MAPS_KEY,
+        libraries: ['places']
     });
+
+    const [mapInstance, setMapInstance] = useState(null);
+
+    const onLoad = useCallback((map) => {
+        setMapInstance(map);
+    }, []);
 
     useEffect(() => {
         const fetchBooking = async () => {
@@ -260,6 +267,7 @@ export default function BookingDetail() {
                     <div className="relative rounded-[22px] overflow-hidden h-[420px] border border-gray-100 shadow-sm">
                         {isLoaded ? (
                             <GoogleMap
+                                onLoad={onLoad}
                                 mapContainerStyle={{ width: '100%', height: '100%' }}
                                 center={{
                                     lat: parseFloat(bookingData?.pickup_lat) || 31.5204,
@@ -284,10 +292,21 @@ export default function BookingDetail() {
                                             options={{
                                                 origin: { lat: parseFloat(bookingData.pickup_lat), lng: parseFloat(bookingData.pickup_lng) },
                                                 destination: { lat: parseFloat(bookingData.dropoff_lat), lng: parseFloat(bookingData.dropoff_lng) },
-                                                travelMode: 'DRIVING'
+                                                travelMode: 'DRIVING',
+                                                provideRouteAlternatives: true
                                             }}
                                             callback={(result, status) => {
-                                                if (status === 'OK' && result) setDirections(result);
+                                                if (status === 'OK' && result) {
+                                                    // Sort routes by distance to ensure we pick the shortest one
+                                                    if (result.routes && result.routes.length > 1) {
+                                                        result.routes.sort((a, b) => {
+                                                            const distA = a.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0);
+                                                            const distB = b.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0);
+                                                            return distA - distB;
+                                                        });
+                                                    }
+                                                    setDirections(result);
+                                                }
                                             }}
                                         />
                                     )}
