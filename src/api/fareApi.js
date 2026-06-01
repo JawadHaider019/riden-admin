@@ -3,9 +3,12 @@ import api from './api';
 /**
  * Fetch all fares and vehicle categories
  * @param {string} vehicleType - Optional filter by vehicle type
+ * @param {string} area - Optional filter by area
  */
-export const getFares = async (vehicleType = '') => {
-    const params = vehicleType ? { vehicle_type: vehicleType } : {};
+export const getFares = async (vehicleType = '', area = '') => {
+    const params = {};
+    if (vehicleType) params.vehicle_type = vehicleType;
+    if (area) params.area = area;
     const res = await api.get('/admin/fares', { params });
     return res.data;
 };

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getBookings } from '@/api/bookingApi';
 import { getVehicleDetail } from '@/api/vehicleApi';
-import { reverseGeocode } from '@/utils/geoUtils';
+
 import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
 
 export default function BookingManagement() {
@@ -185,16 +185,12 @@ export default function BookingManagement() {
             setBookings(list);
             console.log("DEBUG: Bookings state updated. Count:", list.length);
 
-            // Resolve data in background (Addresses & Vehicles)
+            // Resolve vehicle data in background
             if (list.length > 0) {
                 const resolveData = async () => {
-                    const vehicleCache = {}; // Cache to avoid multiple calls for same vehicle in the same page
+                    const vehicleCache = {};
                     const updatedList = await Promise.all(list.map(async (b) => {
-                        // 1. Resolve Addresses
-                        const pickupAddr = b.pickup_location || await reverseGeocode(b.pickup_lat, b.pickup_lng);
-                        const dropoffAddr = b.dropoff_location || await reverseGeocode(b.dropoff_lat, b.dropoff_lng);
-
-                        // 2. Resolve Vehicle Info if missing but ID exists
+                        // Resolve Vehicle Info if missing but ID exists
                         let vehicleInfo = b.vehicle || b.driver?.vehicle;
                         if (!vehicleInfo && b.vehicle_id) {
                             if (vehicleCache[b.vehicle_id]) {
@@ -213,8 +209,6 @@ export default function BookingManagement() {
 
                         return {
                             ...b,
-                            pickup_location: pickupAddr,
-                            dropoff_location: dropoffAddr,
                             vehicle: vehicleInfo
                         };
                     }));
@@ -324,8 +318,8 @@ export default function BookingManagement() {
                 b.passenger?.name || (b.passenger?.first_name ? `${b.passenger.first_name} ${b.passenger.last_name || ''}` : 'N/A'),
                 `C$ ${b.fare || '0'}`,
                 (b.vehicle?.license_plate || b.driver?.vehicle?.license_plate || 'N/A'),
-                b.pickup_location || (b.pickup_lat ? `${b.pickup_lat}, ${b.pickup_lng}` : 'N/A'),
-                b.dropoff_location || (b.dropoff_lat ? `${b.dropoff_lat}, ${b.dropoff_lng}` : 'N/A'),
+                b.pickup_address || 'N/A',
+                b.dropoff_address || 'N/A',
                 b.estimated_distance || b.distance || '0 km',
                 b.status?.toUpperCase() || 'N/A'
             ]);
@@ -421,9 +415,9 @@ export default function BookingManagement() {
             {/* Table */}
             <Table headers={[
                 { label: 'ID', align: 'text-center' },
-                ...(type !== 'requested' ? [{ label: 'Driver', align: 'text-center' }] : []),
+                ...((type !== 'requested' && type !== 'cancelled') ? [{ label: 'Driver', align: 'text-center' }] : []),
                 { label: 'Passenger', align: 'text-center' },
-                { label: type === 'requested' ? 'Requested Vehicle' : 'Vehicle', align: 'text-center' },
+                { label: (type === 'requested' || type === 'cancelled') ? 'Requested Vehicle' : 'Vehicle', align: 'text-center' },
                 { label: '  C$ Fare', align: 'text-center' },
                 { label: 'Pickup Location', align: 'text-center' },
                 { label: 'Dropoff Location', align: 'text-center' },
@@ -455,7 +449,7 @@ export default function BookingManagement() {
                                 </span>
                             </td>
 
-                            {type !== 'requested' && (
+                            {(type !== 'requested' && type !== 'cancelled') && (
                                 <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#D10000] text-center whitespace-nowrap">
                                     {booking.driver ? (
                                         <Tooltip content={
@@ -490,12 +484,12 @@ export default function BookingManagement() {
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#D10000] text-center whitespace-nowrap">
-                                {type === 'requested' && (!booking.requested_vehicle_type || !booking.requested_vehicle_type.category || String(booking.requested_vehicle_type.category).toLowerCase() === 'any') ? (
+                                {((type === 'requested' || type === 'cancelled')) && (!booking.requested_vehicle_type || !booking.requested_vehicle_type.category || String(booking.requested_vehicle_type.category).toLowerCase() === 'any') ? (
                                     <span className="font-semibold text-gray-400">Any</span>
                                 ) : (
                                     <Tooltip content={
                                         <div className="flex flex-col gap-1 py-1 min-w-[200px]">
-                                            {type === 'requested' ? (
+                                            {(type === 'requested' || type === 'cancelled') ? (
                                                 <>
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <i className="bi bi-hash text-[#D10000]"></i>
@@ -544,7 +538,7 @@ export default function BookingManagement() {
                                         </div>
                                     }>
                                         <span className="hover:text-[#D10000] cursor-help font-semibold">
-                                            {type === 'requested'
+                                            {(type === 'requested' || type === 'cancelled')
                                                 ? (booking.requested_vehicle_type?.category || 'Any')
                                                 : (booking.vehicle?.model || booking.driver?.vehicle?.model || `${booking.vehicle_id || 'N/A'}`)}
                                         </span>
@@ -556,12 +550,12 @@ export default function BookingManagement() {
                                 {booking.fare || '0.00'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.pickup_location}>
-                                {booking.pickup_location || (booking.pickup_lat ? `${parseFloat(booking.pickup_lat).toFixed(4)}, ${parseFloat(booking.pickup_lng).toFixed(4)}` : 'N/A')}
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.pickup_address}>
+                                {booking.pickup_address || 'N/A'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.dropoff_location}>
-                                {booking.dropoff_location || (booking.dropoff_lat ? `${parseFloat(booking.dropoff_lat).toFixed(4)}, ${parseFloat(booking.dropoff_lng).toFixed(4)}` : 'N/A')}
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.dropoff_address}>
+                                {booking.dropoff_address || 'N/A'}
                             </td>
 
                             <td className="py-[18px] px-[10px] text-center">
@@ -577,7 +571,7 @@ export default function BookingManagement() {
             <div className="mt-6">
                 {(type === 'ongoing' || filteredBookings.length > 0 || currentPage > 1) && (
                     <Pagination
-                        totalItems={type === 'previous' && filteredBookings.length < 10 && currentPage === 1 ? filteredBookings.length : totalItems}
+                        totalItems={type === 'cancelled' && filteredBookings.length < 10 && currentPage === 1 ? filteredBookings.length : totalItems}
                         currentPage={currentPage}
                         onPageChange={setCurrentPage}
                     />

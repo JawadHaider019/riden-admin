@@ -7,7 +7,7 @@ import { getBookings } from '@/api/bookingApi';
 import { getImageUrl } from '@/api/api';
 import api from '@/api/api';
 import { formatDate } from '@/utils/formatters';
-import { reverseGeocode } from '@/utils/geoUtils';
+import { reverseGeocode, isPlusCode } from '@/utils/geoUtils';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
 export default function PassengerDetail() {
@@ -136,11 +136,11 @@ export default function PassengerDetail() {
             let updated = false;
             const newRides = await Promise.all(passenger.rides.map(async (ride) => {
                 let r = { ...ride };
-                if (!r.pickup_address && r.pickup_lat) {
+                if ((!r.pickup_address || isPlusCode(r.pickup_address)) && r.pickup_lat) {
                     const addr = await reverseGeocode(r.pickup_lat, r.pickup_lng);
                     if (addr) { r.pickup_address = addr; updated = true; }
                 }
-                if (!r.dropoff_address && r.dropoff_lat) {
+                if ((!r.dropoff_address || isPlusCode(r.dropoff_address)) && r.dropoff_lat) {
                     const addr = await reverseGeocode(r.dropoff_lat, r.dropoff_lng);
                     if (addr) { r.dropoff_address = addr; updated = true; }
                 }

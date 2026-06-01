@@ -7,7 +7,7 @@ import { getBookings } from '../../api/bookingApi';
 import { getImageUrl } from '@/api/api';
 import api from '@/api/api';
 import { formatDate } from '@/utils/formatters';
-import { reverseGeocode } from '@/utils/geoUtils';
+import { reverseGeocode, isPlusCode } from '@/utils/geoUtils';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
 export default function DriverDetail() {
@@ -286,13 +286,23 @@ export default function DriverDetail() {
             const suspensionDate = driverData.suspended_until ? new Date(driverData.suspended_until) : null;
             const isSuspendedDate = suspensionDate && !isNaN(suspensionDate.getTime()) && suspensionDate > new Date();
 
-            // Only treat as suspended if explicit 'suspended' status or a valid future date
-            const hasSuspension = isSuspendedDate || rawStatus === 'suspended' || rawStatus === 'suspend';
+            // Strictly separate status logic - only trust the explicit backend status
+            let normalizedStatus = rawStatus;
 
-            const normalizedStatus =
-                hasSuspension ? 'suspended' :
-                    (rawStatus === 'approved' || rawStatus === 'active' || rawStatus === 'inactive') ? 'approved' :
-                        rawStatus;
+            if (rawStatus === 'rejected') {
+                normalizedStatus = 'rejected';
+            } else if (rawStatus === 'suspended') {
+                normalizedStatus = 'suspended';
+            } else if (rawStatus === 'approved') {
+                // For already approved drivers, check if they are currently under a timed suspension
+                normalizedStatus = isSuspendedDate ? 'suspended' : 'approved';
+            } else if (rawStatus === 'requested' || rawStatus === 'pending') {
+                normalizedStatus = 'requested';
+            } else {
+                normalizedStatus = rawStatus;
+            }
+
+            console.log(`[StatusDebug] Final UI Status: ${normalizedStatus}`);
             setDriverStatus(normalizedStatus);
         } catch (error) {
             console.error("Error fetching driver:", error);
@@ -314,15 +324,15 @@ export default function DriverDetail() {
             const newRides = await Promise.all(driver.rides.map(async (ride) => {
                 let r = { ...ride };
 
-                // 1. Resolve Address if null but coords exist
-                if (!r.pickup_address && r.pickup_lat) {
+                // 1. Resolve Address if null or it's a Plus Code, but coords exist
+                if ((!r.pickup_address || isPlusCode(r.pickup_address)) && r.pickup_lat) {
                     const addr = await reverseGeocode(r.pickup_lat, r.pickup_lng);
                     if (addr) {
                         r.pickup_address = addr;
                         updated = true;
                     }
                 }
-                if (!r.dropoff_address && r.dropoff_lat) {
+                if ((!r.dropoff_address || isPlusCode(r.dropoff_address)) && r.dropoff_lat) {
                     const addr = await reverseGeocode(r.dropoff_lat, r.dropoff_lng);
                     if (addr) {
                         r.dropoff_address = addr;
@@ -1266,9 +1276,14 @@ export default function DriverDetail() {
                                                     console.log("Rejecting driver. Payload:", payload);
                                                     const response = await toggleDriverStatus(driver.id, payload);
                                                     console.log("Rejection response:", response);
+
+                                                    // Immediately update UI to Rejected
                                                     setDriverStatus('rejected');
-                                                    setDriver(prev => ({ ...prev, status: 'Rejected' }));
-                                                    showToast("Driver rejected", "success");
+                                                    setDriver(prev => ({ ...prev, status: 'rejected' }));
+                                                    showToast("Driver rejected successfully", "success");
+
+                                                    // Small delay before fetching to ensure DB consistency
+                                                    setTimeout(() => fetchDriverDetail(), 1000);
                                                 } else if (modalType === 'unsuspend') {
                                                     const payload = { status: 'Approved', suspended_until: null };
                                                     console.log("Unsuspending driver. Payload:", payload);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
+import { format, parse } from 'date-fns';
 import { Table, Select, InputWrapper, useToast, Loader } from '@/components/UI';
 import { getFares, updateFare } from '@/api/fareApi';
 import { getVehicleTypes } from '@/api/vehicleApi';
@@ -10,21 +11,38 @@ export default function FareManagement() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(null);
 
+    const formatTime = (timeStr) => {
+        if (!timeStr) return 'N/A';
+        try {
+            // Handle HH:mm or HH:mm:ss
+            const timePart = timeStr.split(' ')[0]; // Basic sanitization
+            const parsed = parse(timePart, timePart.length > 5 ? 'HH:mm:ss' : 'HH:mm', new Date());
+            return format(parsed, 'hh:mm a');
+        } catch (e) {
+            console.error("Time Parse Error:", e);
+            return timeStr;
+        }
+    };
+
     const [editingId, setEditingId] = useState(null);
     const [editValues, setEditValues] = useState({});
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const [selectedCarType, setSelectedCarType] = useState('');
-    const [carTypes, setCarTypes] = useState([{ name: '', label: 'All Vehicles' }]);
+    const [carTypes, setCarTypes] = useState([]);
 
-    const fetchFares = async (vehicleType = '') => {
+    const [selectedArea, setSelectedArea] = useState('');
+    const [isAreaSelectOpen, setIsAreaSelectOpen] = useState(false);
+    const [areas] = useState([
+        { name: 'regina', label: 'Regina' },
+        { name: 'saskatoon', label: 'Saskatoon' }
+    ]);
+
+    const fetchFares = async (vehicleType = selectedCarType, area = selectedArea) => {
+        if (!vehicleType || !area) return;
         try {
             setLoading(true);
-            const data = await getFares(vehicleType);
+            const data = await getFares(vehicleType, area);
             setFares(data.fares || []);
-
-            // carTypes are now fetched separately in useEffect
-
-            // Removed current_vehicle_type override to maintain 'All Vehicles' as default
         } catch (error) {
             console.error("Error fetching fares:", error);
         } finally {
@@ -36,7 +54,6 @@ export default function FareManagement() {
         const init = async () => {
             try {
                 const res = await getVehicleTypes();
-                console.log("Vehicle Types API Response:", res);
                 const fetchedTypes = res.vehicleTypes || res.data?.vehicleTypes || [];
                 const mappedTypes = fetchedTypes.map(t => ({
                     id: t.id,
@@ -44,17 +61,12 @@ export default function FareManagement() {
                     label: t.category
                 }));
 
-                const allTypes = [{ name: '', label: 'All Vehicles' }, ...mappedTypes];
-                setCarTypes(allTypes);
-
-                // If no car type is selected yet, or it's not in the new list, default to first
-                if (!selectedCarType && allTypes.length > 0) {
-                    setSelectedCarType(allTypes[0].name);
-                }
+                setCarTypes(mappedTypes);
+                setLoading(false); // Initial loading done
             } catch (error) {
                 console.error("Error fetching vehicle types:", error);
+                setLoading(false);
             }
-            fetchFares();
         };
         init();
     }, []);
@@ -90,15 +102,19 @@ export default function FareManagement() {
     return (
         <AdminLayout title="Fare Management">
             {/* Header Row - only car type selector */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 mb-4">
-                <div className="relative w-full md:w-72">
+            <div className="flex flex-col lg:flex-row justify-start items-start lg:items-center gap-4 mb-4">
+                {/* Vehicle Type Select */}
+                <div className="relative w-full md:w-64">
                     <div
-                        onClick={() => setIsSelectOpen(!isSelectOpen)}
+                        onClick={() => {
+                            setIsSelectOpen(!isSelectOpen);
+                            setIsAreaSelectOpen(false);
+                        }}
                         className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
                         <i className={`bi bi-truck mr-3 text-[18px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`}></i>
                         <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
-                            {carTypes.find(c => c.name === selectedCarType)?.label || selectedCarType}
+                            {carTypes.find(c => c.name === selectedCarType)?.label || 'Select Vehicle'}
                         </span>
                         <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : 'rotate-0'}`}></i>
                     </div>
@@ -112,7 +128,7 @@ export default function FareManagement() {
                                         key={category.name}
                                         onClick={() => {
                                             setSelectedCarType(category.name);
-                                            fetchFares(category.name);
+                                            fetchFares(category.name, selectedArea);
                                             setIsSelectOpen(false);
                                         }}
                                         className={`px-4 py-2 text-xs font-[600] cursor-pointer transition-all duration-200 ${selectedCarType === category.name
@@ -121,6 +137,47 @@ export default function FareManagement() {
                                             }`}
                                     >
                                         {category.label}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Area Select */}
+                <div className="relative w-full md:w-64">
+                    <div
+                        onClick={() => {
+                            setIsAreaSelectOpen(!isAreaSelectOpen);
+                            setIsSelectOpen(false);
+                        }}
+                        className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isAreaSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
+                    >
+                        <i className={`bi bi-geo-alt-fill mr-3 text-[18px] transition-colors ${isAreaSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`}></i>
+                        <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
+                            {areas.find(a => a.name === selectedArea)?.label || 'Select Area'}
+                        </span>
+                        <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform duration-300 ${isAreaSelectOpen ? 'rotate-180' : 'rotate-0'}`}></i>
+                    </div>
+
+                    {isAreaSelectOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsAreaSelectOpen(false)}></div>
+                            <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-[#E5E7EB] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] z-50 overflow-hidden py-3 animate-scale-up-dropdown origin-top">
+                                {areas.map((area) => (
+                                    <div
+                                        key={area.name}
+                                        onClick={() => {
+                                            setSelectedArea(area.name);
+                                            fetchFares(selectedCarType, area.name);
+                                            setIsAreaSelectOpen(false);
+                                        }}
+                                        className={`px-4 py-2 text-xs font-[600] cursor-pointer transition-all duration-200 ${selectedArea === area.name
+                                            ? 'bg-[#D10000] text-white mx-2 rounded-full shadow-md truncate whitespace-nowrap'
+                                            : 'text-[#111] hover:bg-gray-50 truncate whitespace-nowrap'
+                                            }`}
+                                    >
+                                        {area.label}
                                     </div>
                                 ))}
                             </div>
@@ -143,6 +200,28 @@ export default function FareManagement() {
                     <tr>
                         <td colSpan="8" className="py-20 text-center">
                             <Loader />
+                        </td>
+                    </tr>
+                ) : !selectedCarType || !selectedArea ? (
+                    <tr>
+                        <td colSpan="8" className="py-32 text-center">
+                            <div className="flex flex-col items-center justify-center gap-4 animate-fade-in">
+                                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                                    <i className="bi bi-info-circle text-[#D10000] text-3xl"></i>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-[18px] font-[700] text-[#111]">Select Vehicle & Area</h3>
+                                    <p className="text-[14px] font-[500] text-gray-500 max-w-[280px] mx-auto leading-relaxed">
+                                        Please choose a vehicle type and service area to view and manage fare rates.
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                ) : fares.length === 0 ? (
+                    <tr>
+                        <td colSpan="8" className="py-20 text-center text-gray-500 font-medium">
+                            No fare data found for this selection
                         </td>
                     </tr>
                 ) : fares.map((fare) => {
@@ -196,22 +275,20 @@ export default function FareManagement() {
                                         />
                                     </div>
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min}m / C${fare.waiting_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min}m / {fare.waiting_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
                                 {isEditing ? (
                                     <div className="flex flex-col gap-1">
                                         <input
-                                            type="text"
-                                            placeholder="Start (HH:mm)"
+                                            type="time"
                                             value={editValues.night_start_time || ''}
                                             onChange={(e) => handleChange('night_start_time', e.target.value)}
                                             className="w-full px-2 py-1 border border-[#D10000]/30 rounded text-[12px] font-[600] text-[#111] text-center"
                                         />
                                         <input
-                                            type="text"
-                                            placeholder="End (HH:mm)"
+                                            type="time"
                                             value={editValues.night_end_time || ''}
                                             onChange={(e) => handleChange('night_end_time', e.target.value)}
                                             className="w-full px-2 py-1 border border-[#D10000]/30 rounded text-[12px] font-[600] text-[#111] text-center"
@@ -219,7 +296,7 @@ export default function FareManagement() {
                                     </div>
                                 ) : (
                                     <span className="text-[13px] font-[600] text-[#6B7280]">
-                                        {fare.night_start_time ? `${fare.night_start_time} - ${fare.night_end_time}` : 'N/A'}
+                                        {fare.night_start_time ? `${formatTime(fare.night_start_time)} - ${formatTime(fare.night_end_time)}` : 'N/A'}
                                     </span>
                                 )}
                             </td>
@@ -233,7 +310,7 @@ export default function FareManagement() {
                                         className="w-[70px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#D10000] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#D10000]">C${fare.night_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#D10000]">{fare.night_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -246,7 +323,7 @@ export default function FareManagement() {
                                         className="w-[70px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#D10000] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#D10000]">C${fare.peak_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#D10000]">{fare.peak_charges}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -269,7 +346,7 @@ export default function FareManagement() {
                                 ) : (
                                     <button
                                         onClick={() => startEditing(fare)}
-                                        className="px-5 py-2 bg-white border border-[#E5E7EB] text-[#111] text-[12px] font-[600] rounded-full hover:bg-gray-50 transition-all flex items-center gap-1.5 mx-auto"
+                                        className="px-5 py-2 bg-white border border-[#E5E7EB] text-[#111] text-[12px] font-[600] rounded-full hover:bg-gray-200 transition-all flex items-center gap-1.5 mx-auto shadow-sm"
                                     >
                                         <i className="bi bi-pencil-square text-[#10B981]"></i> Edit
                                     </button>

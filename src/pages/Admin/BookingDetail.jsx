@@ -6,7 +6,7 @@ import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from
 import { getBookingDetail } from '@/api/bookingApi';
 import { getVehicleTypes } from '@/api/vehicleApi';
 import api, { getImageUrl } from '@/api/api';
-import { reverseGeocode } from '@/utils/geoUtils';
+
 import { format } from 'date-fns';
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
@@ -64,16 +64,6 @@ export default function BookingDetail() {
                     }
 
                     setBookingData(enriched);
-
-                    // Resolve addresses
-                    const pAddr = enriched.pickup_location || await reverseGeocode(enriched.pickup_lat, enriched.pickup_lng);
-                    const dAddr = enriched.dropoff_location || await reverseGeocode(enriched.dropoff_lat, enriched.dropoff_lng);
-
-                    setBookingData(prev => ({
-                        ...prev,
-                        pickup_location: pAddr,
-                        dropoff_location: dAddr
-                    }));
                 }
             } catch (error) {
                 console.error("Error fetching booking detail:", error);
@@ -157,11 +147,11 @@ export default function BookingDetail() {
         } : { name: 'N/A', vehNo: bookingData.vehicle_id || 'N/A' },
         pickup: {
             label: 'Pickup Location',
-            address: bookingData.pickup_location || (bookingData.pickup_lat ? `${bookingData.pickup_lat}, ${bookingData.pickup_lng}` : 'N/A')
+            address: bookingData.pickup_address || 'N/A'
         },
         dropoff: {
             label: 'Dropoff Location',
-            address: bookingData.dropoff_location || (bookingData.dropoff_lat ? `${bookingData.dropoff_lat}, ${bookingData.dropoff_lng}` : 'N/A')
+            address: bookingData.dropoff_address || 'N/A'
         },
         distance: (bookingData.estimated_distance || bookingData.distance) ?
             (() => {
@@ -414,11 +404,11 @@ export default function BookingDetail() {
                             {/* Vehicle Section */}
                             <div className="mb-3">
                                 <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
-                                    <span className="text-white font-[600] text-xs uppercase tracking-wider">{bookingData.status === 'requested' ? 'Requested Vehicle' : 'Vehicle'}</span>
+                                    <span className="text-white font-[600] text-xs uppercase tracking-wider">{(bookingData.status === 'requested' || bookingData.status === 'cancelled') ? 'Requested Vehicle' : 'Vehicle'}</span>
                                 </div>
 
                                 {/* Vehicle — conditional on status */}
-                                {bookingData.status === 'requested' ? (
+                                {(bookingData.status === 'requested' || bookingData.status === 'cancelled') ? (
                                     <div className="flex items-center gap-4 mt-3 px-1 py-4 border-t border-gray-50 text-[14px]">
                                         <div className="w-20 h-14 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 shadow-sm">
                                             {carImage ? (
