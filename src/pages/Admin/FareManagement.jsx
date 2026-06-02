@@ -3,7 +3,7 @@ import AdminLayout from '@/layouts/AdminLayout';
 import { format, parse } from 'date-fns';
 import { Table, Select, InputWrapper, useToast, Loader } from '@/components/UI';
 import { getFares, updateFare } from '@/api/fareApi';
-import { getVehicleTypes } from '@/api/vehicleApi';
+import { BsTruck, BsChevronDown, BsGeoAltFill, BsPencilSquare, BsInfoCircle } from 'react-icons/bs';
 
 export default function FareManagement() {
     const { showToast } = useToast();
@@ -32,10 +32,7 @@ export default function FareManagement() {
 
     const [selectedArea, setSelectedArea] = useState('');
     const [isAreaSelectOpen, setIsAreaSelectOpen] = useState(false);
-    const [areas] = useState([
-        { name: 'regina', label: 'Regina' },
-        { name: 'saskatoon', label: 'Saskatoon' }
-    ]);
+    const [areas, setAreas] = useState([]);
 
     const fetchFares = async (vehicleType = selectedCarType, area = selectedArea) => {
         if (!vehicleType || !area) return;
@@ -53,18 +50,26 @@ export default function FareManagement() {
     useEffect(() => {
         const init = async () => {
             try {
-                const res = await getVehicleTypes();
-                const fetchedTypes = res.vehicleTypes || res.data?.vehicleTypes || [];
-                const mappedTypes = fetchedTypes.map(t => ({
-                    id: t.id,
-                    name: t.category,
-                    label: t.category
-                }));
+                setLoading(true);
+                const data = await getFares();
 
-                setCarTypes(mappedTypes);
-                setLoading(false); // Initial loading done
+                if (data.available_categories) {
+                    setCarTypes(data.available_categories.map(c => ({
+                        name: c.name,
+                        label: c.label
+                    })));
+                }
+
+                if (data.service_areas) {
+                    setAreas(data.service_areas.map(a => ({
+                        name: a.area_code,
+                        label: a.area_name
+                    })));
+                }
+
+                setLoading(false);
             } catch (error) {
-                console.error("Error fetching vehicle types:", error);
+                console.error("Error fetching initial fare data:", error);
                 setLoading(false);
             }
         };
@@ -112,11 +117,11 @@ export default function FareManagement() {
                         }}
                         className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
-                        <i className={`bi bi-truck mr-3 text-[18px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`}></i>
+                        <BsTruck className={`mr-3 text-[18px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`} />
                         <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
                             {carTypes.find(c => c.name === selectedCarType)?.label || 'Select Vehicle'}
                         </span>
-                        <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : 'rotate-0'}`}></i>
+                        <BsChevronDown className={`text-[#111] text-[12px] transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : 'rotate-0'}`} />
                     </div>
 
                     {isSelectOpen && (
@@ -153,11 +158,11 @@ export default function FareManagement() {
                         }}
                         className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isAreaSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
-                        <i className={`bi bi-geo-alt-fill mr-3 text-[18px] transition-colors ${isAreaSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`}></i>
+                        <BsGeoAltFill className={`mr-3 text-[18px] transition-colors ${isAreaSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`} />
                         <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
                             {areas.find(a => a.name === selectedArea)?.label || 'Select Area'}
                         </span>
-                        <i className={`bi bi-chevron-down text-[#111] text-[12px] transition-transform duration-300 ${isAreaSelectOpen ? 'rotate-180' : 'rotate-0'}`}></i>
+                        <BsChevronDown className={`text-[#111] text-[12px] transition-transform duration-300 ${isAreaSelectOpen ? 'rotate-180' : 'rotate-0'}`} />
                     </div>
 
                     {isAreaSelectOpen && (
@@ -207,7 +212,7 @@ export default function FareManagement() {
                         <td colSpan="8" className="py-32 text-center">
                             <div className="flex flex-col items-center justify-center gap-4 animate-fade-in">
                                 <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                                    <i className="bi bi-info-circle text-[#D10000] text-3xl"></i>
+                                    <BsInfoCircle className="text-[#D10000] text-3xl" />
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <h3 className="text-[18px] font-[700] text-[#111]">Select Vehicle & Area</h3>
@@ -348,7 +353,7 @@ export default function FareManagement() {
                                         onClick={() => startEditing(fare)}
                                         className="px-5 py-2 bg-white border border-[#E5E7EB] text-[#111] text-[12px] font-[600] rounded-full hover:bg-gray-200 transition-all flex items-center gap-1.5 mx-auto shadow-sm"
                                     >
-                                        <i className="bi bi-pencil-square text-[#10B981]"></i> Edit
+                                        <BsPencilSquare className="text-[#10B981]" /> Edit
                                     </button>
                                 )}
                             </td>
