@@ -7,8 +7,8 @@ import api from './api';
  */
 export const getFares = async (vehicleType = '', area = '') => {
     const params = {};
-    if (vehicleType) params.vehicle_type = vehicleType;
-    if (area) params.area = area;
+    if (vehicleType) params.vehicle_type_id = vehicleType;
+    if (area) params.service_areas_id = area;
     const res = await api.get('/admin/fares', { params });
     return res.data;
 };

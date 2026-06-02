@@ -3,11 +3,25 @@ import AdminLayout from '@/layouts/AdminLayout';
 import { format, parse } from 'date-fns';
 import { Table, Select, InputWrapper, useToast, Loader } from '@/components/UI';
 import { getFares, updateFare } from '@/api/fareApi';
-import { BsTruck, BsChevronDown, BsGeoAltFill, BsPencilSquare, BsInfoCircle } from 'react-icons/bs';
+import { getImageUrl } from '@/api/api';
+import { BsTruck, BsChevronDown, BsGeoAltFill, BsPersonFill, BsPencilSquare, BsInfoCircle } from 'react-icons/bs';
 
 export default function FareManagement() {
     const { showToast } = useToast();
-    const [fares, setFares] = useState([]);
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const [fares, setFares] = useState(DAYS.map(day => ({
+        id: `initial-${day.toLowerCase()}`,
+        day: day,
+        base_fare: 0,
+        per_km_fare: 0,
+        waiting_min: 0,
+        waiting_charges: 0,
+        night_start_time: '0:00:00',
+        night_end_time: '0:00:00',
+        night_charges: 0,
+        peak_charges: 0,
+        is_new: true
+    })));
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(null);
 
@@ -39,7 +53,27 @@ export default function FareManagement() {
         try {
             setLoading(true);
             const data = await getFares(vehicleType, area);
-            setFares(data.fares || []);
+            const backendFares = Array.isArray(data.fares) ? data.fares : [];
+
+            // Ensure all 7 days are represented in the table
+            const completeFares = DAYS.map(day => {
+                const existing = backendFares.find(f => f.day && f.day.toLowerCase() === day.toLowerCase());
+                return existing ? { ...existing, is_new: false } : {
+                    id: `new-${day.toLowerCase()}`,
+                    day: day,
+                    base_fare: 0,
+                    per_km_fare: 0,
+                    waiting_min: 0,
+                    waiting_charges: 0,
+                    night_start_time: '22:00:00',
+                    night_end_time: '06:00:00',
+                    night_charges: 0,
+                    peak_charges: 0,
+                    is_new: true
+                };
+            });
+
+            setFares(completeFares);
         } catch (error) {
             console.error("Error fetching fares:", error);
         } finally {
@@ -55,19 +89,34 @@ export default function FareManagement() {
 
                 if (data.available_categories) {
                     setCarTypes(data.available_categories.map(c => ({
-                        name: c.name,
-                        label: c.label
+                        id: c.id,
+                        name: c.id.toString(),
+                        category: c.category,
+                        capacity: c.capacity,
+                        image: c.image_path,
+                        label: `${c.category} (${c.capacity})`
                     })));
                 }
 
                 if (data.service_areas) {
                     setAreas(data.service_areas.map(a => ({
-                        name: a.area_code,
-                        label: a.area_name
+                        id: a.id,
+                        name: a.id,
+                        code: a.area_code,
+                        label: a.area_name,
+                        city: a.city,
+                        country: a.country
                     })));
                 }
 
                 setLoading(false);
+                if (data.available_categories?.length > 0 && data.service_areas?.length > 0) {
+                    const firstCar = data.available_categories[0].id.toString();
+                    const firstArea = data.service_areas[0].id;
+                    setSelectedCarType(firstCar);
+                    setSelectedArea(firstArea);
+                    fetchFares(firstCar, firstArea);
+                }
             } catch (error) {
                 console.error("Error fetching initial fare data:", error);
                 setLoading(false);
@@ -89,10 +138,39 @@ export default function FareManagement() {
     const saveEditing = async () => {
         try {
             setUpdating(editingId);
-            await updateFare(editValues);
-            showToast(`Fare for ${editValues.day} updated successfully`, 'success');
-            setEditingId(null);
-            fetchFares(selectedCarType);
+
+            // Construct payload exactly as requested
+            const payload = {
+                vehicle_type_id: Number(selectedCarType),
+                service_areas_id: Number(selectedArea),
+                day: editValues.day,
+                base_fare: parseFloat(editValues.base_fare),
+                per_km_fare: parseFloat(editValues.per_km_fare),
+                waiting_charges: parseFloat(editValues.waiting_charges),
+                waiting_min: parseInt(editValues.waiting_min),
+                night_start_time: editValues.night_start_time,
+                night_end_time: editValues.night_end_time,
+                night_charges: parseFloat(editValues.night_charges),
+                peak_charges: parseFloat(editValues.peak_charges)
+            };
+
+            // Only include ID if it's a valid numeric ID (not a temp frontend ID)
+            const numericId = parseInt(editingId);
+            if (!isNaN(numericId)) {
+                payload.id = numericId;
+            }
+
+            console.log("🚀 SENDING FARE PAYLOAD:", payload);
+
+            const response = await updateFare(payload);
+
+            if (response.status === 'success' || response.status === true) {
+                showToast(`Fare for ${editValues.day} updated successfully`, 'success');
+                setEditingId(null);
+                fetchFares(selectedCarType, selectedArea);
+            } else {
+                showToast(response.message || 'Failed to update fare in database', 'error');
+            }
         } catch (error) {
             showToast(error.response?.data?.message || 'Failed to update fare', 'error');
         } finally {
@@ -117,9 +195,15 @@ export default function FareManagement() {
                         }}
                         className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
-                        <BsTruck className={`mr-3 text-[18px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`} />
+                        {(() => {
+                            const selected = carTypes.find(c => c.name === selectedCarType);
+                            if (selected && selected.image) {
+                                return <img src={getImageUrl(selected.image)} alt={selected.category} className="w-8 h-8 object-contain mr-3" />;
+                            }
+                            return <BsTruck className={`mr-3 text-[18px] transition-colors ${isSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`} />;
+                        })()}
                         <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
-                            {carTypes.find(c => c.name === selectedCarType)?.label || 'Select Vehicle'}
+                            {carTypes.find(c => c.name === selectedCarType)?.category || 'Select Vehicle'}
                         </span>
                         <BsChevronDown className={`text-[#111] text-[12px] transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : 'rotate-0'}`} />
                     </div>
@@ -127,21 +211,31 @@ export default function FareManagement() {
                     {isSelectOpen && (
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => setIsSelectOpen(false)}></div>
-                            <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-[#E5E7EB] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] z-50 overflow-hidden py-3 animate-scale-up-dropdown origin-top">
+                            <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-[#E5E7EB] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] z-50 overflow-hidden py-3 animate-scale-up-dropdown origin-top w-72">
                                 {carTypes.map((category) => (
                                     <div
-                                        key={category.name}
+                                        key={category.id}
                                         onClick={() => {
                                             setSelectedCarType(category.name);
                                             fetchFares(category.name, selectedArea);
                                             setIsSelectOpen(false);
                                         }}
-                                        className={`px-4 py-2 text-xs font-[600] cursor-pointer transition-all duration-200 ${selectedCarType === category.name
-                                            ? 'bg-[#D10000] text-white mx-2 rounded-full shadow-md truncate whitespace-nowrap'
-                                            : 'text-[#111] hover:bg-gray-50 truncate whitespace-nowrap'
+                                        className={`px-5 py-2 cursor-pointer transition-all duration-200 border-b border-gray-50 last:border-0 flex items-center gap-4 ${selectedCarType === category.name
+                                            ? 'bg-[#FDF2F2]'
+                                            : 'hover:bg-[#D10000]/10'
                                             }`}
                                     >
-                                        {category.label}
+                                        {category.image && (
+                                            <img src={getImageUrl(category.image)} alt={category.category} className="w-12 h-10 object-contain" />
+                                        )}
+
+                                        <span className={`text-[14px] font-[700] ${selectedCarType === category.name ? 'text-[#D10000]' : 'text-[#111]'}`}>
+                                            {category.category}
+                                        </span>
+                                        <span className="text-[12px] font-[500] text-gray-500 flex items-center gap-0.5 uppercase tracking-wider">
+                                            <BsPersonFill /> {category.capacity}
+                                        </span>
+
                                     </div>
                                 ))}
                             </div>
@@ -168,21 +262,35 @@ export default function FareManagement() {
                     {isAreaSelectOpen && (
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => setIsAreaSelectOpen(false)}></div>
-                            <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-[#E5E7EB] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] z-50 overflow-hidden py-3 animate-scale-up-dropdown origin-top">
+                            <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-[#E5E7EB] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] z-50 overflow-hidden py-3 animate-scale-up-dropdown origin-top w-80">
                                 {areas.map((area) => (
                                     <div
-                                        key={area.name}
+                                        key={area.id}
                                         onClick={() => {
                                             setSelectedArea(area.name);
                                             fetchFares(selectedCarType, area.name);
                                             setIsAreaSelectOpen(false);
                                         }}
-                                        className={`px-4 py-2 text-xs font-[600] cursor-pointer transition-all duration-200 ${selectedArea === area.name
-                                            ? 'bg-[#D10000] text-white mx-2 rounded-full shadow-md truncate whitespace-nowrap'
-                                            : 'text-[#111] hover:bg-gray-50 truncate whitespace-nowrap'
+                                        className={`px-5 py-3 cursor-pointer transition-all duration-200 border-b border-gray-50 last:border-0 ${selectedArea === area.name
+                                            ? 'bg-[#FDF2F2]'
+                                            : 'hover:bg-[#D10000]/10'
                                             }`}
                                     >
-                                        {area.label}
+                                        <div className="flex flex-col gap-1 text-left">
+                                            <div className="flex items-center justify-between">
+                                                <span className={`text-[14px] font-[700] ${selectedArea === area.name ? 'text-[#D10000]' : 'text-[#111]'}`}>
+                                                    {area.label}
+                                                </span>
+                                                <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-[700]">
+                                                    {area.code}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[11px] font-[600] text-gray-500 uppercase italic">
+                                                <span>{area.city}</span>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <span>{area.country}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -245,7 +353,7 @@ export default function FareManagement() {
                                         className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#111]">C${fare.base_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">{fare.base_fare}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -258,7 +366,7 @@ export default function FareManagement() {
                                         className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#111]">C${fare.per_km_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">{fare.per_km_fare}</span>
                                 )}
                             </td>
                             <td className="py-3 px-3 text-center">
