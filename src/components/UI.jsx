@@ -11,9 +11,10 @@ export const Table = ({ headers, children, headerBg = 'bg-[#FFEEEE]', tableClass
                     {headers.map((header, i) => {
                         const isObject = typeof header === 'object';
                         const label = isObject ? header.label : header;
-                        const align = isObject ? header.align : headerAlign;
+                        const align = (isObject && header.align) ? header.align : headerAlign;
+                        const colSpan = isObject ? (header.colSpan || 1) : 1;
                         return (
-                            <th key={i} className={`py-[22px] px-[30px] text-sm font-[600] ${headerTextColor} capitalize whitespace-nowrap ${align}`}>
+                            <th key={i} colSpan={colSpan} className={`py-[22px] px-[30px] text-sm font-[600] ${headerTextColor} capitalize whitespace-nowrap ${align}`}>
                                 {label}
                             </th>
                         );

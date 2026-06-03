@@ -754,13 +754,15 @@ export default function Analytics() {
                                                     lng: parseFloat(driver.tracking.curr_lon)
                                                 }}
                                                 icon={{
-                                                    path: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z",
-                                                    fillColor: "#D10000",
-                                                    fillOpacity: 1,
-                                                    strokeWeight: 1,
-                                                    strokeColor: "#FFFFFF",
-                                                    scale: 1.5,
-                                                    anchor: { x: 12, y: 12 }
+                                                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">
+                                                            <path fill="#D10000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                                                            <circle fill="white" cx="12" cy="9" r="4.5"/>
+                                                            <path fill="#D10000" transform="translate(12, 9) scale(0.3) translate(-12, -13.5)" d="M17.5 6h-11c-.66 0-1.21.42-1.42 1.01L3 13v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99C18.71 6.42 18.16 6 17.5 6zM6.5 15.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm11 0c-.83 0-1.5-.67-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM6.5 11l1.5-4.5h8l1.5 4.5H6.5z"/>
+                                                        </svg>
+                                                    `)}`,
+                                                    scaledSize: new window.google.maps.Size(40, 40),
+                                                    anchor: new window.google.maps.Point(20, 37)
                                                 }}
                                                 onClick={() => setSelectedDriver({ ...driver, type: 'Busy' })}
                                             />
@@ -777,13 +779,15 @@ export default function Analytics() {
                                                     lng: parseFloat(driver.tracking.curr_lon)
                                                 }}
                                                 icon={{
-                                                    path: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z",
-                                                    fillColor: "#10B981",
-                                                    fillOpacity: 1,
-                                                    strokeWeight: 1,
-                                                    strokeColor: "#FFFFFF",
-                                                    scale: 1.5,
-                                                    anchor: { x: 12, y: 12 }
+                                                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">
+                                                            <path fill="#10B981" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                                                            <circle fill="white" cx="12" cy="9" r="4.5"/>
+                                                            <path fill="#10B981" transform="scale(0.35) translate(14.5, 12.5)" d="M17.5 6h-11c-.66 0-1.21.42-1.42 1.01L3 13v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99C18.71 6.42 18.16 6 17.5 6zM6.5 15.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm11 0c-.83 0-1.5-.67-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM6.5 11l1.5-4.5h8l1.5 4.5H6.5z"/>
+                                                        </svg>
+                                                    `)}`,
+                                                    scaledSize: new window.google.maps.Size(40, 40),
+                                                    anchor: new window.google.maps.Point(20, 37)
                                                 }}
                                                 onClick={() => setSelectedDriver({ ...driver, type: 'Available' })}
                                             />

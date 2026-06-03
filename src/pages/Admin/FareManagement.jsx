@@ -195,7 +195,7 @@ export default function FareManagement() {
                             setIsSelectOpen(!isSelectOpen);
                             setIsAreaSelectOpen(false);
                         }}
-                        className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
+                        className={`group relative flex items-center h-[54px] bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] cursor-pointer transition-all duration-200 ${isSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
                         {(() => {
                             const selected = carTypes.find(c => c.name === selectedCarType);
@@ -251,7 +251,7 @@ export default function FareManagement() {
                             setIsAreaSelectOpen(!isAreaSelectOpen);
                             setIsSelectOpen(false);
                         }}
-                        className={`group relative flex items-center bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] py-[13px] cursor-pointer transition-all duration-200 ${isAreaSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
+                        className={`group relative flex items-center h-[54px] bg-[#fdfdfd] border-[1.5px] rounded-[30px] px-[18px] cursor-pointer transition-all duration-200 ${isAreaSelectOpen ? 'border-[#D10000] ring-[5px] ring-[#e13437]/10' : 'border-[#E5E7EB] hover:border-[#D10000]'}`}
                     >
                         <BsGeoAltFill className={`mr-3 text-[18px] transition-colors ${isAreaSelectOpen ? 'text-[#D10000]' : 'text-[#999]'}`} />
                         <span className="flex-1 text-[14px] font-[600] text-[#111] truncate whitespace-nowrap mr-2">
@@ -308,16 +308,16 @@ export default function FareManagement() {
                 .animate-scale-up-dropdown { animation: scale-up-dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
             ` }} />
 
-            <Table headers={['Days', 'Base Fare (C$)', 'Per KM (C$)', 'Wait Min / C$', 'Night Time', 'Night (C$)', 'Peak (C$)', 'Actions']} tableClassName="table-fixed" headerAlign="text-center">
+            <Table headers={['Days', 'Base Fare (C$)', 'Per KM (C$)', 'Wait Min / C$', { label: 'Night Time', colSpan: 2 }, 'Night (C$)', 'Peak (C$)', 'Actions']} tableClassName="table-fixed" headerAlign="text-center">
                 {loading ? (
                     <tr>
-                        <td colSpan="8" className="py-20 text-center">
+                        <td colSpan="9" className="py-20 text-center">
                             <Loader />
                         </td>
                     </tr>
                 ) : !selectedCarType || !selectedArea ? (
                     <tr>
-                        <td colSpan="8" className="py-32 text-center">
+                        <td colSpan="9" className="py-32 text-center">
                             <div className="flex flex-col items-center justify-center gap-3 animate-fade-in">
                                 <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
                                     <BsInfoCircle className="text-[#D10000] text-3xl" />
@@ -325,7 +325,7 @@ export default function FareManagement() {
                                 <div className="flex flex-col gap-1">
                                     <h3 className="text-[18px] font-[700] text-[#111]">Select Vehicle & Area</h3>
                                     <p className="text-[14px] font-[500] text-gray-500 max-w-[280px] mx-auto leading-relaxed">
-                                        Please choose a vehicle type and service area to view and manage fare rates.
+                                        Please choose a vehicle type and service area <br /> to view and manage fare rates.
                                     </p>
                                 </div>
                             </div>
@@ -333,8 +333,18 @@ export default function FareManagement() {
                     </tr>
                 ) : fares.length === 0 ? (
                     <tr>
-                        <td colSpan="8" className="py-20 text-center text-gray-500 font-medium">
-                            No fare data found for this selection
+                        <td colSpan="9" className="py-32 text-center">
+                            <div className="flex flex-col items-center justify-center gap-3 animate-fade-in">
+                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
+                                    <BsInfoCircle className="text-gray-400 text-3xl" />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-[18px] font-[700] text-[#111]">No Fares Found</h3>
+                                    <p className="text-[14px] font-[500] text-gray-500 max-w-[280px] mx-auto leading-relaxed">
+                                        No fare data could be found for this selection.<br />Please try a different vehicle or area.
+                                    </p>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 ) : fares.map((fare) => {
@@ -350,7 +360,7 @@ export default function FareManagement() {
                                         step="0.01"
                                         value={editValues.base_fare}
                                         onChange={(e) => handleChange('base_fare', e.target.value)}
-                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
+                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[13px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
                                     <span className="text-[14px] font-[600] text-[#111]">{Number(fare.base_fare)}</span>
@@ -363,7 +373,7 @@ export default function FareManagement() {
                                         step="0.01"
                                         value={editValues.per_km_fare}
                                         onChange={(e) => handleChange('per_km_fare', e.target.value)}
-                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
+                                        className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[13px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
                                     <span className="text-[13px] font-[600] text-[#111]">{Number(fare.per_km_fare)}</span>
@@ -391,7 +401,7 @@ export default function FareManagement() {
                                     <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min} / {Number(fare.waiting_charges)}</span>
                                 )}
                             </td>
-                            <td className="py-3 px-2 text-center">
+                            <td colSpan="2" className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <div className="flex flex-col gap-1">
                                         <input
@@ -410,10 +420,7 @@ export default function FareManagement() {
                                 ) : (
                                     <span className="text-[13px] font-[600] text-[#6B7280]">
                                         <span>
-                                            {fare.night_start_time ? `${formatTime(fare.night_start_time)}` : 'N/A'}
-                                        </span>
-                                        <br />
-                                        <span>
+                                            {fare.night_start_time ? `${formatTime(fare.night_start_time)}` : 'N/A'}{" - "}
                                             {fare.night_end_time ? `${formatTime(fare.night_end_time)}` : 'N/A'}
                                         </span>
                                     </span>

@@ -19,3 +19,11 @@ export const createSupportTicket = async (data) => {
     const res = await api.post('/admin/support', data);
     return res.data;
 };
+
+export const updateSupportTicketStatus = async (id, status) => {
+    const res = await api.post(`/admin/support/${id}/status`, {
+        status,
+        _method: 'PATCH'
+    });
+    return res.data;
+};
