@@ -16,8 +16,8 @@ export default function FareManagement() {
         per_km_fare: 0,
         waiting_min: 0,
         waiting_charges: 0,
-        night_start_time: '0:00:00',
-        night_end_time: '0:00:00',
+        night_start_time: '-:--:--',
+        night_end_time: '-:--:--',
         night_charges: 0,
         peak_charges: 0,
         is_new: true
@@ -65,8 +65,8 @@ export default function FareManagement() {
                     per_km_fare: 0,
                     waiting_min: 0,
                     waiting_charges: 0,
-                    night_start_time: '22:00:00',
-                    night_end_time: '06:00:00',
+                    night_start_time: '-:--:--',
+                    night_end_time: '-:--:--',
                     night_charges: 0,
                     peak_charges: 0,
                     is_new: true
@@ -87,36 +87,31 @@ export default function FareManagement() {
                 setLoading(true);
                 const data = await getFares();
 
-                if (data.available_categories) {
-                    setCarTypes(data.available_categories.map(c => ({
+                if (data.available_categories && data.available_categories.length > 0) {
+                    const categories = data.available_categories.map(c => ({
                         id: c.id,
                         name: c.id.toString(),
                         category: c.category,
                         capacity: c.capacity,
                         image: c.image_path,
                         label: `${c.category} (${c.capacity})`
-                    })));
+                    }));
+                    setCarTypes(categories);
                 }
 
-                if (data.service_areas) {
-                    setAreas(data.service_areas.map(a => ({
+                if (data.service_areas && data.service_areas.length > 0) {
+                    const serviceAreas = data.service_areas.map(a => ({
                         id: a.id,
-                        name: a.id,
+                        name: a.id.toString(),
                         code: a.area_code,
                         label: a.area_name,
                         city: a.city,
                         country: a.country
-                    })));
+                    }));
+                    setAreas(serviceAreas);
                 }
 
                 setLoading(false);
-                if (data.available_categories?.length > 0 && data.service_areas?.length > 0) {
-                    const firstCar = data.available_categories[0].id.toString();
-                    const firstArea = data.service_areas[0].id;
-                    setSelectedCarType(firstCar);
-                    setSelectedArea(firstArea);
-                    fetchFares(firstCar, firstArea);
-                }
             } catch (error) {
                 console.error("Error fetching initial fare data:", error);
                 setLoading(false);
@@ -124,6 +119,13 @@ export default function FareManagement() {
         };
         init();
     }, []);
+
+    // Watch for changes to selected vehicle or area
+    useEffect(() => {
+        if (selectedCarType && selectedArea) {
+            fetchFares(selectedCarType, selectedArea);
+        }
+    }, [selectedCarType, selectedArea]);
 
     const startEditing = (fare) => {
         setEditingId(fare.id);
@@ -217,7 +219,6 @@ export default function FareManagement() {
                                         key={category.id}
                                         onClick={() => {
                                             setSelectedCarType(category.name);
-                                            fetchFares(category.name, selectedArea);
                                             setIsSelectOpen(false);
                                         }}
                                         className={`px-5 py-2 cursor-pointer transition-all duration-200 border-b border-gray-50 last:border-0 flex items-center gap-4 ${selectedCarType === category.name
@@ -268,7 +269,6 @@ export default function FareManagement() {
                                         key={area.id}
                                         onClick={() => {
                                             setSelectedArea(area.name);
-                                            fetchFares(selectedCarType, area.name);
                                             setIsAreaSelectOpen(false);
                                         }}
                                         className={`px-5 py-3 cursor-pointer transition-all duration-200 border-b border-gray-50 last:border-0 ${selectedArea === area.name
@@ -318,7 +318,7 @@ export default function FareManagement() {
                 ) : !selectedCarType || !selectedArea ? (
                     <tr>
                         <td colSpan="8" className="py-32 text-center">
-                            <div className="flex flex-col items-center justify-center gap-4 animate-fade-in">
+                            <div className="flex flex-col items-center justify-center gap-3 animate-fade-in">
                                 <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
                                     <BsInfoCircle className="text-[#D10000] text-3xl" />
                                 </div>
@@ -342,8 +342,8 @@ export default function FareManagement() {
 
                     return (
                         <tr key={fare.id} className={`transition-colors border-b border-[#F3F4F6] ${isEditing ? 'bg-[#FFF8F8]' : 'hover:bg-black/[0.02]'}`}>
-                            <td className="py-3 px-3 text-[14px] font-[600] text-[#111] text-center">{fare.day}</td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-[14px] font-[600] text-[#111] text-center">{fare.day}</td>
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <input
                                         type="number"
@@ -353,10 +353,10 @@ export default function FareManagement() {
                                         className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#111]">{fare.base_fare}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">{Number(fare.base_fare)}</span>
                                 )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <input
                                         type="number"
@@ -366,10 +366,10 @@ export default function FareManagement() {
                                         className="w-[80px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#111] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#111]">{fare.per_km_fare}</span>
+                                    <span className="text-[13px] font-[600] text-[#111]">{Number(fare.per_km_fare)}</span>
                                 )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <div className="flex items-center gap-1">
                                         <input
@@ -388,10 +388,10 @@ export default function FareManagement() {
                                         />
                                     </div>
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min}m / {fare.waiting_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#6B7280]">{fare.waiting_min} / {Number(fare.waiting_charges)}</span>
                                 )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <div className="flex flex-col gap-1">
                                         <input
@@ -409,11 +409,17 @@ export default function FareManagement() {
                                     </div>
                                 ) : (
                                     <span className="text-[13px] font-[600] text-[#6B7280]">
-                                        {fare.night_start_time ? `${formatTime(fare.night_start_time)} - ${formatTime(fare.night_end_time)}` : 'N/A'}
+                                        <span>
+                                            {fare.night_start_time ? `${formatTime(fare.night_start_time)}` : 'N/A'}
+                                        </span>
+                                        <br />
+                                        <span>
+                                            {fare.night_end_time ? `${formatTime(fare.night_end_time)}` : 'N/A'}
+                                        </span>
                                     </span>
                                 )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <input
                                         type="number"
@@ -423,10 +429,10 @@ export default function FareManagement() {
                                         className="w-[70px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#D10000] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#D10000]">{fare.night_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">{Number(fare.night_charges)}</span>
                                 )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
                                     <input
                                         type="number"
@@ -436,12 +442,12 @@ export default function FareManagement() {
                                         className="w-[70px] px-2 py-2 border border-[#D10000]/30 rounded-lg text-[14px] font-[600] text-[#D10000] text-center focus:outline-none focus:border-[#D10000] bg-white"
                                     />
                                 ) : (
-                                    <span className="text-[14px] font-[600] text-[#D10000]">{fare.peak_charges}</span>
+                                    <span className="text-[14px] font-[600] text-[#111]">{Number(fare.peak_charges)}</span>
                                 )}
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-2 text-center">
                                 {isEditing ? (
-                                    <div className="flex flex-col items-center justify-center gap-1.5">
+                                    <div className="flex flex-col items-center justify-center gap-1">
                                         <button
                                             onClick={saveEditing}
                                             disabled={updating === fare.id}
