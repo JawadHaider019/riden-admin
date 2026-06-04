@@ -26,9 +26,9 @@ export const reverseGeocode = async (lat, lng) => {
             const bestResult = response.data.results.find(result => {
                 const isPlusCode = result.types.includes('plus_code');
                 const hasPlusSign = result.formatted_address.includes('+');
-                // Plus codes are often short and contain a plus sign, e.g., "WQ64+83H"
-                // We want to avoid these.
-                return !isPlusCode && !hasPlusSign;
+                const isUnnamed = result.formatted_address.toLowerCase().includes('unnamed road');
+                // We want to avoid plus codes and generic "Unnamed Road" markers
+                return !isPlusCode && !hasPlusSign && !isUnnamed;
             });
 
             const address = bestResult ? bestResult.formatted_address : response.data.results[0].formatted_address;

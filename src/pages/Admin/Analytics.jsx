@@ -64,7 +64,7 @@ export default function Analytics() {
     const [onlineDrivers, setOnlineDrivers] = useState({ with_rides: [], without_rides: [] });
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [isSearchingBounds, setIsSearchingBounds] = useState(true); // Always show on open
-    const [addresses, setAddresses] = useState({ pickup: 'Loading...', dropoff: 'Loading...', current: 'Loading...' });
+    const [addresses, setAddresses] = useState({ pickup_address: 'Loading...', dropoff_address: 'Loading...', current: 'Loading...' });
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -86,9 +86,9 @@ export default function Analytics() {
                 console.log('Dropoff Coords:', { lat: b.dropoff_lat, lng: b.dropoff_lng });
             }
 
-            setAddresses({ pickup: 'Loading...', dropoff: 'Loading...', current: 'Loading...' });
+            setAddresses({ pickup_address: 'Loading...', dropoff_address: 'Loading...', current: 'Loading...' });
 
-            const results = { current: 'N/A', pickup: 'N/A', dropoff: 'N/A' };
+            const results = { current: 'N/A', pickup_address: 'N/A', dropoff_address: 'N/A' };
 
             // 1. Fetch Addresses
             if (selectedDriver.tracking) {
@@ -101,16 +101,11 @@ export default function Analytics() {
 
             if (selectedDriver.type === 'Busy' && selectedDriver.bookings?.[0]) {
                 const booking = selectedDriver.bookings[0];
-                reverseGeocode(booking.pickup_lat, booking.pickup_lng)
-                    .then(addr => {
-                        console.log('Geocoded Pickup Address:', addr);
-                        setAddresses(prev => ({ ...prev, pickup: addr }));
-                    });
-                reverseGeocode(booking.dropoff_lat, booking.dropoff_lng)
-                    .then(addr => {
-                        console.log('Geocoded Dropoff Address:', addr);
-                        setAddresses(prev => ({ ...prev, dropoff: addr }));
-                    });
+                setAddresses(prev => ({
+                    ...prev,
+                    pickup_address: booking.pickup_address || 'N/A',
+                    dropoff_address: booking.dropoff_address || 'N/A'
+                }));
             }
 
             // 2. Fetch Full Vehicle Details if available
@@ -138,6 +133,7 @@ export default function Analytics() {
             return;
         }
 
+        setDirections(null); // Clear previous directions immediately
         const booking = selectedDriver.bookings?.[0];
         if (!booking || !booking.pickup_lat || !booking.dropoff_lat) return;
 
@@ -258,6 +254,24 @@ export default function Analytics() {
         mapInstance.fitBounds(bounds, { top: 100, right: 100, bottom: 100, left: 100 });
     }, [selectedDriver, mapInstance]);
 
+    const formatRelativeTime = (timeString) => {
+        if (!timeString || typeof timeString !== 'string') return 'N/A';
+        const parts = timeString.split(':');
+        if (parts.length < 2) return timeString;
+
+        // Based on "00:00:15" meaning "15 mins"
+        const hours = parseInt(parts[1], 10) || 0;
+        const minutes = parseInt(parts[2], 10) || 0;
+        const days = parseInt(parts[0], 10) || 0;
+
+        let result = '';
+        if (days > 0) result += `${days} days `;
+        if (hours > 0) result += `${hours} hours `;
+        if (minutes > 0 || (days === 0 && hours === 0)) result += `${minutes} mins`;
+
+        return result.trim() || '0 mins';
+    };
+
     const tabs = [
         { id: 'dashboard', label: 'Live Dashboard' },
         { id: 'driver', label: 'Driver Analytics' },
@@ -278,17 +292,18 @@ export default function Analytics() {
                 getVehicleTypes()
             ]);
 
-            if (statsRes.status === 'success') {
-                setStats(statsRes.data);
-            }
+            // Update stats
+            const sData = statsRes?.data || statsRes;
+            if (sData) setStats(sData);
 
-            if (analyticsRes.status === 'success') {
-                setAnalytics(analyticsRes.data);
-            }
+            // Update analytics
+            const aData = analyticsRes?.data || analyticsRes;
+            if (aData) setAnalytics(aData);
 
             // Update online drivers
-            if (driversRes && driversRes.status === 'success') {
-                setOnlineDrivers(driversRes.data);
+            const dData = driversRes?.data || driversRes;
+            if (dData && (dData.with_rides || dData.without_rides)) {
+                setOnlineDrivers(dData);
             }
 
             // Update car types if available
@@ -707,7 +722,7 @@ export default function Analytics() {
                                     {selectedDriver?.type === 'Busy' && selectedDriver.bookings?.[0] && (
                                         <>
                                             <MarkerF
-                                                position={{
+                                                position={directions ? directions.routes[0].legs[0].start_location : {
                                                     lat: parseFloat(selectedDriver.bookings[0].pickup_lat),
                                                     lng: parseFloat(selectedDriver.bookings[0].pickup_lng)
                                                 }}
@@ -718,7 +733,7 @@ export default function Analytics() {
                                                 label={{ text: "Pickup", fontSize: "12px", fontWeight: "bold", color: "#000" }}
                                             />
                                             <MarkerF
-                                                position={{
+                                                position={directions ? directions.routes[0].legs[0].end_location : {
                                                     lat: parseFloat(selectedDriver.bookings[0].dropoff_lat),
                                                     lng: parseFloat(selectedDriver.bookings[0].dropoff_lng)
                                                 }}
@@ -739,7 +754,7 @@ export default function Analytics() {
                                                     strokeWeight: 5,
                                                     strokeOpacity: 0.8
                                                 },
-                                                suppressMarkers: false // Keep pickup/dropoff markers from API
+                                                suppressMarkers: true // Hide default A/B markers to show custom ones instead
                                             }}
                                         />
                                     )}
@@ -922,15 +937,15 @@ export default function Analytics() {
                                             <>
                                                 <div className="relative mb-4">
                                                     <div className="absolute -left-[27px] top-[5px] w-[11px] h-[11px] bg-black rounded-full ring-4 ring-gray-100"></div>
-                                                    <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Pickup Location</h6>
-                                                    <p className="text-[13px] font-[500] text-[#111]">{addresses.pickup}</p>
+                                                    <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Pickup </h6>
+                                                    <p className="text-[13px] font-[500] text-[#111]">{addresses.pickup_address}</p>
                                                 </div>
                                                 <div className="relative">
                                                     <div className="absolute -left-[30px] top-[0px] text-[#D10000]">
                                                         <i className="bi bi-geo-alt-fill text-[18px]"></i>
                                                     </div>
-                                                    <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Dropoff Point</h6>
-                                                    <p className="text-[13px] font-[500] text-[#111]">{addresses.dropoff}</p>
+                                                    <h6 className="text-[10px] font-[700] text-gray-400 uppercase tracking-widest mb-1">Dropoff</h6>
+                                                    <p className="text-[13px] font-[500] text-[#111]">{addresses.dropoff_address}</p>
                                                 </div>
                                             </>
                                         ) : (
@@ -953,7 +968,7 @@ export default function Analytics() {
                                             </div>
                                             <div className="bg-gray-50 rounded-xl p-3 text-center">
                                                 <p className="text-[9px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Est. Time</p>
-                                                <p className="text-[12px] font-[700] text-[#111]">{selectedDriver.bookings[0].estimated_time}</p>
+                                                <p className="text-[12px] font-[700] text-[#111]">{formatRelativeTime(selectedDriver.bookings[0].estimated_time)}</p>
                                             </div>
                                             <div className="bg-gray-50 rounded-xl p-3 text-center">
                                                 <p className="text-[9px] font-[600] text-[#94A3B8] uppercase tracking-wider mb-1">Status</p>
