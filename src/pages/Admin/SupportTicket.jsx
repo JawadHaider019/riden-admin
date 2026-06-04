@@ -20,6 +20,8 @@ export default function SupportTicket() {
     const [endDate, setEndDate] = useState(null);
     const [replyText, setReplyText] = useState('');
     const [isStatusOpen, setIsStatusOpen] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const fileInputRef = useRef(null);
 
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -32,10 +34,12 @@ export default function SupportTicket() {
 
     // Preview State
     const [previewImage, setPreviewImage] = useState(null);
+    const [previewType, setPreviewType] = useState('image');
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-    const openImagePreview = (url) => {
+    const openImagePreview = (url, type = 'image') => {
         setPreviewImage(url);
+        setPreviewType(type);
         setIsImageModalOpen(true);
     };
 
@@ -64,6 +68,10 @@ export default function SupportTicket() {
             status: 'open',
             subject: 'Driver was rude during the trip',
             description: 'The driver was very unprofessional and used offensive language when I asked him to turn on the AC.',
+            images: [
+                'https://images.unsplash.com/photo-1549194388-f61be038069b?w=800',
+                'https://www.w3schools.com/html/mov_bbb.mp4'
+            ],
             replies: []
         },
         {
@@ -148,27 +156,30 @@ export default function SupportTicket() {
     };
 
     const handleReply = async () => {
-        if (!replyText.trim()) return;
-        try {
-            // Get admin details for validation
-            const adminStr = localStorage.getItem('admin');
-            const admin = adminStr ? JSON.parse(adminStr) : null;
+        if (!replyText.trim() && selectedFiles.length === 0) return;
 
-            const payload = {
+        setIsReplying(true);
+
+        // Simulated delay for realism in dummy mode
+        setTimeout(() => {
+            const newReply = {
+                id: Date.now(),
                 message: replyText,
-                admin_id: admin?.id // Send the current admin's ID
+                created_at: new Date().toISOString(),
+                admin_id: 1, // Simulated Admin ID
+                attachments: selectedFiles.map(f => ({ url: f.url, type: f.type }))
             };
 
-            const response = await replyToSupportTicket(selectedTicket.id, payload);
-            if (response.status === 'success') {
-                showToast("Reply sent successfully", "success");
-                setReplyText('');
-                setIsReplying(false);
-                fetchTickets(pagination.current_page);
-            }
-        } catch (error) {
-            showToast("Failed to send reply", "error");
-        }
+            setSelectedTicket(prev => ({
+                ...prev,
+                replies: [...(prev.replies || []), newReply]
+            }));
+
+            showToast("Response sent successfully", "success");
+            setReplyText('');
+            setSelectedFiles([]);
+            setIsReplying(false);
+        }, 1200);
     };
 
     const openTicket = (ticket) => {
@@ -394,18 +405,27 @@ export default function SupportTicket() {
                                         <div className="mt-10">
                                             <p className="text-sm font-[700] text-gray-400 uppercase tracking-widest mb-4">Attachments ({selectedTicket.images.length})</p>
                                             <div className="flex flex-wrap gap-4">
-                                                {selectedTicket.images.map((img, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="group relative w-[180px] h-[120px] rounded-[24px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer"
-                                                        onClick={() => openImagePreview(img)}
-                                                    >
-                                                        <img src={img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                            <i className="bi bi-eye text-white text-2xl"></i>
+                                                {selectedTicket.images.map((img, idx) => {
+                                                    const isVideo = img.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className="group relative w-[180px] h-[120px] rounded-[24px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer"
+                                                            onClick={() => openImagePreview(img, isVideo ? 'video' : 'image')}
+                                                        >
+                                                            {isVideo ? (
+                                                                <div className="w-full h-full bg-[#111] flex items-center justify-center">
+                                                                    <i className="bi bi-play-fill text-white text-3xl"></i>
+                                                                </div>
+                                                            ) : (
+                                                                <img src={img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <i className="bi bi-eye text-white text-2xl"></i>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
@@ -446,6 +466,31 @@ export default function SupportTicket() {
                                                     <p className="text-[15px] font-[500] leading-relaxed">
                                                         {reply.message}
                                                     </p>
+                                                    {reply.attachments && reply.attachments.length > 0 && (
+                                                        <div className={`mt-4 flex flex-wrap gap-2 ${reply.admin_id ? 'justify-end' : 'justify-start'}`}>
+                                                            {reply.attachments.map((att, aIdx) => {
+                                                                const isVideo = att.url?.match(/\.(mp4|webm|ogg|mov|m4v)$/i) || att.type === 'video';
+                                                                return (
+                                                                    <div
+                                                                        key={aIdx}
+                                                                        className="relative group w-24 h-24 rounded-2xl overflow-hidden border-2 border-white/20 cursor-pointer shadow-sm"
+                                                                        onClick={() => openImagePreview(att.url, isVideo ? 'video' : 'image')}
+                                                                    >
+                                                                        {isVideo ? (
+                                                                            <div className="w-full h-full bg-black/40 flex items-center justify-center">
+                                                                                <i className="bi bi-play-circle-fill text-white text-2xl"></i>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <img src={att.url} className="w-full h-full object-cover" />
+                                                                        )}
+                                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                            <i className="bi bi-eye text-white"></i>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className={`flex items-center gap-2 px-2 text-[11px] font-[700] uppercase tracking-wider text-gray-400 ${reply.admin_id ? 'flex-row-reverse' : 'flex-row'}`}>
                                                     <span>{reply.admin_id ? 'Support Team' : getUserName(selectedTicket)}</span>
@@ -493,14 +538,58 @@ export default function SupportTicket() {
                                                 placeholder="Type your message here..."
                                                 className="w-full min-h-[180px] p-6 bg-[#F9FAFB] rounded-[24px] border-none focus:ring-2 focus:ring-[#D10000]/10 text-[#111] font-[500] text-[16px] resize-none outline-none"
                                             />
+                                            {selectedFiles.length > 0 && (
+                                                <div className="mt-4 flex flex-wrap gap-3 p-4 bg-gray-50 rounded-[20px] border border-gray-100">
+                                                    {selectedFiles.map((file, idx) => (
+                                                        <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-white shadow-sm">
+                                                            {file.type === 'video' ? (
+                                                                <div className="w-full h-full bg-[#111] flex items-center justify-center">
+                                                                    <i className="bi bi-play-fill text-white text-2xl"></i>
+                                                                </div>
+                                                            ) : (
+                                                                <img src={file.url} className="w-full h-full object-cover" alt="Selected" />
+                                                            )}
+                                                            <button
+                                                                onClick={() => setSelectedFiles(selectedFiles.filter((_, i) => i !== idx))}
+                                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <i className="bi bi-x text-sm"></i>
+                                                            </button>
+                                                            <div
+                                                                className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center"
+                                                                onClick={() => openImagePreview(file.url, file.type)}
+                                                            >
+                                                                <i className="bi bi-eye text-white"></i>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             <div className="mt-6 flex justify-between items-center">
                                                 <div className="flex gap-2 text-gray-400">
-                                                    <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+                                                    <button
+                                                        onClick={() => fileInputRef.current.click()}
+                                                        className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                                    >
                                                         <i className="bi bi-paperclip text-xl"></i>
                                                     </button>
-                                                    <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
-                                                        <i className="bi bi-emoji-smile text-xl"></i>
-                                                    </button>
+                                                    <input
+                                                        type="file"
+                                                        ref={fileInputRef}
+                                                        className="hidden"
+                                                        multiple
+                                                        accept="image/*,video/*"
+                                                        onChange={(e) => {
+                                                            const files = Array.from(e.target.files);
+                                                            const newFiles = files.map(file => ({
+                                                                file,
+                                                                url: URL.createObjectURL(file),
+                                                                type: file.type.startsWith('video') ? 'video' : 'image'
+                                                            }));
+                                                            setSelectedFiles([...selectedFiles, ...newFiles]);
+                                                        }}
+                                                    />
                                                 </div>
                                                 <div className="flex gap-4">
 
@@ -614,6 +703,7 @@ export default function SupportTicket() {
                 isOpen={isImageModalOpen}
                 onClose={() => setIsImageModalOpen(false)}
                 imageUrl={previewImage}
+                type={previewType}
             />
             <style dangerouslySetInnerHTML={{
                 __html: `

@@ -425,23 +425,36 @@ export const ConfirmationModal = ({ isOpen, onClose, onConfirm, type = "approve"
     );
 };
 
-export const ImageModal = ({ isOpen, onClose, imageUrl }) => {
+export const ImageModal = ({ isOpen, onClose, imageUrl, type = 'image' }) => {
     if (!isOpen) return null;
+
+    // Auto-detect if not blob
+    const isVideo = type === 'video' || (imageUrl && !imageUrl.startsWith('blob:') && imageUrl.match(/\.(mp4|webm|ogg|mov|m4v)$|^data:video/i));
+
     return (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in" onClick={onClose}></div>
             <div className="relative max-w-[90vw] max-h-[90vh] z-10 animate-scale-up group">
                 <button
                     onClick={onClose}
-                    className="absolute -top-12 right-0 w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center transition-all"
+                    className="absolute -top-12 right-1/2 translate-x-1/2 md:right-0 md:translate-x-0 w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center transition-all shadow-xl"
                 >
                     <i className="bi bi-x-lg"></i>
                 </button>
-                <img
-                    src={imageUrl}
-                    className="w-full h-full object-contain rounded-2xl shadow-2xl border-4 border-white/10"
-                    alt="Preview"
-                />
+                {isVideo ? (
+                    <video
+                        src={imageUrl}
+                        controls
+                        autoPlay
+                        className="w-full h-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border-4 border-white/10"
+                    />
+                ) : (
+                    <img
+                        src={imageUrl}
+                        className="w-full h-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border-4 border-white/10"
+                        alt="Preview"
+                    />
+                )}
             </div>
         </div>
     );
