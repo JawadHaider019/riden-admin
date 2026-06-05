@@ -118,7 +118,7 @@ export default function AdminLayout({ children, title }) {
                     onNotificationClick={() => setIsNotificationOpen(true)}
                 />
                 <main className="pt-[72px]">
-                    <div className="py-8 px-[30px]">
+                    <div className="py-4 px-[30px]">
                         <PageContainer>
                             {children}
                         </PageContainer>
