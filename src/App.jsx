@@ -25,7 +25,8 @@ import VehicleManagement from './pages/Admin/VehicleManagement';
 import VehicleCreate from './pages/Admin/VehicleCreate';
 import VehicleEdit from './pages/Admin/VehicleEdit';
 import VehicleDetail from './pages/Admin/VehicleDetail';
-import SupportTicket from './pages/Admin/SupportTicket';
+import SupportManagement from './pages/Admin/SupportManagement';
+import SupportDetail from './pages/Admin/SupportDetail';
 import ReportManagement from './pages/Admin/ReportManagement';
 import Analytics from './pages/Admin/Analytics';
 import CMSManagement from './pages/Admin/CMSManagement';
@@ -116,8 +117,9 @@ function App() {
 
           {/* Support & Reports */}
           <Route element={<ProtectedRoute module="Support Ticket" />}>
-            <Route path="/support" element={<SupportTicket />} />
-            <Route path="/support/report" element={<SupportTicket />} />
+            <Route path="/support" element={<SupportManagement />} />
+            <Route path="/support/report" element={<SupportManagement />} />
+            <Route path="/support/detail/:id" element={<SupportDetail />} />
           </Route>
           <Route element={<ProtectedRoute module="Report Management" />}>
             <Route path="/report-management" element={<ReportManagement />} />
