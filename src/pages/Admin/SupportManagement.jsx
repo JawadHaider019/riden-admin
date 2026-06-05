@@ -49,7 +49,7 @@ export default function SupportManagement() {
             passenger: { id: 25, first_name: 'Jane', last_name: 'Smith', phone: '+987654321', email: 'jane@example.com', avatar_url: '' },
             complaint_type: 'Behavior',
             status: 'open',
-            priority: 'urgent',
+            priority: 'high',
             subject: 'Driver was rude during the trip',
             description: 'The driver was very unprofessional and used offensive language when I asked him to turn on the AC.',
             images: [
@@ -187,17 +187,16 @@ export default function SupportManagement() {
                         <td className="py-[16px] px-[15px] text-[14px] font-[600] text-[#4B5563] text-center">{c.complaint_type}</td>
                         <td className="py-[16px] px-[15px] text-center">
                             <Badge variant={
-                                c.priority === 'urgent' ? 'danger' :
-                                    c.priority === 'high' ? 'warning' :
-                                        c.priority === 'medium' ? 'info' : 'active'
+                                c.priority === 'high' ? 'danger' :
+                                    c.priority === 'medium' ? 'info' : 'active'
                             }>
                                 {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : 'Normal'}
                             </Badge>
                         </td>
                         <td className="py-[16px] px-[15px] text-center">
                             <Badge variant={
-                                c.status === 'closed' ? 'active' :
-                                    c.status === 'pending' ? 'warning' :
+                                c.status === 'closed' ? 'danger' :
+                                    c.status === 'pending' ? 'active' :
                                         c.status === 'in-progress' ? 'info' : 'danger'
                             }>
                                 {c.status.charAt(0).toUpperCase() + c.status.slice(1)}

@@ -251,21 +251,12 @@ export default function SupportDetail() {
                             >
                                 <i className="bi bi-chevron-left text-sm"></i>
                             </button>
-                            <div className="flex items-center gap-2 text-xl font-[600] text-gray-900">
-                                <span>Support Ticket </span>
 
-                            </div>
 
                             <h2 className="text-md font-[600] text-gray-900 tracking-tight">
                                 {selectedTicket?.ticket_id}
                             </h2>
-                            <Badge variant={
-                                selectedTicket?.status === 'closed' ? 'active' :
-                                    selectedTicket?.status === 'pending' ? 'warning' :
-                                        selectedTicket?.status === 'in-progress' ? 'info' : 'danger'
-                            }>
-                                {selectedTicket?.status?.toUpperCase()}
-                            </Badge>
+
                         </div>
                     </div>
 
@@ -317,13 +308,13 @@ export default function SupportDetail() {
 
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 items-start ">
                     {/* Left Column: Chat-style Interface */}
-                    <div className="lg:col-span-8 h-full flex flex-col space-y-2 min-h-0">
+                    <div className="lg:col-span-9 h-full flex flex-col space-y-2 min-h-0">
 
                         {/* Main Complaint Card (Outside of chat) */}
-                        <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden p-3">
+                        <div className="bg-[#FFF1F2] border border-gray-100 rounded-3xl shadow-sm overflow-hidden p-3">
                             <div className="flex items-center justify-between ">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-[20px] bg-[#FFF1F2] flex items-center justify-center text-[#D10000]">
+                                    <div className="w-12 h-12 rounded-[20px] bg-[#D10000] flex items-center justify-center text-white">
                                         <i className="bi bi-chat-quote-fill text-xl"></i>
                                     </div>
                                     <div>
@@ -492,9 +483,9 @@ export default function SupportDetail() {
                                             <button
                                                 onClick={handleReply}
                                                 disabled={!replyText.trim() && selectedFiles.length === 0}
-                                                className={`ml-2 w-9 h-9 shrink-0 rounded-full flex items-center justify-center transition-all ${replyText.trim() || selectedFiles.length > 0
+                                                className={`ml-2 w-9 h-9 shrink-0 rounded-full   flex items-center justify-center transition-all ${replyText.trim() || selectedFiles.length > 0
                                                     ? 'bg-[#D10000] text-white shadow-md shadow-red-100 active:scale-90'
-                                                    : 'bg-gray-100 text-gray-400'
+                                                    : 'bg-white text-[#D10000]'
                                                     }`}
                                             >
                                                 {isReplying ? (
@@ -511,7 +502,7 @@ export default function SupportDetail() {
                     </div>
 
                     {/* Right Column: Metadata Sidebar */}
-                    <div className="lg:col-span-4 space-y-2 pb-20 lg:pb-0 h-fit">
+                    <div className="lg:col-span-3 space-y-2 pb-20 lg:pb-0 h-fit">
                         {/* User Profile Card */}
                         <div className="bg-white border border-gray-100 rounded-3xl shadow-sm px-3  py-2 ">
                             <div className="flex flex-col items-center text-center">
@@ -543,7 +534,7 @@ export default function SupportDetail() {
 
                                 <Link
                                     to={`/${selectedTicket?.user_type === 'driver' ? 'drivers' : 'passenger'}/detail/${selectedTicket?.user_type === 'driver' ? selectedTicket?.driver?.id : selectedTicket?.passenger?.id}`}
-                                    className="w-full mt-2 py-3 border-2 border-gray-100 rounded-full text-[12px] font-[700] text-gray-900 hover:bg-gray-50 transition-all flex items-center justify-center gap-3"
+                                    className="w-full mt-2 py-3 border-2 border-gray-100 rounded-full text-[12px] font-[600] bg-[#D10000] text-white hover:bg-[#D10000]/90 transition-all flex items-center justify-center gap-3"
                                 >
                                     View Full Profile <i className="bi bi-arrow-right"></i>
                                 </Link>
@@ -551,7 +542,7 @@ export default function SupportDetail() {
                         </div>
 
                         {/* Ticket Metadata */}
-                        <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-3">
+                        <div className="bg-gray-50 border border-gray-100 rounded-3xl shadow-sm p-3">
                             <h4 className="text-[12px] font-[600] text-gray-400 uppercase  mb-2">Ticket Metadata</h4>
                             <div className="space-y-2">
                                 <div className="flex items-start gap-3">
