@@ -16,6 +16,7 @@ import PassengerDetail from './pages/Admin/PassengerDetail';
 import PassengerRequest from './pages/Admin/PassengerRequest';
 import FareManagement from './pages/Admin/FareManagement';
 import CommissionManagement from './pages/Admin/CommissionManagement';
+import CommissionCreate from './pages/Admin/CommissionCreate';
 import PromoManagement from './pages/Admin/PromoManagement';
 import PayoutManagement from './pages/Admin/PayoutManagement';
 import BookingManagement from './pages/Admin/BookingManagement';
@@ -107,6 +108,7 @@ function App() {
           </Route>
           <Route element={<ProtectedRoute module="Commission Management" />}>
             <Route path="/commission-management" element={<CommissionManagement />} />
+            <Route path="/commission-management/create" element={<CommissionCreate />} />
           </Route>
           <Route element={<ProtectedRoute module="Promo code Management" />}>
             <Route path="/promo-management" element={<PromoManagement />} />
