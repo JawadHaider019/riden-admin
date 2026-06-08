@@ -25,69 +25,6 @@ export default function SupportManagement() {
         last_page: 1
     });
 
-    const DUMMY_TICKETS = [
-        {
-            id: 'dummy-1',
-            ticket_id: '#TKT-9921',
-            created_at: new Date().toISOString(),
-            booking_id: 'RID-8821',
-            user_type: 'driver',
-            driver: { id: 14, first_name: 'John', last_name: 'Doe', phone: '+123456789', email: 'john@example.com', avatar_url: '' },
-            complaint_type: 'Payment Issue',
-            status: 'pending',
-            priority: 'high',
-            subject: 'Fare not credited for the last trip',
-            description: 'I completed the trip RID-8821 but the fare has not been added to my wallet yet. Please check.',
-            replies: []
-        },
-        {
-            id: 'dummy-2',
-            ticket_id: '#TKT-9922',
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-            booking_id: 'RID-8825',
-            user_type: 'passenger',
-            passenger: { id: 25, first_name: 'Jane', last_name: 'Smith', phone: '+987654321', email: 'jane@example.com', avatar_url: '' },
-            complaint_type: 'Behavior',
-            status: 'open',
-            priority: 'high',
-            subject: 'Driver was rude during the trip',
-            description: 'The driver was very unprofessional and used offensive language when I asked him to turn on the AC.',
-            images: [
-                'https://images.unsplash.com/photo-1549194388-f61be038069b?w=800',
-                'https://www.w3schools.com/html/mov_bbb.mp4'
-            ],
-            replies: []
-        },
-        {
-            id: 'dummy-3',
-            ticket_id: '#TKT-9923',
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-            booking_id: 'RID-8830',
-            user_type: 'driver',
-            driver: { id: 16, first_name: 'Mike', last_name: 'Wilson', phone: '+555444333', email: 'mike@example.com', avatar_url: '' },
-            complaint_type: 'Technical',
-            status: 'closed',
-            priority: 'low',
-            subject: 'App crashing constantly',
-            description: 'The app keeps closing when I try to accept a ride. I have reinstalled it twice.',
-            replies: []
-        },
-        {
-            id: 'dummy-4',
-            ticket_id: '#TKT-9924',
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-            booking_id: 'RID-8840',
-            user_type: 'passenger',
-            passenger: { id: 30, first_name: 'Sarah', last_name: 'Connor', phone: '+111222333', email: 'sarah@example.com', avatar_url: '' },
-            complaint_type: 'Billing',
-            status: 'in-progress',
-            priority: 'medium',
-            subject: 'Double charged for the same trip',
-            description: 'I see two transactions on my credit card for the same booking. Please refund one.',
-            replies: []
-        }
-    ];
-
     const fetchTickets = async (page = 1) => {
         try {
             setLoading(true);
@@ -99,24 +36,26 @@ export default function SupportManagement() {
                 end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
             };
             const response = await getSupportTickets(params);
-            if (response.status === 'success') {
-                const apiTickets = response.data.data;
-                const filteredDummy = DUMMY_TICKETS.filter(t => t.user_type === tab);
-                setTickets([...filteredDummy, ...apiTickets]);
+
+            // Handle Laravel-style pagination response
+            if (response.status === 'success' || response.data) {
+                const apiData = response.data;
+                const apiTickets = apiData.data || [];
+                setTickets(apiTickets);
 
                 setPagination({
-                    current_page: response.data.current_page,
-                    total: response.data.total + filteredDummy.length,
-                    per_page: response.data.per_page,
-                    last_page: response.data.last_page
+                    current_page: apiData.current_page || 1,
+                    total: apiData.total || 0,
+                    per_page: apiData.per_page || 15,
+                    last_page: apiData.last_page || 1
                 });
             } else {
-                setTickets(DUMMY_TICKETS.filter(t => t.user_type === tab));
+                setTickets([]);
             }
         } catch (error) {
             console.error("Error fetching tickets:", error);
-            setTickets(DUMMY_TICKETS.filter(t => t.user_type === tab));
-            showToast("Failed to load tickets, using sample data", "info");
+            setTickets([]);
+            showToast("Failed to load tickets from server", "error");
         } finally {
             setLoading(false);
         }

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Badge, ImageModal, useToast } from '@/components/UI';
-import { getSupportTickets, updateSupportTicketStatus, replyToSupportTicket } from '@/api/supportApi';
+import { getSupportTicketById, updateSupportTicketStatus, replyToSupportTicket } from '@/api/supportApi';
 import { format } from 'date-fns';
 
 export default function SupportDetail() {
@@ -32,64 +32,43 @@ export default function SupportDetail() {
         setIsImageModalOpen(true);
     };
 
-    // Dummy conversation history injected for demonstration
-    const injectDummyHistory = (ticket) => {
-        const dummyHistory = [
-            {
-                id: 1,
-                message: "Hello, I'm having trouble finding the pick-up point for my recent booking.",
-                created_at: new Date(new Date(ticket.created_at).getTime() + 1000 * 60 * 5).toISOString(),
-                admin_id: null
-            },
-            {
-                id: 2,
-                message: "We're sorry to hear that. Have you tried checking the map in the app? The driver is currently at the designated spot.",
-                created_at: new Date(new Date(ticket.created_at).getTime() + 1000 * 60 * 15).toISOString(),
-                admin_id: 1
-            },
-            {
-                id: 3,
-                message: "Yes, I see the map but it's a bit confusing in this area. Could you ask the driver to move to the main gate?",
-                created_at: new Date(new Date(ticket.created_at).getTime() + 1000 * 60 * 20).toISOString(),
-                admin_id: null
-            }
-        ];
-        return {
-            ...ticket,
-            replies: ticket.replies && ticket.replies.length > 0 ? ticket.replies : dummyHistory
-        };
-    };
-
-    // Fetch ticket if not passed via router state
+    // Fetch ticket
     useEffect(() => {
-        const ticketFromState = location.state?.ticket;
-        if (ticketFromState) {
-            // Ticket passed from list page — inject dummy history and show immediately
-            setSelectedTicket(injectDummyHistory(ticketFromState));
-            setLoading(false);
-        } else {
-            // Fallback: try to load from API by id
-            setLoading(true);
-            getSupportTickets({ page: 1 })
-                .then(res => {
-                    const all = res?.data?.data || [];
-                    const found = all.find(t => String(t.id) === String(id));
-                    if (found) setSelectedTicket(injectDummyHistory(found));
-                    else showToast("Ticket not found", "error");
-                })
-                .catch(() => showToast("Failed to load ticket", "error"))
-                .finally(() => setLoading(false));
-        }
+        const fetchTicket = async () => {
+            try {
+                setLoading(true);
+                const res = await getSupportTicketById(id);
+                if (res.status === 'success' || res.data) {
+                    setSelectedTicket(res.data);
+                } else {
+                    showToast("Ticket not found", "error");
+                }
+            } catch (error) {
+                console.error("Error fetching ticket:", error);
+                showToast("Failed to load ticket details", "error");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTicket();
     }, [id]);
 
     const handleStatusUpdate = async (status) => {
         try {
+            console.log(`🔄 Updating ticket ${selectedTicket.id} status to: ${status}`);
             const response = await updateSupportTicketStatus(selectedTicket.id, status);
-            if (response.status === 'success') {
+            console.log("📥 Status Update Response:", response);
+
+            if (response.status === 'success' || response.data) {
                 showToast(`Status updated to ${status}`, "success");
-                setSelectedTicket(prev => ({ ...prev, status }));
+
+                // Use the status from the server response if available, otherwise fallback to local value
+                const newStatus = response.data?.status || status;
+                setSelectedTicket(prev => ({ ...prev, status: newStatus }));
             }
         } catch (error) {
+            console.error("Status update error:", error);
             showToast("Failed to update status", "error");
         }
     };
@@ -116,19 +95,28 @@ export default function SupportDetail() {
         try {
             const formData = new FormData();
             formData.append('message', replyText);
+            formData.append('admin_id', 1); // As per user requirement
 
             selectedFiles.forEach((fileObj, index) => {
-                formData.append(`attachments[${index}]`, fileObj.raw);
+                formData.append('attachments[]', fileObj.raw);
             });
+
+            // Log payload for debugging
+            console.log("📤 Sending Reply Payload:");
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}:`, value);
+            }
 
             const response = await replyToSupportTicket(selectedTicket.id, formData);
 
             if (response.status === 'success' || response.data) {
-                const newReply = {
+                // Try to use the reply object from the server if it exists
+                const serverReply = response.data?.reply || response.data;
+                const newReply = serverReply && serverReply.id ? serverReply : {
                     id: Date.now(),
                     message: replyText,
                     created_at: new Date().toISOString(),
-                    admin_id: 1, // Current admin
+                    admin_id: 1,
                     attachments: selectedFiles.map(f => ({ url: f.url, type: f.type }))
                 };
 
@@ -277,10 +265,10 @@ export default function SupportDetail() {
                                     <div className="fixed inset-0 z-[100]" onClick={() => setIsStatusOpen(false)}></div>
                                     <div className="absolute top-full right-0 mt-2 w-36 bg-white border border-gray-100 rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[101] overflow-hidden py-2 animate-slide-up origin-top-right">
                                         {[
-                                            { value: 'open', label: 'Open' },
                                             { value: 'pending', label: 'Pending' },
-                                            { value: 'in-progress', label: 'In Progress' },
-                                            { value: 'closed', label: 'Closed' }
+                                            { value: 'closed', label: 'Closed' },
+                                            { value: 'rejected', label: 'Rejected' },
+                                            { value: 'cancelled', label: 'Cancelled' }
                                         ].map((status) => (
                                             <div
                                                 key={status.value}
@@ -388,9 +376,9 @@ export default function SupportDetail() {
                                                 ? 'bg-[#D10000] text-white rounded-tr-none'
                                                 : 'bg-white border border-gray-100 text-[#111] rounded-tl-none'
                                                 }`}>
-                                                <p className="text-[12px] font-[500] leading-relaxed">
+                                                <div className="text-[12px] font-[500] leading-relaxed">
                                                     {renderMessage(reply.message)}
-                                                </p>
+                                                </div>
 
                                                 {reply.attachments && reply.attachments.length > 0 && (
                                                     <div className={`mt-4 flex flex-wrap gap-2 ${reply.admin_id ? 'justify-end' : 'justify-start'}`}>
