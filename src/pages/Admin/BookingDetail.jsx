@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams } from 'react-router-dom';
 import { Badge, useToast, Loader } from '@/components/UI';
-import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
+import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer, MarkerF } from '@react-google-maps/api';
 import { getBookingDetail } from '@/api/bookingApi';
 import { getVehicleTypes } from '@/api/vehicleApi';
 import api, { getImageUrl } from '@/api/api';
@@ -32,80 +32,53 @@ export default function BookingDetail() {
     }, []);
 
     useEffect(() => {
-        const fetchBooking = async () => {
+        const fetchAllData = async () => {
             try {
                 setLoading(true);
-                const res = await getBookingDetail(id);
-                // Handle different payload wrappers
-                const data = res.data?.data || res.data || res;
-                if (data) {
-                    console.log('[BookingDetail] raw data:', data);
-                    let enriched = { ...data };
+                const [bookingRes, typesRes] = await Promise.all([
+                    getBookingDetail(id),
+                    getVehicleTypes()
+                ]);
 
-                    // The detail endpoint omits requested_vehicle_type — fetch it from list if needed
-                    if (!enriched.requested_vehicle_type && !enriched.vehicle_type) {
+                // 1. Types
+                const types = Array.isArray(typesRes) ? typesRes : (typesRes.vehicleTypes || typesRes.data?.vehicleTypes || typesRes.data || []);
+                setVehicleTypes(types);
+
+                // 2. Booking
+                const bookingDataRaw = bookingRes.booking || bookingRes.data?.data || bookingRes.data || bookingRes;
+                if (bookingDataRaw && bookingDataRaw.id) {
+                    setBookingData(bookingDataRaw);
+
+                    // 3. Optional: Fetch specific vehicle detail if assigned
+                    const vehicleId = bookingDataRaw.vehicle_id || bookingDataRaw.vehicle?.id;
+                    if (vehicleId) {
                         try {
-                            for (let page = 1; page <= 10; page++) {
-                                const loopRes = await api.get('/admin/bookings', { params: { page } });
-                                const list = loopRes.data?.data?.data || loopRes.data?.data || [];
-                                const match = list.find(b => b.id == id);
-                                if (match) {
-                                    enriched = {
-                                        ...enriched,
-                                        requested_vehicle_type: match.requested_vehicle_type || null,
-                                        vehicle_type: match.vehicle_type || null,
-                                    };
-                                    break;
-                                }
-                                const meta = loopRes.data?.data || {};
-                                if (meta.current_page >= meta.last_page || !meta.next_page_url) break;
-                            }
-                        } catch (_) { /* non-critical, ignore */ }
-                    }
+                            const vRes = await getVehicleDetail(vehicleId);
+                            // Detail route usually returns { vehicle: { ... } } or { data: { ... } }
+                            let vData = vRes.vehicle || (vRes.data?.data) || vRes.data || vRes;
+                            if (Array.isArray(vData)) vData = vData[0]; // Handle array wrap
 
-                    setBookingData(enriched);
+                            if (vData && typeof vData === 'object' && vData.id) {
+                                setBookingData(prev => ({
+                                    ...prev,
+                                    vehicle: { ...prev.vehicle, ...vData }
+                                }));
+                            }
+                        } catch (vErr) {
+                            console.error("Vehicle detail fetch error:", vErr);
+                        }
+                    }
                 }
             } catch (error) {
-                console.error("Error fetching booking detail:", error);
-
-                // Fallback loop if show method throws 500
-                if (error.response?.status === 500) {
-                    try {
-                        for (let page = 1; page <= 10; page++) {
-                            const loopRes = await api.get('/admin/bookings', { params: { page } });
-                            const list = loopRes.data?.data?.data || loopRes.data?.data || [];
-                            const match = list.find(b => b.id == id);
-                            if (match) {
-                                setBookingData(match);
-                                break;
-                            }
-                            const meta = loopRes.data?.data || {};
-                            if (meta.current_page >= meta.last_page || !meta.next_page_url) break;
-                        }
-                    } catch (e) {
-                        console.error("Fallback fetch error:", e);
-                    }
-                }
+                console.error("Error fetching data:", error);
+                showToast("Error loading booking details", "error");
             } finally {
                 setLoading(false);
             }
         };
 
-        if (id) fetchBooking();
-    }, [id]);
-
-    useEffect(() => {
-        const fetchTypes = async () => {
-            try {
-                const res = await getVehicleTypes();
-                const types = res.vehicleTypes || res.data?.vehicleTypes || [];
-                setVehicleTypes(types);
-            } catch (err) {
-                console.error("Error fetching vehicle types:", err);
-            }
-        };
-        fetchTypes();
-    }, []);
+        if (id) fetchAllData();
+    }, [id, showToast]);
 
     if (loading) {
         return <Loader />;
@@ -141,10 +114,23 @@ export default function BookingDetail() {
             rides: bookingData.driver.total_rides || bookingData.driver.rides_count || 0,
             reviews: bookingData.driver.reviews_count || 0
         } : { name: 'N/A', avatar: null, rides: 0, reviews: 0 },
-        vehicle: (bookingData.vehicle || bookingData.driver?.vehicle) ? {
-            name: (bookingData.vehicle?.model || bookingData.driver?.vehicle?.model) || 'N/A',
-            vehNo: (bookingData.vehicle?.license_plate || bookingData.driver?.vehicle?.license_plate || bookingData.vehicle?.plate_number || bookingData.driver?.vehicle?.plate_number) || 'N/A'
-        } : { name: 'N/A', vehNo: bookingData.vehicle_id || 'N/A' },
+        vehicle: (() => {
+            const v = bookingData.vehicle || bookingData.driver?.vehicle;
+            if (!v) return { name: 'N/A', vehNo: bookingData.vehicle_id || 'N/A', type: 'N/A', capacity: 'N/A' };
+
+            // Try to find the type in global list as a reliable fallback
+            const typeId = v.vehicle_type_id || v.type_id || bookingData.req_veh_type_id || bookingData.vehicle_type_id;
+            const globalType = (typeId && vehicleTypes && vehicleTypes.length > 0)
+                ? vehicleTypes.find(t => String(t.id) === String(typeId))
+                : null;
+
+            return {
+                name: v.model || v.brand_model || 'N/A',
+                vehNo: v.license_plate || v.plate_number || v.vehicle_number || 'N/A',
+                capacity: v.type?.capacity || v.capacity || v.max_passengers || v.seats || globalType?.capacity || globalType?.max_passengers || 'N/A',
+                type: v.type?.category || v.category_name || v.category || v.vehicle_type?.category || globalType?.category || globalType?.name || 'N/A'
+            };
+        })(),
         pickup: {
             label: 'Pickup Location',
             address: bookingData.pickup_address || 'N/A'
@@ -153,17 +139,27 @@ export default function BookingDetail() {
             label: 'Dropoff Location',
             address: bookingData.dropoff_address || 'N/A'
         },
-        distance: (bookingData.estimated_distance || bookingData.distance) ?
-            (() => {
-                const val = bookingData.estimated_distance || bookingData.distance;
-                return typeof val === 'string' && (val.includes('km') || val.includes('meters')) ? val : `${val} km`;
-            })() : 'N/A',
-        time: (bookingData.estimated_time || bookingData.duration) ?
-            (() => {
-                const val = bookingData.estimated_time || bookingData.duration;
-                return typeof val === 'string' && (val.includes('min') || val.includes('hour')) ? val : `${val} mins`;
-            })() : 'N/A',
-        fare: bookingData.fare ? `C$ ${bookingData.fare}` : '0.00',
+        distance: (() => {
+            const val = bookingData.total_distance || bookingData.distance_from_pickup_dropoff || bookingData.estimated_distance || bookingData.distance;
+            if (!val && val !== 0) return 'N/A';
+            return typeof val === 'string' && (val.includes('km') || val.includes('m')) ? val : `${parseFloat(val).toFixed(2)} km`;
+        })(),
+        time: (() => {
+            const val = bookingData.total_time || bookingData.time_from_pickup_dropoff || bookingData.estimated_time || bookingData.duration;
+            if (!val && val !== 0) return 'N/A';
+            return typeof val === 'string' && (val.includes('min') || val.includes('hour')) ? val : `${val} mins`;
+        })(),
+        fare: (() => {
+            // New shape: fare is an object with grand_total + currency
+            if (bookingData.fare && typeof bookingData.fare === 'object') {
+                const currency = bookingData.fare.currency || 'C$';
+                const total = parseFloat(bookingData.fare.grand_total || 0).toFixed(2);
+                return `${currency} ${total}`;
+            }
+            // Old shape: fare is a plain number/string
+            if (bookingData.fare) return `C$ ${bookingData.fare}`;
+            return 'N/A';
+        })(),
         passenger: bookingData.passenger ? {
             name: `${bookingData.passenger.first_name || ''} ${bookingData.passenger.last_name || ''}`.trim() || 'N/A',
             avatar: (bookingData.passenger.avatar ? getImageUrl(bookingData.passenger.avatar) : bookingData.passenger.avatar_url) || null,
@@ -187,14 +183,27 @@ export default function BookingDetail() {
             }
             return bookingData.status === 'completed' ? 'N/A' : '—';
         })(),
-        requested_vehicle_type:
-            bookingData.requested_vehicle_type ||
-            bookingData.vehicle_type ||
-            bookingData.requestedVehicleType ||
-            bookingData.requested_vehicle ||
-            null,
+        requested_vehicle_type: (() => {
+            const type = bookingData.requested_vehicle_type ||
+                bookingData.vehicle_type ||
+                bookingData.requestedVehicleType ||
+                bookingData.requested_vehicle;
+
+            if (type && typeof type === 'object') return type;
+
+            const typeId = bookingData.req_veh_type_id || bookingData.vehicle_type_id;
+            if (typeId && vehicleTypes.length > 0) {
+                return vehicleTypes.find(t => String(t.id) === String(typeId)) || null;
+            }
+            return null;
+        })(),
         status: bookingData.status,
-        vehicle_type_id: bookingData.vehicle_type_id || bookingData.vehicle_type?.id || bookingData.requested_vehicle_type?.id
+        vehicle_type_id:
+            bookingData.req_veh_type_id ||
+            bookingData.vehicle_type_id ||
+            bookingData.vehicle?.vehicle_type_id ||
+            bookingData.vehicle_type?.id ||
+            bookingData.requested_vehicle_type?.id
     };
 
     // Find car image helper
@@ -303,7 +312,56 @@ export default function BookingDetail() {
                                 {directions && (
                                     <DirectionsRenderer
                                         directions={directions}
-                                        options={{ suppressMarkers: false }}
+                                        options={{
+                                            suppressMarkers: true,
+                                            polylineOptions: {
+                                                strokeColor: '#D10000',
+                                                strokeWeight: 6,
+                                                strokeOpacity: 0.9,
+                                            }
+                                        }}
+                                    />
+                                )}
+                                {/* Pickup marker — Small Red Circle */}
+                                {bookingData?.pickup_lat && !isNaN(parseFloat(bookingData.pickup_lat)) && (
+                                    <MarkerF
+                                        position={
+                                            directions
+                                                ? directions.routes[0].legs[0].start_location
+                                                : { lat: parseFloat(bookingData.pickup_lat), lng: parseFloat(bookingData.pickup_lng) }
+                                        }
+                                        icon={{
+                                            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                                                    <circle cx="8" cy="8" r="6" fill="#D10000" stroke="white" stroke-width="2"/>
+                                                </svg>
+                                            `)}`,
+                                            scaledSize: { width: 16, height: 16 },
+                                            anchor: { x: 8, y: 8 },
+                                            labelOrigin: { x: 8, y: -10 }
+                                        }}
+                                        label={{ text: 'Pickup', fontSize: '11px', fontWeight: 'bold', color: '#D10000' }}
+                                    />
+                                )}
+                                {/* Dropoff marker — Small Red Circle */}
+                                {bookingData?.dropoff_lat && !isNaN(parseFloat(bookingData.dropoff_lat)) && (
+                                    <MarkerF
+                                        position={
+                                            directions
+                                                ? directions.routes[0].legs[0].end_location
+                                                : { lat: parseFloat(bookingData.dropoff_lat), lng: parseFloat(bookingData.dropoff_lng) }
+                                        }
+                                        icon={{
+                                            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                                                    <circle cx="8" cy="8" r="6" fill="#D10000" stroke="white" stroke-width="2"/>
+                                                </svg>
+                                            `)}`,
+                                            scaledSize: { width: 16, height: 16 },
+                                            anchor: { x: 8, y: 8 },
+                                            labelOrigin: { x: 8, y: -10 }
+                                        }}
+                                        label={{ text: 'Dropoff', fontSize: '11px', fontWeight: 'bold', color: '#D10000' }}
                                     />
                                 )}
                             </GoogleMap>
@@ -418,25 +476,34 @@ export default function BookingDetail() {
                                             )}
                                         </div>
                                         <div className="flex flex-col gap-1.5 flex-1">
-                                            <div className='grid grid-cols-2 gap-2'>
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <i className="bi bi-hash text-[#D10000]"></i>
-                                                    <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.id || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm">
+                                            {(!booking.requested_vehicle_type) ? (
+                                                <div className="flex items-center gap-2">
                                                     <i className="bi bi-car-front-fill text-[#D10000]"></i>
-                                                    <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.category || 'N/A'}</span>
+                                                    <span className="font-[700] text-gray-900 text-lg">Any Vehicle</span>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <i className="bi bi-people-fill text-[#D10000]"></i>
-                                                <span className="text-gray-600 font-medium">Capacity: {booking.requested_vehicle_type?.capacity || 'N/A'}</span>
-                                            </div>
-                                            {booking.requested_vehicle_type?.car_details && (
-                                                <div className="flex items-center gap-2 text-xs mt-0.5">
-                                                    <i className="bi bi-info-circle text-[#D10000]"></i>
-                                                    <span className="text-gray-500 italic break-words">{booking.requested_vehicle_type.car_details}</span>
-                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className='grid grid-cols-2 gap-2'>
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <i className="bi bi-hash text-[#D10000]"></i>
+                                                            <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.id || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <i className="bi bi-car-front-fill text-[#D10000]"></i>
+                                                            <span className="font-[700] text-gray-900">{booking.requested_vehicle_type?.category || booking.requested_vehicle_type?.name || 'N/A'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <i className="bi bi-people-fill text-[#D10000]"></i>
+                                                        <span className="text-gray-600 font-medium">Capacity: {booking.requested_vehicle_type?.capacity || booking.requested_vehicle_type?.max_passengers || booking.requested_vehicle_type?.seats || 'N/A'}</span>
+                                                    </div>
+                                                    {(booking.requested_vehicle_type?.car_details || booking.requested_vehicle_type?.description) && (
+                                                        <div className="flex items-center gap-2 text-xs mt-0.5">
+                                                            <i className="bi bi-info-circle text-[#D10000]"></i>
+                                                            <span className="text-gray-500 italic break-words">{booking.requested_vehicle_type.car_details || booking.requested_vehicle_type.description}</span>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -450,13 +517,25 @@ export default function BookingDetail() {
                                             )}
                                         </div>
                                         <div className="flex flex-col flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
-                                                <span className="font-[600] text-gray-900 text-base">{booking.vehicle.name}</span>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-black rounded-full shrink-0"></div>
+                                                    <span className="font-[600] text-gray-900 text-base">{booking.vehicle.name}</span>
+                                                </div>
+
                                             </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] text-gray-400 font-[700] uppercase tracking-wider">License Plate:</span>
-                                                <span className="text-xs font-[700] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 shadow-sm">{booking.vehicle.vehNo}</span>
+                                            <div className="flex items-center gap-4 mt-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[10px] text-gray-400 font-[700] uppercase tracking-wider">Plate:</span>
+                                                    <span className="text-xs font-[600] text-[#D10000] bg-red-50 px-2 py-0.5 rounded-full border border-red-100">{booking.vehicle.vehNo}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <i className="bi bi-people-fill text-[#D10000] text-xs"></i>
+                                                    <span className="text-xs font-bold text-gray-700">{booking.vehicle.capacity} Seats</span>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-[#D10000] bg-red-50 border border-gray-100 px-2 py-0.5 rounded-full uppercase">
+                                                    Type: {booking.vehicle.type}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -546,6 +625,6 @@ export default function BookingDetail() {
                     </div>
                 </div>
             </div>
-        </AdminLayout>
+        </AdminLayout >
     );
 }
