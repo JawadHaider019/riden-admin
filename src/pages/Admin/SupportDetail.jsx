@@ -110,14 +110,15 @@ export default function SupportDetail() {
             const response = await replyToSupportTicket(selectedTicket.id, formData);
 
             if (response.status === 'success' || response.data) {
-                // Try to use the reply object from the server if it exists
-                const serverReply = response.data?.reply || response.data;
+                // Server returns the reply object directly as response.data
+                // It has { id, message, created_at, admin_id, attachments: [{ file_url, file_type, ... }] }
+                const serverReply = response.data;
                 const newReply = serverReply && serverReply.id ? serverReply : {
                     id: Date.now(),
                     message: replyText,
                     created_at: new Date().toISOString(),
                     admin_id: 1,
-                    attachments: selectedFiles.map(f => ({ url: f.url, type: f.type }))
+                    attachments: selectedFiles.map(f => ({ file_url: f.url, file_type: f.type }))
                 };
 
                 setSelectedTicket(prev => ({
@@ -316,22 +317,23 @@ export default function SupportDetail() {
 
 
 
-                            {selectedTicket?.images && selectedTicket.images.length > 0 && (
-                                <div className="flex flex-wrap gap-3">
-                                    {selectedTicket.images.map((img, idx) => {
-                                        const isVideo = img.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
+                            {selectedTicket?.attachments && selectedTicket.attachments.filter(a => !a.ticket_reply_id).length > 0 && (
+                                <div className="flex flex-wrap gap-3 mt-3">
+                                    {selectedTicket.attachments.filter(a => !a.ticket_reply_id).map((att, idx) => {
+                                        const src = att.file_url || att.url;
+                                        const isVideo = att.file_type === 'video' || src?.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
                                         return (
                                             <div
                                                 key={idx}
                                                 className="relative w-16 h-10 rounded-xl overflow-hidden border border-gray-100 cursor-pointer group shadow-sm"
-                                                onClick={() => openImagePreview(img, isVideo ? 'video' : 'image')}
+                                                onClick={() => openImagePreview(src, isVideo ? 'video' : 'image')}
                                             >
                                                 {isVideo ? (
                                                     <div className="w-full h-full bg-[#111] flex items-center justify-center">
                                                         <i className="bi bi-play-fill text-white text-3xl"></i>
                                                     </div>
                                                 ) : (
-                                                    <img src={img} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                    <img src={src} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                                 )}
                                                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                     <i className="bi bi-zoom-in text-white text-xl"></i>
@@ -382,15 +384,25 @@ export default function SupportDetail() {
 
                                                 {reply.attachments && reply.attachments.length > 0 && (
                                                     <div className={`mt-4 flex flex-wrap gap-2 ${reply.admin_id ? 'justify-end' : 'justify-start'}`}>
-                                                        {reply.attachments.map((att, aIdx) => (
-                                                            <div
-                                                                key={aIdx}
-                                                                className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-white/20 cursor-pointer"
-                                                                onClick={() => openImagePreview(att.url)}
-                                                            >
-                                                                <img src={att.url} className="w-full h-full object-cover" />
-                                                            </div>
-                                                        ))}
+                                                        {reply.attachments.map((att, aIdx) => {
+                                                            const src = att.file_url || att.url;
+                                                            const isVideo = att.file_type === 'video' || src?.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
+                                                            return (
+                                                                <div
+                                                                    key={aIdx}
+                                                                    className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-white/20 cursor-pointer"
+                                                                    onClick={() => openImagePreview(src, isVideo ? 'video' : 'image')}
+                                                                >
+                                                                    {isVideo ? (
+                                                                        <div className="w-full h-full bg-[#111] flex items-center justify-center">
+                                                                            <i className="bi bi-play-fill text-white text-xl"></i>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <img src={src} className="w-full h-full object-cover" />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                             </div>
