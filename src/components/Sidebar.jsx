@@ -44,7 +44,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             return true;
         }
 
-        if (Object.keys(adminObj).length === 0) return true;
+        if (!adminObj || Object.keys(adminObj).length === 0) return true;
 
         // Super admin check (lenient type checking)
         if (adminObj.is_super == true || adminObj.is_super == 1 || adminObj.is_super == '1') {

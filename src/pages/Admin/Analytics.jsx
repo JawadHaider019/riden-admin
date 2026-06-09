@@ -16,6 +16,7 @@ import {
 import { format, startOfWeek, startOfMonth, startOfYear, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+const LIBRARIES = ['places'];
 
 // Helper component for images with fallback to initials
 const SafeImage = ({ src, alt, initials, className, fallbackClassName }) => {
@@ -69,7 +70,7 @@ export default function Analytics() {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: GOOGLE_MAPS_KEY,
-        libraries: ['places']
+        libraries: LIBRARIES
     });
 
     useEffect(() => {

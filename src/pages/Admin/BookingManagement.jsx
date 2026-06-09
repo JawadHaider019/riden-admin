@@ -316,10 +316,10 @@ export default function BookingManagement() {
                 b.id,
                 b.driver?.name || (b.driver?.first_name ? `${b.driver.first_name} ${b.driver.last_name || ''}` : 'N/A'),
                 b.passenger?.name || (b.passenger?.first_name ? `${b.passenger.first_name} ${b.passenger.last_name || ''}` : 'N/A'),
-                `C$ ${b.fare || '0'}`,
+                b.fare?.grand_total ? `${b.fare.currency || 'CAD'} ${parseFloat(b.fare.grand_total).toFixed(2)}` : '0.00',
                 (b.vehicle?.license_plate || b.driver?.vehicle?.license_plate || 'N/A'),
-                b.pickup_address || 'N/A',
-                b.dropoff_address || 'N/A',
+                b.pickup_address || b.pickup_location || 'N/A',
+                b.dropoff_address || b.dropoff_location || 'N/A',
                 b.estimated_distance || b.distance || '0 km',
                 b.status?.toUpperCase() || 'N/A'
             ]);
@@ -460,7 +460,7 @@ export default function BookingManagement() {
                                             </div>
                                         }>
                                             <span className="hover:text-[#D10000] cursor-help">
-                                                {booking.driver?.first_name ? `${booking.driver.first_name} ${booking.driver.last_name || ''}` : 'Not Assigned'}
+                                                {booking.driver?.name || (booking.driver?.first_name ? `${booking.driver.first_name} ${booking.driver.last_name || ''}` : 'Not Assigned')}
                                             </span>
                                         </Tooltip>
                                     ) : 'Not Assigned'}
@@ -547,15 +547,17 @@ export default function BookingManagement() {
                             </td>
 
                             <td className="py-[18px] px-[10px] text-[14px] font-[600] text-[#111] text-center whitespace-nowrap">
-                                {booking.fare || '0.00'}
+                                {booking.fare?.grand_total
+                                    ? <span><span className="text-[11px] text-gray-400 font-[600] mr-1"></span>{parseFloat(booking.fare.grand_total).toFixed(2)}</span>
+                                    : <span className="text-gray-400">—</span>}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.pickup_address}>
-                                {booking.pickup_address || 'N/A'}
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.pickup_address || booking.pickup_location}>
+                                {booking.pickup_address || booking.pickup_location || 'N/A'}
                             </td>
 
-                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.dropoff_address}>
-                                {booking.dropoff_address || 'N/A'}
+                            <td className="py-[18px] px-[10px] text-[14px] font-[500] text-[#6B7280] text-center max-w-[200px] truncate" title={booking.dropoff_address || booking.dropoff_location}>
+                                {booking.dropoff_address || booking.dropoff_location || 'N/A'}
                             </td>
 
                             <td className="py-[18px] px-[10px] text-center">

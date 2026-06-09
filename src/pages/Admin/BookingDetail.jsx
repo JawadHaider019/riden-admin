@@ -10,6 +10,7 @@ import api, { getImageUrl } from '@/api/api';
 import { format } from 'date-fns';
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+const LIBRARIES = ['places'];
 
 export default function BookingDetail() {
     const { id } = useParams();
@@ -22,7 +23,7 @@ export default function BookingDetail() {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: GOOGLE_MAPS_KEY,
-        libraries: ['places']
+        libraries: LIBRARIES
     });
 
     const [mapInstance, setMapInstance] = useState(null);

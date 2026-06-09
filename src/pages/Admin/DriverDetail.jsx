@@ -9,6 +9,8 @@ import { formatDate } from '@/utils/formatters';
 import { reverseGeocode, isPlusCode } from '@/utils/geoUtils';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
+const LIBRARIES = ['places'];
+
 export default function DriverDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -23,7 +25,7 @@ export default function DriverDetail() {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
-        libraries: ['places']
+        libraries: LIBRARIES
     });
 
     const [mapInstance, setMapInstance] = useState(null);
