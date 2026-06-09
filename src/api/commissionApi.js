@@ -13,6 +13,6 @@ export const updateCommissionSetting = async (data) => {
  * Get all commission rules
  */
 export const getCommissions = async () => {
-    const res = await api.get('/admin/commissions');
+    const res = await api.get('/admin/commissions/settings');
     return res.data;
 };

@@ -16,7 +16,13 @@ export default function CommissionManagement() {
             setLoading(true);
             const response = await getCommissions();
             if (response.status === 'success') {
-                setCommissions(response.data || []);
+                const processedData = (response.settings || []).map(item => ({
+                    ...item,
+                    applicable_days: typeof item.applicable_days === 'string'
+                        ? JSON.parse(item.applicable_days)
+                        : item.applicable_days
+                }));
+                setCommissions(processedData);
             }
         } catch (error) {
             console.error("Error fetching commissions:", error);
@@ -113,12 +119,12 @@ export default function CommissionManagement() {
                         <tr key={i} className={`hover:bg-black/[0.01] transition-colors border-b border-[#F3F4F6] ${isEditing ? 'bg-red-50/30' : ''}`}>
                             <td className="py-[14px] px-[20px] text-center">
                                 <span className="text-[14px] font-[600] text-[#111] uppercase italic tracking-tight">
-                                    {row.vehicle_type?.category || 'N/A'}
+                                    {row.vehicle_name || 'N/A'}
                                 </span>
                             </td>
                             <td className="py-[14px] px-[20px] text-center">
                                 <span className="text-[14px] font-[600] text-[#4B5563]">
-                                    {row.service_area?.area_name || 'N/A'}
+                                    {row.area_name || 'N/A'}
                                 </span>
                             </td>
                             <td className="py-[14px] px-[20px] text-center">
