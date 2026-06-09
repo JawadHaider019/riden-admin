@@ -10,6 +10,9 @@ import { formatDate } from '@/utils/formatters';
 import { reverseGeocode, isPlusCode } from '@/utils/geoUtils';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
+const LIBRARIES = ['places'];
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+
 export default function PassengerDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -30,7 +33,8 @@ export default function PassengerDetail() {
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY
+        googleMapsApiKey: GOOGLE_MAPS_KEY,
+        libraries: LIBRARIES
     });
 
     useEffect(() => {
