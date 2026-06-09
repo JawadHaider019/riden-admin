@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminProfile } from '../api/auth';
-import { getImageUrl } from '../api/api';
+import api, { getImageUrl } from '../api/api';
+import { Avatar } from './UI';
 
 export default function Header({ title, isCollapsed, onNotificationClick, unreadCount }) {
     // 💡 Initialize from storage to prevent "flicker" on reload/navigation
@@ -67,10 +68,11 @@ export default function Header({ title, isCollapsed, onNotificationClick, unread
                             <span className="text-[10px] font-[600] text-[#D10000] uppercase tracking-widest">{admin?.is_super ? 'Super Admin' : 'Admin'}</span>
                         </div>
                         <div className="relative">
-                            <img
-                                src={admin?.avatar ? getImageUrl(admin.avatar) : `https://ui-avatars.com/api/?name=${name}&background=random`}
-                                className="w-[40px] h-[40px] rounded-full object-cover border-2 border-white shadow-md group-hover:border-[#D10000] transition-all"
-                                alt="Avatar"
+                            <Avatar
+                                src={admin?.avatar ? getImageUrl(admin.avatar) : null}
+                                fullName={name}
+                                size="w-[40px] h-[40px]"
+                                className="border-2 border-white shadow-md group-hover:border-[#D10000] transition-all"
                             />
                             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
                         </div>

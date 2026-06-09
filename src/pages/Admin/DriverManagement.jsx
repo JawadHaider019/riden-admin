@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip, Loader } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip, Loader, Avatar } from '@/components/UI';
 import { useNavigate } from 'react-router-dom';
 import { startOfWeek } from 'date-fns';
 import { getDrivers } from '../../api/driverApi';
@@ -304,7 +304,7 @@ export default function DriverManagement() {
             />
 
             {/* Table */}
-            <Table headers={['ID', 'Name', 'Phone Number', 'Joined Date', 'Status', 'Action']}>
+            <Table headers={['ID', 'Name', 'Phone Number', 'Vehicle', 'Joined Date', 'Status', 'Action']}>
                 {loading ? (
                     <tr><td colSpan="6" className="text-center py-20"><Loader fullScreen={false} /></td></tr>
                 ) : drivers.length === 0 ? (
@@ -320,22 +320,22 @@ export default function DriverManagement() {
                             <td className="py-[18px] px-[30px] text-[#6B7280] font-[600] italic tracking-tight">{d.id}</td>
                             <td className="py-[18px] px-[30px]">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-[44px] h-[44px] rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100 shrink-0">
-                                        <img
-                                            src={d.avatar ? getImageUrl(d.avatar) : d.avatar_url}
-                                            className="w-full h-full object-cover"
-                                            alt=""
-                                            onError={(e) => {
-                                                if (!e.target.src.includes('ui-avatars.com')) {
-                                                    e.target.src = `https://ui-avatars.com/api/?name=${d.first_name}+${d.last_name}&background=random`;
-                                                }
-                                            }}
-                                        />
-                                    </div>
+                                    <Avatar
+                                        src={d.avatar ? getImageUrl(d.avatar) : d.avatar_url}
+                                        firstName={d.first_name}
+                                        lastName={d.last_name}
+                                        size="w-[44px] h-[44px]"
+                                        className="border-2 border-white shadow-sm"
+                                    />
                                     <span className="font-[600] text-[#111]">{d.first_name} {d.last_name}</span>
                                 </div>
                             </td>
                             <td className="py-[18px] px-[30px] text-[#111] font-[600]">{d.phone}</td>
+                            <td className="py-[18px] px-[30px]">
+                                <span className={`text-[13px] font-[600] ${d.vehicle || d.vehicle_model ? 'text-gray-900' : 'text-gray-400 italic'}`}>
+                                    {d.vehicle?.model || d.vehicle_model || 'Not Assigned'}
+                                </span>
+                            </td>
                             <td className="py-[18px] px-[30px] text-[#111] font-[600]">{formatDate(d.created_at)}</td>
                             <td className="py-[18px] px-[30px]">
                                 <Badge variant={d.status?.toLowerCase()}>{d.status}</Badge>

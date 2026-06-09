@@ -304,8 +304,8 @@ export default function VehicleManagement() {
                                         <div className="flex items-center gap-2"><i className="bi bi-envelope text-[#D10000]"></i> <span className="lowercase">{v.driver?.email || 'N/A'}</span></div>
                                     </div>
                                 }>
-                                    <span className="text-[14px] font-[600] text-[#D10000] pb-0.5 cursor-help transition-colors]">
-                                        {v.driver ? `${v.driver.first_name} ${v.driver.last_name || ''}` : (driverMap[v.driver_id]?.name || v.driver_id)}
+                                    <span className={`text-[14px] font-[600] ${v.driver || v.driver_id ? 'text-[#D10000]' : 'text-gray-400 italic'} pb-0.5 cursor-help transition-colors]`}>
+                                        {v.driver ? `${v.driver.first_name} ${v.driver.last_name || ''}` : (driverMap[v.driver_id]?.name || v.driver_id || 'Not Assigned')}
                                     </span>
                                 </Tooltip>
                             </td>

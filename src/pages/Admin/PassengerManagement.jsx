@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip, Loader } from '@/components/UI';
+import { Table, Badge, Button, SearchBar, Tabs, DateRangePicker, DatePickerStyles, Pagination, useToast, Tooltip, Loader, Avatar } from '@/components/UI';
 import { getPassengers } from '@/api/passengerApi';
 import { getImageUrl } from '@/api/api';
 import { formatDate } from '@/utils/formatters';
@@ -324,18 +324,13 @@ export default function PassengerManagement() {
                                     <td className="py-[18px] px-[30px] font-[600] text-gray-400 italic">{p.id}</td>
                                     <td className="py-[18px] px-[30px]">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-[44px] h-[44px] rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
-                                                <img
-                                                    src={p.avatar ? getImageUrl(p.avatar) : p.avatar_url}
-                                                    className="w-full h-full object-cover"
-                                                    alt=""
-                                                    onError={(e) => {
-                                                        if (!e.target.src.includes('ui-avatars.com')) {
-                                                            e.target.src = `https://ui-avatars.com/api/?name=${p.first_name}+${p.last_name}&background=random`;
-                                                        }
-                                                    }}
-                                                />
-                                            </div>
+                                            <Avatar
+                                                src={p.avatar ? getImageUrl(p.avatar) : p.avatar_url}
+                                                firstName={p.first_name}
+                                                lastName={p.last_name}
+                                                size="w-[44px] h-[44px]"
+                                                className="border-2 border-white shadow-sm"
+                                            />
                                             <span className="font-[600] text-[#111]">{p.first_name + " " + (p.last_name || '')}</span>
                                         </div>
                                     </td>

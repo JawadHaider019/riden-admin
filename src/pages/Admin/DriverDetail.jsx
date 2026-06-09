@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { InputWrapper, Input, useToast, Loader, Tooltip } from '@/components/UI';
+import { InputWrapper, Input, useToast, Loader, Tooltip, Avatar } from '@/components/UI';
 import { getDriverById, updateDriver, toggleDriverStatus, deleteDriver, updateDocumentStatus } from '../../api/driverApi';
-import { getBookings } from '../../api/bookingApi';
 import { getImageUrl } from '@/api/api';
 import api from '@/api/api';
 import { formatDate } from '@/utils/formatters';
@@ -139,14 +138,14 @@ export default function DriverDetail() {
                 },
                 vehicles: driverData.vehicles || (driverData.vehicle ? [{
                     ...driverData.vehicle,
-                    license_plate: driverData.vehicle.license_plate || 'N/A',
-                    type: driverData.vehicle.type || 'N/A'
+                    license_plate: driverData.vehicle.license_plate || 'Not Assigned',
+                    type: driverData.vehicle.type || 'Not Assigned'
                 }] : [{
-                    model: driverData.vehicle_model || 'N/A',
-                    year: driverData.vehicle_year || 'N/A',
-                    color: driverData.vehicle_color || 'N/A',
-                    license_plate: driverData.license_plate || 'N/A',
-                    type: driverData.vehicle_type || 'N/A'
+                    model: driverData.vehicle_model || 'Not Assigned',
+                    year: driverData.vehicle_year || 'Not Assigned',
+                    color: driverData.vehicle_color || 'Not Assigned',
+                    license_plate: driverData.license_plate || 'Not Assigned',
+                    type: driverData.vehicle_type || 'Not Assigned'
                 }]),
                 gender: driverData.gender || 'N/A',
                 phone: driverData.phone || 'N/A',
@@ -188,84 +187,13 @@ export default function DriverDetail() {
             }
 
 
-            // Fetch rides with a robust strategy
-            let ridesData = driverData.rides || driverData.bookings;
-            if (!ridesData || ridesData.length === 0) {
-                console.log(`DEBUG: Starting robust bookings fetch for ID: ${id}`);
-                try {
-                    // Strategy 1: Try multiple param names
-                    let bookingsRes = await getBookings({ driver_id: id, driver: id, limit: 100 });
-                    console.log("DEBUG: Strategy 1 (driver_id/driver) Response:", bookingsRes);
+            // Use bookings directly from the driver detail response — no separate API call needed
+            const rawBookings = driverData.bookings || driverData.rides || [];
+            const enrichedRides = Array.isArray(rawBookings) ? rawBookings : [];
+            const totalRideCount = enrichedRides.length;
 
-                    let list = bookingsRes.data?.data || bookingsRes.data || [];
-
-                    // Strategy 2: If empty, try fetching recent and filtering locally
-                    if (!Array.isArray(list) || list.length === 0) {
-                        console.log("DEBUG: Strategy 1 empty. Trying Strategy 2 (local filter)");
-                        const allBookingsRes = await getBookings({ limit: 200 });
-                        const allList = allBookingsRes.data?.data || allBookingsRes.data || [];
-                        list = allList.filter(b =>
-                            String(b.driver_id) === String(id) ||
-                            String(b.driver?.id) === String(id)
-                        );
-                        console.log(`DEBUG: Strategy 2 found ${list.length} matches locally`);
-                    }
-
-                    ridesData = list;
-                } catch (e) {
-                    console.error("DEBUG: Error in robust bookings fetch:", e);
-                    ridesData = [];
-                }
-            }
-
-            console.log("DEBUG: Final Rides/Bookings data for UI:", ridesData);
-
-            // Strategy: Robust Enrichment of Rides (Names & Addresses)
-            const rawRides = Array.isArray(ridesData) ? ridesData : [];
-            let enrichedRides = [...rawRides];
-
-            try {
-                const needsDetails = rawRides.some(r => !r.passenger_name && !r.pickup_address);
-                if (needsDetails) {
-                    // Fetch Bookings & Passengers in parallel efficiently
-                    const [bRes, pRes] = await Promise.all([
-                        api.get('/admin/bookings', { params: { limit: 500 } }).catch(() => null),
-                        api.get('/admin/passengers', { params: { limit: 500 } }).catch(() => null)
-                    ]);
-
-                    const bMap = {};
-                    if (bRes) (bRes.data?.data?.data || bRes.data?.data || []).forEach(b => { bMap[b.id] = b; });
-
-                    const newPMap = { ...passengersMap };
-                    if (pRes) {
-                        const list = pRes.data?.data?.data || pRes.data?.data || [];
-                        list.forEach(p => {
-                            newPMap[p.id] = {
-                                name: `${p.first_name || p.name || ''} ${p.last_name || ''}`.trim(),
-                                email: p.email || 'N/A',
-                                phone: p.phone || 'N/A'
-                            };
-                        });
-                        setPassengersMap(newPMap);
-                    }
-
-                    enrichedRides = rawRides.map(r => {
-                        const bMatch = bMap[r.id];
-                        const pData = newPMap[r.passenger_id];
-
-                        return {
-                            ...r,
-                            passenger_name: r.passenger_name || pData?.name || (bMatch?.passenger_name || (bMatch?.passenger ? `${bMatch.passenger.first_name || ''} ${bMatch.passenger.last_name || ''}`.trim() : null)),
-                            passenger_email: r.passenger_email || pData?.email || bMatch?.passenger_email || bMatch?.passenger?.email,
-                            passenger_phone: r.passenger_phone || pData?.phone || bMatch?.passenger_phone || bMatch?.passenger?.phone,
-                            pickup_address: r.pickup_address || bMatch?.pickup_address,
-                            dropoff_address: r.dropoff_address || bMatch?.dropoff_address
-                        };
-                    });
-                }
-            } catch (pe) {
-                console.error("DEBUG: Primary enrichment failed:", pe);
-            }
+            finalDriver.stats.total_rides = totalRideCount;
+            console.log(`DEBUG: Driver has ${totalRideCount} bookings from detail response`);
 
             finalDriver.rides = enrichedRides.map(r => ({
                 ...r,
@@ -573,22 +501,11 @@ export default function DriverDetail() {
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
                         <div className="relative">
-                            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 bg-gray-200">
-                                <img
-                                    src={
-                                        avatarPreview ||
-                                        (driver.avatar ? getImageUrl(driver.avatar) : driver.avatar_url)
-                                    }
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                    onError={(e) => {
-                                        if (!e.target.src.includes('ui-avatars.com')) {
-                                            e.target.src = `https://ui-avatars.com/api/?name=${driver.name || driver.first_name}&background=random`;
-                                        }
-                                    }}
-                                />
-                            </div>
-                            {/* <div className={`absolute top-0 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${driverStatus === 'active' ? 'bg-green-500' : driverStatus === 'blocked' ? 'bg-red-500' : 'bg-yellow-500'}`}></div> */}
+                            <Avatar
+                                src={avatarPreview || (driver.avatar ? getImageUrl(driver.avatar) : driver.avatar_url)}
+                                fullName={driver.name}
+                                size="w-14 h-14"
+                            />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -793,21 +710,11 @@ export default function DriverDetail() {
                                         <div className="flex items-center justify-between py-2 border-b border-gray-100">
                                             <span className="text-sm font-semibold text-gray-500 w-1/3">Profile Image</span>
                                             <div className="w-2/3 flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-gray-200">
-                                                    <img
-                                                        src={
-                                                            avatarPreview ||
-                                                            (driver.avatar ? getImageUrl(driver.avatar) : driver.avatar_url)
-                                                        }
-                                                        className="w-full h-full object-cover"
-                                                        alt=""
-                                                        onError={(e) => {
-                                                            if (!e.target.src.includes('ui-avatars.com')) {
-                                                                e.target.src = `https://ui-avatars.com/api/?name=${driver.name || driver.first_name}&background=random`;
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
+                                                <Avatar
+                                                    src={avatarPreview || (driver.avatar ? getImageUrl(driver.avatar) : driver.avatar_url)}
+                                                    fullName={driver.name}
+                                                    size="w-12 h-12"
+                                                />
                                                 {isEditing && (
                                                     <label className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-[600] rounded-lg cursor-pointer transition-colors shadow-sm">
                                                         Change Image
@@ -829,6 +736,21 @@ export default function DriverDetail() {
                                                 </div>
                                             ) : (
                                                 <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.name}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between py-6 border-b border-gray-100">
+                                            <span className="text-sm font-semibold text-gray-500 w-1/3">ID</span>
+                                            {isEditing ? (
+                                                <div className="w-2/3">
+                                                    <InputWrapper icon="bi bi-person" className="h-10 mb-0">
+                                                        <Input
+                                                            value={driver.name}
+                                                            onChange={e => setDriver({ ...driver, name: e.target.value })}
+                                                        />
+                                                    </InputWrapper>
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm font-[600] text-gray-900 w-2/3">{driver.id}</span>
                                             )}
                                         </div>
 
@@ -1024,7 +946,7 @@ export default function DriverDetail() {
                                             {driver.vehicles?.length === 0 ? (
                                                 <div className="text-center py-6">
                                                     <i className="bi bi-car-front text-5xl text-gray-200"></i>
-                                                    <p className="text-gray-400 mt-4 font-medium uppercase tracking-widest text-[10px]">No vehicles registered</p>
+                                                    <p className="text-gray-400 mt-4 font-medium uppercase tracking-widest text-[10px]">Not Assigned</p>
                                                 </div>
                                             ) : (
                                                 driver.vehicles.map((v, vIdx) => {
@@ -1056,7 +978,7 @@ export default function DriverDetail() {
                                                                     <div className="relative w-full h-[240px] rounded-[24px] overflow-hidden mb-8 shadow-inner bg-gray-100 border border-gray-100">
                                                                         <img
                                                                             src={v.type?.image_path ? getImageUrl(v.type.image_path) : (v.front_image ? getImageUrl(v.front_image) : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000")}
-                                                                            className="w-full h-full object-contain p-8 bg-gray-50"
+                                                                            className="w-full h-full object-cover p-8 bg-gray-50"
                                                                             alt="Vehicle"
                                                                             onError={(e) => {
                                                                                 e.target.src = "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1000";
@@ -1548,14 +1470,12 @@ export default function DriverDetail() {
                                     <div className="p-5 space-y-4">
                                         <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider uppercase">PASSENGER</div>
                                         <div className="flex items-center gap-4 px-1 pb-1">
-                                            <div className="w-[48px] h-[48px] bg-[#FFF9E6] rounded-[14px] flex items-center justify-center text-[#92712D] font-black text-[16px]">
-                                                {(() => {
-                                                    const pData = passengersMap[selectedRide.passenger_id];
-                                                    const name = pData?.name || selectedRide.passenger_name || 'Passenger';
-                                                    const parts = name.split(' ');
-                                                    return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
-                                                })()}
-                                            </div>
+                                            <Avatar
+                                                src={null} // Force initials for now as per previous manual logic, or use passenger image if available
+                                                fullName={passengersMap[selectedRide.passenger_id]?.name || selectedRide.passenger_name || 'Passenger'}
+                                                size="w-[48px] h-[48px]"
+                                                className="bg-[#FFF9E6] text-[#92712D] text-[16px] rounded-[14px]"
+                                            />
                                             <div>
                                                 <p className="text-[14px] font-bold text-gray-900 leading-tight">
                                                     {passengersMap[selectedRide.passenger_id]?.name || selectedRide.passenger_name || 'Anonymous'}

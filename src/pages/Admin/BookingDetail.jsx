@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams } from 'react-router-dom';
-import { Badge, useToast, Loader } from '@/components/UI';
+import { Badge, useToast, Loader, Avatar } from '@/components/UI';
 import { useJsApiLoader, GoogleMap, DirectionsService, DirectionsRenderer, MarkerF } from '@react-google-maps/api';
 import { getBookingDetail } from '@/api/bookingApi';
 import { getVehicleTypes } from '@/api/vehicleApi';
@@ -116,7 +116,7 @@ export default function BookingDetail() {
         } : { name: 'N/A', avatar: null, rides: 0, reviews: 0 },
         vehicle: (() => {
             const v = bookingData.vehicle || bookingData.driver?.vehicle;
-            if (!v) return { name: 'N/A', vehNo: bookingData.vehicle_id || 'N/A', type: 'N/A', capacity: 'N/A' };
+            if (!v) return { name: 'Not Assigned', vehNo: bookingData.vehicle_id || 'Not Assigned', type: 'Not Assigned', capacity: 'Not Assigned' };
 
             // Try to find the type in global list as a reliable fallback
             const typeId = v.vehicle_type_id || v.type_id || bookingData.req_veh_type_id || bookingData.vehicle_type_id;
@@ -434,11 +434,11 @@ export default function BookingDetail() {
                                 </div>
                                 <div className="flex items-center justify-between px-1">
                                     <div className="flex items-center gap-3">
-                                        <img
-                                            src={booking.driver.avatar || `https://ui-avatars.com/api/?name=${booking.driver.name}&background=random`}
-                                            className="w-12 h-12 rounded-[14px] object-cover"
-                                            alt="Driver"
-                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${booking.driver.name}&background=random`; }}
+                                        <Avatar
+                                            src={booking.driver.avatar}
+                                            fullName={booking.driver.name}
+                                            size="w-12 h-12"
+                                            className="rounded-[14px]"
                                         />
                                         <div>
                                             <p className="text-sm font-[600] text-gray-900">{booking.driver.name}</p>
@@ -600,11 +600,11 @@ export default function BookingDetail() {
                                     <span className="text-white font-[600] text-xs uppercase tracking-wider">Passenger</span>
                                 </div>
                                 <div className="flex items-center gap-3 px-1">
-                                    <img
-                                        src={booking.passenger.avatar || `https://ui-avatars.com/api/?name=${booking.passenger.name}&background=random`}
-                                        className="w-12 h-12 rounded-[14px] object-cover"
-                                        alt="Passenger"
-                                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${booking.passenger.name}&background=random`; }}
+                                    <Avatar
+                                        src={booking.passenger.avatar}
+                                        fullName={booking.passenger.name}
+                                        size="w-12 h-12"
+                                        className="rounded-[14px]"
                                     />
                                     <div>
                                         <p className="text-sm font-[600] text-gray-900">{booking.passenger.name}</p>

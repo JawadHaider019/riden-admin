@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { startOfWeek } from 'date-fns';
 import AdminLayout from '@/layouts/AdminLayout';
-import { Badge, SearchBar, Tabs, Pagination, DateRangePicker, DatePickerStyles, Loader, useToast, DeleteModal } from '@/components/UI';
+import { Badge, SearchBar, Tabs, Pagination, DateRangePicker, DatePickerStyles, Loader, useToast, DeleteModal, Avatar } from '@/components/UI';
 import { getReviews, deleteReview } from '@/api/reviewApi';
 import { getDriverById } from '@/api/driverApi';
 import { getPassengerById } from '@/api/passengerApi';
@@ -196,9 +196,14 @@ export default function ReviewManagement() {
                             <div key={r.id} className="p-7 bg-white border border-[#E5E7EB] rounded-[20px] hover:shadow-lg hover:shadow-black/[0.03] transition-all duration-300 group">
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gray-100">
-                                            <img src={receiverImg} className="w-full h-full object-cover" alt="User" />
-                                        </div>
+                                        <Avatar
+                                            src={receiverImg}
+                                            firstName={receiver?.first_name}
+                                            lastName={receiver?.last_name}
+                                            fullName={!receiver?.first_name ? (r.receiver_type?.includes('Driver') ? 'Driver' : 'Passenger') : null}
+                                            size="w-14 h-14"
+                                            className="border-2 border-white shadow-sm"
+                                        />
                                         <div>
                                             <h4 className="text-[16px] font-[600] text-[#111]">
                                                 <UserDisplay

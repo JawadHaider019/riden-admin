@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { InputWrapper, Input, useToast, Loader, Tooltip } from '@/components/UI';
+import { InputWrapper, Input, useToast, Loader, Tooltip, Avatar } from '@/components/UI';
 import { getPassengerById, updatePassenger, togglePassengerStatus, deletePassenger } from '@/api/passengerApi';
 import { getBookings } from '@/api/bookingApi';
 import { getImageUrl } from '@/api/api';
@@ -61,17 +61,11 @@ export default function PassengerDetail() {
                 return;
             }
 
-            // Fetch rides robustly
-            let rawRides = data.rides || data.bookings || [];
-            let ridesData = Array.isArray(rawRides) ? rawRides : [];
-
-            if (ridesData.length === 0) {
-                try {
-                    const bookingsRes = await getBookings({ passenger_id: id, limit: 100 });
-                    const fetchedRides = bookingsRes.data?.data || bookingsRes.data || [];
-                    ridesData = Array.isArray(fetchedRides) ? fetchedRides : [];
-                } catch (e) { ridesData = []; }
-            }
+            // Use bookings directly from the passenger detail response — no separate API call needed
+            const rawBookings = data.bookings || data.rides || [];
+            const ridesData = Array.isArray(rawBookings) ? rawBookings : [];
+            const totalRideCount = ridesData.length;
+            console.log(`DEBUG: Passenger has ${totalRideCount} bookings from detail response`);
 
             const formatted = {
                 ...data,
@@ -81,7 +75,7 @@ export default function PassengerDetail() {
                 id: data.id || id,
                 rides: ridesData,
                 stats: {
-                    total_rides: data.total_rides || data.stats?.total_rides || ridesData.length || 0,
+                    total_rides: totalRideCount,
                     completed_rides: data.completed_rides || data.stats?.completed_rides || 0,
                     cancelled_rides: data.cancelled_rides || data.stats?.cancelled_rides || 0
                 },
@@ -280,25 +274,17 @@ export default function PassengerDetail() {
             <div className="max-w-6xl mx-auto mb-4">
 
                 {/* Header - EXACT SAME AS DRIVER */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
                         <Link to="/passenger" className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                             <i className="bi bi-chevron-left text-sm"></i>
                         </Link>
                         <div className="relative">
-                            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 bg-gray-200">
-                                <img
-                                    src={avatarPreview || (passenger.avatar ? getImageUrl(passenger.avatar) : passenger.avatar_url)}
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                    onError={(e) => {
-                                        if (!e.target.src.includes('ui-avatars.com')) {
-                                            e.target.src = `https://ui-avatars.com/api/?name=${passenger.name || passenger.first_name}&background=random`;
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <div className={`absolute top-0 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${passengerStatus === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            <Avatar
+                                src={avatarPreview || (passenger.avatar ? getImageUrl(passenger.avatar) : passenger.avatar_url)}
+                                fullName={passenger.name}
+                                size="w-14 h-14"
+                            />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -330,45 +316,7 @@ export default function PassengerDetail() {
                     </div>
                 </div>
 
-                {/* Stats Banner - EXACT SAME AS DRIVER */}
-                <div className="bg-[#FFEAEA] rounded-[16px] py-6 px-10 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
-                    {/* Total Rides */}
-                    <div className="flex items-center gap-4 flex-1 justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-car-front-fill text-xl"></i>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Total Rides</span>
-                            <span className="text-2xl font-[600] text-black leading-none">{passenger.stats.total_rides}</span>
-                        </div>
-                    </div>
 
-                    <div className="hidden md:block w-0.5 h-12 bg-[#D10000] scale-y-125 opacity-20"></div>
-
-                    {/* Completed Rides */}
-                    <div className="flex items-center gap-4 flex-1 justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-check-circle-fill text-xl"></i>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Completed Rides</span>
-                            <span className="text-2xl font-[600] text-black leading-none">{passenger.stats.completed_rides}</span>
-                        </div>
-                    </div>
-
-                    <div className="hidden md:block w-0.5 h-12 bg-[#D10000] scale-y-125 opacity-20"></div>
-
-                    {/* Cancelled Rides */}
-                    <div className="flex items-center gap-4 flex-1 justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#D10000] shadow-sm shrink-0">
-                            <i className="bi bi-x-circle-fill text-xl"></i>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-gray-800 mb-0.5">Cancelled Rides</span>
-                            <span className="text-2xl font-[600] text-black leading-none">{passenger.stats.cancelled_rides}</span>
-                        </div>
-                    </div>
-                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                     {/* Left Sidebar */}
@@ -446,18 +394,11 @@ export default function PassengerDetail() {
                                         <div className="flex items-center justify-between py-2 border-b border-gray-100">
                                             <span className="text-sm font-semibold text-gray-500 w-1/3">Profile Image</span>
                                             <div className="w-2/3 flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-gray-200">
-                                                    <img
-                                                        src={avatarPreview || (passenger.avatar ? getImageUrl(passenger.avatar) : passenger.avatar_url)}
-                                                        className="w-full h-full object-cover"
-                                                        alt=""
-                                                        onError={(e) => {
-                                                            if (!e.target.src.includes('ui-avatars.com')) {
-                                                                e.target.src = `https://ui-avatars.com/api/?name=${passenger.name || passenger.first_name}&background=random`;
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
+                                                <Avatar
+                                                    src={avatarPreview || (passenger.avatar ? getImageUrl(passenger.avatar) : passenger.avatar_url)}
+                                                    fullName={passenger.name}
+                                                    size="w-12 h-12"
+                                                />
                                                 {isEditing && (
                                                     <label className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-[600] rounded-lg cursor-pointer transition-colors shadow-sm">
                                                         Change Image
@@ -479,6 +420,21 @@ export default function PassengerDetail() {
                                                 </div>
                                             ) : (
                                                 <span className="text-sm font-[600] text-gray-900 w-2/3">{passenger.name}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between py-6 border-b border-gray-100">
+                                            <span className="text-sm font-semibold text-gray-500 w-1/3">ID</span>
+                                            {isEditing ? (
+                                                <div className="w-2/3">
+                                                    <InputWrapper icon="bi bi-person" className="h-10 mb-0">
+                                                        <Input
+                                                            value={passenger.id}
+                                                            onChange={e => setPassenger({ ...passenger, id: e.target.value })}
+                                                        />
+                                                    </InputWrapper>
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm font-[600] text-gray-900 w-2/3">{passenger.id}</span>
                                             )}
                                         </div>
 
@@ -720,9 +676,12 @@ export default function PassengerDetail() {
                                 <div className="p-5 space-y-4">
                                     <div className="bg-[#D10000] text-white px-4 py-2 rounded-[10px] text-[11px] font-bold tracking-wider uppercase">PASSENGER</div>
                                     <div className="flex items-center gap-4 px-1 pb-1">
-                                        <div className="w-[48px] h-[48px] bg-[#FFF9E6] rounded-[14px] flex items-center justify-center text-[#92712D] font-black text-[16px]">
-                                            {passenger.name.split(' ').length > 1 ? (passenger.name.split(' ')[0][0] + passenger.name.split(' ')[1][0]).toUpperCase() : passenger.name.substring(0, 2).toUpperCase()}
-                                        </div>
+                                        <Avatar
+                                            src={null} // Consistent with original logic which only used initials here
+                                            fullName={passenger.name}
+                                            size="w-[48px] h-[48px]"
+                                            className="bg-[#FFF9E6] text-[#92712D] text-[16px] rounded-[14px]"
+                                        />
                                         <div>
                                             <p className="text-[14px] font-bold text-gray-900 leading-tight">{passenger.name}</p>
                                             <p className="text-[11px] font-medium text-gray-400 mt-1">Passenger ID: {passenger.id}</p>

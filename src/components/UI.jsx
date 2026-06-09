@@ -596,6 +596,41 @@ export const Tooltip = ({ children, content, position = 'top' }) => {
         </div>
     );
 };
+export const Avatar = ({ src, firstName, lastName, fullName, className = '', size = 'w-10 h-10' }) => {
+    const [error, setError] = useState(false);
+
+    const getInitials = () => {
+        if (fullName) {
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length > 1) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        if (firstName || lastName) {
+            return ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase();
+        }
+        return '??';
+    };
+
+    if (!src || error) {
+        return (
+            <div className={`${size} rounded-full bg-[#FFEAEA] text-[#D10000] flex items-center justify-center font-[700] uppercase tracking-tighter ${className}`} style={{ fontSize: 'inherit' }}>
+                {getInitials()}
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={src}
+            className={`${size} rounded-full object-cover ${className}`}
+            onError={() => setError(true)}
+            alt=""
+        />
+    );
+};
+
 export const Loader = ({ fullScreen = true }) => {
     return (
         <div className={fullScreen ? "fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in" : "flex flex-col items-center justify-center p-8 animate-fade-in"}>

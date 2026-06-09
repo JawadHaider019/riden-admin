@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Badge, useToast, Loader } from '@/components/UI';
+import { Badge, useToast, Loader, Avatar } from '@/components/UI';
 import { getVehicleDetail, deleteVehicle } from '@/api/vehicleApi';
 import { getDriverById } from '@/api/driverApi';
 import { STORAGE_URL, getImageUrl } from '@/api/api';
@@ -185,23 +185,24 @@ export default function VehicleDetail() {
                             </div>
 
                             {/* Driver Assignment Section */}
-                            {vehicle.driver && (
+                            {vehicle.driver ? (
                                 <div className="mb-4">
                                     <div className="bg-[#D10000] rounded-xl px-4 py-2 mb-3">
                                         <span className="text-white font-[600] text-xs uppercase tracking-wider">Assigned Driver</span>
                                     </div>
                                     <div className="flex items-center justify-between px-1">
                                         <div className="flex items-center gap-3">
-                                            <img
-                                                src={getImageUrl(vehicle.driver.avatar) || `https://ui-avatars.com/api/?name=${encodeURIComponent(vehicle.driver.first_name || 'Driver')}&background=random&color=fff`}
-                                                className="w-12 h-12 rounded-[14px] object-cover"
-                                                alt="Driver"
+                                            <Avatar
+                                                src={getImageUrl(vehicle.driver.avatar)}
+                                                firstName={vehicle.driver.first_name}
+                                                lastName={vehicle.driver.last_name}
+                                                size="w-12 h-12"
+                                                className="rounded-[14px]"
                                             />
                                             <div>
                                                 <p className="text-sm font-[600] text-gray-900">
                                                     {vehicle.driver.first_name || ''} {vehicle.driver.last_name || ''}
                                                 </p>
-
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -209,6 +210,18 @@ export default function VehicleDetail() {
                                                 <i className="bi bi-telephone-fill text-sm"></i>
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mb-4">
+                                    <div className="bg-gray-100 rounded-xl px-4 py-2 mb-3">
+                                        <span className="text-gray-500 font-[600] text-xs uppercase tracking-wider">Assigned Driver</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 px-1 py-2">
+                                        <div className="w-12 h-12 rounded-[14px] bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center">
+                                            <i className="bi bi-person-x text-gray-300 text-xl"></i>
+                                        </div>
+                                        <p className="text-sm font-[600] text-gray-400 italic">Not Assigned</p>
                                     </div>
                                 </div>
                             )}
